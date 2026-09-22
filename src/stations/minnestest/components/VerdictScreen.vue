@@ -42,6 +42,7 @@ const profileLabel = computed(() =>
           </div>
           <p class="verdict__profile ink-strong">{{ profileLabel }}</p>
           <Teletype class="verdict__summary" :text="store.final.sammanfattning" :speed="22" />
+          <p v-if="store.final.facit" class="verdict__facit">{{ store.final.facit }}</p>
           <p class="verdict__registered">{{ t('verdict.score_registered') }}</p>
           <button class="crt-button crt-button--strong" @click="store.verdictDone()">
             {{ t('verdict.checkout_hint') }} ▸
@@ -118,6 +119,13 @@ const profileLabel = computed(() =>
   font-size: 1.1rem;
   line-height: 1.5;
   color: var(--color-ink-strong);
+}
+.verdict__facit {
+  color: var(--color-primary);
+  border-left: 2px solid var(--color-primary-dim);
+  padding-left: 0.7rem;
+  margin: 0;
+  line-height: 1.4;
 }
 .verdict__registered {
   color: var(--color-ink-muted);

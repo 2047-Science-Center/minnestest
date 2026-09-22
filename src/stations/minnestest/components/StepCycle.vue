@@ -1,15 +1,10 @@
 <script setup lang="ts">
 /**
- * En uppgifts-cykel för aktuellt steg (FLYKT). Förenklat läges-flöde (§3),
- * IDENTISKT för uppgift 1–3:
- *   situation  — referensbilden + caption (kontext + STORA uppgiften) + pop-up
- *                med uppgiften som titel, lägesrader och tidsgränsen (1 min).
- *   countdown  — "Uppgiften börjar om …10, 9, 8 …".
- *   think      — tänk-högt (tvåfas). UPPGIFTEN står STOR och tydlig HELA TIDEN
- *                (liten kontext-rad ovanför), så den som inte lyssnat ser den.
- *                Nedräkningstimer väl synlig; motivering efterfrågas.
- *   analys     — referensbilden dominerar (latensmask) medan /assess körs.
- *   reply      — NPC-svaret hero (+ ev. röst), NÄSTA ▸.
+ * En uppgifts-cykel för aktuellt steg. Motorn är gemensam för båda exempel
+ * (flykt / fermi); typen styr copy + om ett GISSNINGS-moment (fermi) ligger
+ * mellan tänk-högt och analys.
+ *   situation → countdown → think (tvåfas) → [guess (fermi)] → analys → reply
+ * Uppgiften/frågan står STOR och tydlig hela tiden (liten kontext ovanför).
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
@@ -26,7 +21,7 @@ import { media } from '../media/manifest'
 const { t } = useI18n()
 const store = useMinnestestStore()
 
-type Sub = 'situation' | 'countdown' | 'think' | 'analys' | 'reply'
+type Sub = 'situation' | 'countdown' | 'think' | 'guess' | 'analys' | 'reply'
 const sub = ref<Sub>('situation')
 
 const WINDOW_MS = config.stepSeconds * 1000
@@ -34,29 +29,36 @@ const WARN_MS = config.warnAtSeconds * 1000
 
 const capture = useSpeechCapture({ windowMs: WINDOW_MS, lang: config.lang })
 const manualText = ref('')
+const guessValue = ref('')
 
+const isFermi = computed(() => store.exampleType === 'fermi')
 const step = computed(() => store.currentStep)
 const stepKey = computed(() => step.value.key)
 const referenceMedia = computed(() => step.value.referenceMedia)
+const analysMedia = computed(() => step.value.analysMedia ?? step.value.referenceMedia)
 
 const context = computed(() => t(`${stepKey.value}.context`))
 const task = computed(() => t(`${stepKey.value}.task`))
 const timeLine = computed(() => t(`${stepKey.value}.time`))
+const eyebrow = computed(() => (isFermi.value ? t('skatta.title') : t('lage.title')))
+const whyLine = computed(() => (isFermi.value ? t('step.how_line') : t('step.why_line')))
+const analyzingLine = computed(() => (isFermi.value ? t('step.weighing') : t('step.analyzing')))
+const unitLabel = computed(() => (step.value.unit ? t(`unit.${step.value.unit}`) : ''))
 const popupLines = computed(() =>
   ['popup1', 'popup2', 'popup3']
     .map((k) => t(`${stepKey.value}.${k}`))
     .filter((s) => s.trim().length > 0),
 )
 
-// --- situation (beat 1 + 2) ---
+// --- situation ---
 const popupShown = ref(false)
 let popupTimer: ReturnType<typeof setTimeout> | null = null
 
-// --- countdown (beat 3) ---
-const countdownN = ref(config.startCountdown)
+// --- countdown ---
+const countdownN = ref(3)
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
-// --- think (beat 4, tvåfas) ---
+// --- think (tvåfas) ---
 const bPhase = ref<1 | 2>(1)
 const PHASE1_MS = 4500
 let phaseTimer: ReturnType<typeof setTimeout> | null = null
@@ -69,7 +71,7 @@ const timeLabel = computed(() => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 })
 
-// --- analys (latensmask) ---
+// --- analys ---
 const dwellDone = ref(false)
 const assessDone = ref(false)
 const assessResult = ref<StepAssessment | null>(null)
@@ -101,6 +103,7 @@ function enterSituation(): void {
   sub.value = 'situation'
   popupShown.value = false
   manualText.value = ''
+  guessValue.value = ''
   bPhase.value = 1
   warned.value = false
   popupTimer = setTimeout(() => (popupShown.value = true), 1500)
@@ -109,7 +112,7 @@ function enterSituation(): void {
 function ready(): void {
   clearTimers()
   sub.value = 'countdown'
-  countdownN.value = config.startCountdown
+  countdownN.value = store.example.countdownFrom
   audio.play('blip')
   countdownTimer = setInterval(() => {
     countdownN.value -= 1
@@ -167,6 +170,19 @@ function finishThink(): void {
     phaseTimer = null
   }
   capture.stop()
+  // Fermi: gissnings-pop-up innan analys. Flykt: rakt in i analys.
+  if (isFermi.value) sub.value = 'guess'
+  else enterAnalys()
+}
+
+function lockGuess(): void {
+  const raw = String(guessValue.value ?? '').replace(',', '.').replace(/\s/g, '')
+  const n = parseFloat(raw)
+  store.setGuess(Number.isFinite(n) ? n : null)
+  enterAnalys()
+}
+function skipGuess(): void {
+  store.setGuess(null)
   enterAnalys()
 }
 
@@ -175,7 +191,7 @@ function enterAnalys(): void {
   dwellDone.value = false
   assessDone.value = false
   assessResult.value = null
-  const dwellMs = media(referenceMedia.value).durationMs ?? 6000
+  const dwellMs = media(analysMedia.value).durationMs ?? 6000
   dwellTimer = setTimeout(() => {
     dwellDone.value = true
     maybeReveal()
@@ -217,7 +233,7 @@ onUnmounted(() => {
 
 <template>
   <div class="cycle">
-    <!-- SITUATION (beat 1 + 2) -->
+    <!-- SITUATION -->
     <section v-if="sub === 'situation'" class="situation">
       <div class="situation__media"><MediaSlot :id="referenceMedia" :autoplay="false" /></div>
       <div class="situation__cap">
@@ -227,7 +243,7 @@ onUnmounted(() => {
 
       <transition name="pop">
         <div v-if="popupShown" class="popup amber-frame">
-          <p class="popup__eyebrow">{{ t('lage.title') }}</p>
+          <p class="popup__eyebrow">{{ eyebrow }}</p>
           <h3 class="popup__task ink-strong">{{ task }}</h3>
           <ul class="popup__lines">
             <li v-for="(l, i) in popupLines" :key="i">{{ l }}</li>
@@ -240,13 +256,13 @@ onUnmounted(() => {
       </transition>
     </section>
 
-    <!-- COUNTDOWN (beat 3) -->
+    <!-- COUNTDOWN -->
     <section v-else-if="sub === 'countdown'" class="countdown">
       <p class="countdown__label">{{ t('countdown.prefix') }} …</p>
       <div class="countdown__num" :key="countdownN">{{ countdownN }}</div>
     </section>
 
-    <!-- THINK (beat 4, tvåfas) — UPPGIFTEN stor och tydlig HELA TIDEN -->
+    <!-- THINK — uppgiften stor och tydlig HELA TIDEN -->
     <section v-else-if="sub === 'think'" class="think" :class="bPhase === 1 ? 'tp1' : 'tp2'">
       <div class="think__ref" aria-hidden="true"><MediaSlot :id="referenceMedia" :autoplay="false" /></div>
 
@@ -260,18 +276,18 @@ onUnmounted(() => {
 
       <div v-if="bPhase === 1" class="think__prompt">
         <span class="think__mic">{{ t('step.talk_now') }}</span>
-        <p class="think__why">{{ t('step.why_line') }}</p>
+        <p class="think__why">{{ whyLine }}</p>
       </div>
 
       <template v-else>
         <div class="think__live">
           <p class="think__transcript" :class="{ 'think__transcript--empty': !capture.transcript.value }">
-            {{ capture.transcript.value || t('step.talk_motiv') }}
+            {{ capture.transcript.value || whyLine }}
           </p>
         </div>
         <div class="think__foot">
           <span class="think__mic">{{ t('step.mic_active') }}</span>
-          <span class="think__why">{{ t('step.why_line') }}</span>
+          <span class="think__why">{{ whyLine }}</span>
           <span v-if="warn && !timeUp" class="think__warn">{{ t('step.warn') }}</span>
           <span v-if="timeUp" class="think__warn">{{ t('step.time_up') }}</span>
           <button class="crt-button crt-button--strong think__done" @click="finishThink()">
@@ -294,17 +310,40 @@ onUnmounted(() => {
       </template>
     </section>
 
-    <!-- ANALYS (latensmask) -->
+    <!-- GUESS (fermi) -->
+    <section v-else-if="sub === 'guess'" class="guess">
+      <div class="guess__card amber-frame">
+        <p class="guess__title ink-strong">{{ t('guess.title') }}</p>
+        <p class="guess__sub">{{ t('guess.sub') }}</p>
+        <div class="guess__field">
+          <input
+            v-model="guessValue"
+            class="guess__input"
+            type="number"
+            inputmode="decimal"
+            :placeholder="t('guess.placeholder')"
+            @keyup.enter="lockGuess()"
+          />
+          <span class="guess__unit">{{ unitLabel }}</span>
+        </div>
+        <div class="guess__actions">
+          <button class="crt-button guess__skip" @click="skipGuess()">{{ t('guess.skip') }} ▸</button>
+          <button class="crt-button crt-button--strong" @click="lockGuess()">{{ t('guess.lock') }} ▸</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANALYS -->
     <section v-else-if="sub === 'analys'" class="analys">
-      <div class="analys__media"><MediaSlot :id="referenceMedia" :autoplay="false" /></div>
+      <div class="analys__media"><MediaSlot :id="analysMedia" :autoplay="false" /></div>
       <div class="analys__strip">
-        <span>{{ t('step.analyzing') }}</span>
+        <span>{{ analyzingLine }}</span>
         <span class="analys__dots"><i /><i /><i /></span>
         <button v-if="isPilot" class="analys__skip" @click="skipDwell()">hoppa över</button>
       </div>
     </section>
 
-    <!-- REPLY (NPC-svar) -->
+    <!-- REPLY -->
     <section v-else class="reply">
       <NpcReply
         v-if="assessResult"
@@ -459,7 +498,6 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
 }
-/* Uppgiften: STOR och tydlig i BÅDA faser. */
 .think__header {
   position: relative;
   display: flex;
@@ -496,7 +534,6 @@ onUnmounted(() => {
   border-color: var(--color-danger, #ff5a5a);
   animation: blink 0.5s steps(2, start) infinite;
 }
-/* Fas 1: bara uppmaningen under den stora frågan (inget transkript än). */
 .tp1 .think__header {
   padding-top: 8vh;
 }
@@ -572,6 +609,62 @@ onUnmounted(() => {
   padding: 0.5rem;
   font-family: var(--font-mono);
   resize: vertical;
+}
+
+/* ---------- GUESS (fermi) ---------- */
+.guess {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.guess__card {
+  width: min(92%, 40ch);
+  padding: 1.6rem 1.8rem;
+  border-radius: var(--radius, 8px);
+  background: rgba(0, 0, 0, 0.85);
+  text-align: center;
+}
+.guess__title {
+  font-family: var(--font-retro);
+  letter-spacing: 0.16em;
+  color: var(--color-primary);
+  margin: 0 0 0.4rem;
+}
+.guess__sub {
+  color: var(--color-ink-muted);
+  margin: 0 0 1.2rem;
+}
+.guess__field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-bottom: 1.2rem;
+}
+.guess__input {
+  width: 12ch;
+  background: #0a0a0a;
+  color: var(--color-ink-strong);
+  border: 1px solid var(--color-primary-dim);
+  border-radius: var(--radius, 8px);
+  padding: 0.5rem 0.7rem;
+  font-family: var(--font-retro);
+  font-size: 1.6rem;
+  text-align: right;
+}
+.guess__unit {
+  font-family: var(--font-mono);
+  color: var(--color-primary);
+  white-space: nowrap;
+}
+.guess__actions {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+}
+.guess__skip {
+  opacity: 0.7;
 }
 
 /* ---------- ANALYS ---------- */

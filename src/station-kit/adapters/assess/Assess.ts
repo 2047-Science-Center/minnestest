@@ -1,40 +1,41 @@
 /**
  * /assess-kontraktet — det generella JSON-drivna GPT-anropet, utökat till
- * per-steg + en deterministisk final-compose. En ny station = en ny
- * `configs/<id>.json` i gatewayen; DENNA kod (och frontend-adaptern) ändras ej.
- *
- * Formen speglar innehållsspec §6.1/§6.3. Fronten pratar ALDRIG direkt med
- * OpenAI — alltid via denna adapter → gateway (nyckeln bor server-side).
+ * per-steg + deterministisk final-compose, för TVÅ exempel-typer:
+ *   flykt: band + motiverat (grind).
+ *   fermi: resonemang_niva (modellen) × traff (koden) → delpoäng (matris).
+ * `configId` väljer gateway-config; koden räknar alltid siffran, modellen texten.
  */
 
-/** De fem bedömda dimensionerna (delade av båda roller; `resurs`/`anpassning`
- *  är metodspecialist-lagret, byts mot inferenslager för doktoranden). */
-export interface Dimensioner {
-  system: boolean
-  framforhallning: boolean
-  prioritering: boolean
-  resurs: boolean
-  anpassning: boolean
-}
-
 export type Band = 'Stark' | 'Godkänd' | 'Svag'
+export type FermiNiva = 'Exceptionell' | 'Stark' | 'Godkänd' | 'Svag'
+export type FermiTraff = 'prick' | 'tiopotens' | 'utanfor'
 
-/** Ett tidigare stegs bedömning, skickas som `prior[]` så modellen kan belöna
- *  att gruppen väver in det som redan hänt. */
+/** Dimensioner varierar per exempel (flykt: 5 nycklar, fermi: 5 andra). */
+export type Dimensioner = Record<string, boolean>
+
+/** Ett tidigare stegs bedömning (superset för båda exempel). */
 export interface PriorStep {
   step: number
-  band: Band
-  dimensioner: Dimensioner
-  kvitterat: string
-  miss: string
+  band?: Band
+  motiverat?: boolean
+  resonemang_niva?: FermiNiva
+  traff?: FermiTraff
+  delpoang?: number
+  guess?: number | null
+  dimensioner?: Dimensioner
+  kvitterat?: string
+  miss?: string
 }
 
 export interface StepInput {
   step: 1 | 2 | 3
   role: string
-  scenario: string
+  example: string
   transcript: string
-  /** Packlistan från steg 1 (skickas i steg 3 för retroaktiv korsreferens, §9). */
+  /** Fermi: gruppens numeriska gissning + enhet (null om de hoppade). */
+  guess?: number | null
+  unit?: string
+  /** Flykt: packlistan från steg 1 (skickas i steg 3). */
   packlista?: string
   prior: PriorStep[]
 }
@@ -42,7 +43,7 @@ export interface StepInput {
 export interface FinalInput {
   step: 'final'
   role: string
-  scenario: string
+  example: string
   prior: PriorStep[]
 }
 
@@ -51,33 +52,32 @@ export interface AssessMeta {
   modelOverride?: string
 }
 
-/** Per-steg-svar (§6.1). */
+/** Per-steg-svar (superset). Koden fyller traff/delpoang (fermi) resp. band-cap
+ *  (flykt); modellen fyller resten. */
 export interface StepAssessment {
-  band: Band
+  band?: Band
+  motiverat?: boolean
+  resonemang_niva?: FermiNiva
+  traff?: FermiTraff
+  delpoang?: number
   dimensioner: Dimensioner
-  /** Motiverade de sitt val ("varför")? false → taket är Godkänd (§5). */
-  motiverat: boolean
   kvitterat: string
   miss: string
   ankare: string
-  /** 3–4 meningar, NPC-ton — visas och (valfritt) läses upp. */
   svar_text: string
-  /** Ev. yttranden som behandlades neutralt vid genuin osäkerhet. */
   osakert: string[]
 }
 
-/** Final-compose-svar (§6.3). `poang`/`markering`/`profil` beräknas
- *  deterministiskt i gatewayen; modellen skriver bara `sammanfattning`. */
 export interface FinalResult {
   poang: number
   profil: string
   markering: string
   sammanfattning: string
+  /** Fermi: verklig svensk siffra som payoff efter landningen. */
+  facit?: string
 }
 
 export interface Assess {
-  /** Bedöm ett steg. Kastar vid nät-/serverfel (anroparen maskerar/omprövar). */
-  assessStep(input: StepInput, meta: AssessMeta): Promise<StepAssessment>
-  /** Väv ihop de tre stegen till profil + slutpoäng. */
-  composeFinal(input: FinalInput, meta: AssessMeta): Promise<FinalResult>
+  assessStep(configId: string, input: StepInput, meta: AssessMeta): Promise<StepAssessment>
+  composeFinal(configId: string, input: FinalInput, meta: AssessMeta): Promise<FinalResult>
 }

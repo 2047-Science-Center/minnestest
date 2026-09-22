@@ -92,6 +92,53 @@ export const sv: Record<string, string> = {
   'flykt.steg3.popup2': 'Ni måste stanna och slå läger i skogen, några nätter.',
   'flykt.steg3.popup3': '',
 
+  // ================= FERMI (metodspecialist · skrotbilar) =================
+  'skatta.title': 'DET HÄR SKA NI SKATTA',
+  'step.how_line': 'Säg HUR ni kommer fram till talet. Vägen dit är det som räknas.',
+  'step.weighing': 'ENHETEN VÄGER ERT RESONEMANG …',
+
+  // Fermi-intro (hela frågan)
+  'fermi.intro.l1':
+    'Enheten ska mäta hur ni tänker. Inte vad ni minns — hur ni resonerar er fram till ett svar ni inte kan veta.',
+  'fermi.intro.l2':
+    'Frågan: hur mycket väger alla bilar som skrotas i Sverige på ett år, tillsammans?',
+  'fermi.intro.l3': 'Ni löser den i tre steg. Tänk högt. Det är vägen dit som räknas — inte att pricka exakt.',
+  'fermi.intro.begin': 'BÖRJA',
+
+  // Gissnings-pop-up
+  'guess.title': 'ER GISSNING',
+  'guess.sub': 'Skriv in ett tal — det viktigaste var hur ni tänkte.',
+  'guess.placeholder': 'Ett tal …',
+  'guess.lock': 'LÅS IN',
+  'guess.skip': 'HOPPA',
+  'unit.kg': 'kg',
+  'unit.antal': 'bilar/år',
+  'unit.ton': 'ton/år',
+
+  // Steg 1 — snittbilens vikt
+  'fermi.steg1.context': 'Börja med en enda bil.',
+  'fermi.steg1.task': 'Hur mycket väger en helt vanlig bil?',
+  'fermi.steg1.time': 'Ni har ~1 minut. Säg HUR ni kommer fram — inte bara en siffra.',
+  'fermi.steg1.popup1': 'Börja med EN bil — en helt vanlig personbil.',
+  'fermi.steg1.popup2': 'Skatta vikten och säg HUR ni tänker, inte bara en siffra.',
+  'fermi.steg1.popup3': '',
+
+  // Steg 2 — antal skrotade/år
+  'fermi.steg2.context': 'Nu hela Sverige, ett helt år.',
+  'fermi.steg2.task': 'Hur många bilar skrotas i Sverige på ett år?',
+  'fermi.steg2.time': 'Ni har ~1 minut. Säg HUR ni räknar er fram.',
+  'fermi.steg2.popup1': 'Från en bil till hela landet.',
+  'fermi.steg2.popup2': 'Hur många personbilar skrotas i Sverige på ett år?',
+  'fermi.steg2.popup3': '(Sverige har drygt 10 miljoner invånare.)',
+
+  // Steg 3 — total skrotvikt
+  'fermi.steg3.context': 'Väg ihop allt.',
+  'fermi.steg3.task': 'Hur mycket väger allt tillsammans?',
+  'fermi.steg3.time': 'Ni har ~1 minut. Väg ihop era två tal — och stäm av att det är rimligt.',
+  'fermi.steg3.popup1': 'Väg ihop era egna tal från steg 1 och 2.',
+  'fermi.steg3.popup2': 'Stämmer storleksordningen?',
+  'fermi.steg3.popup3': '',
+
   // --- NPC-svar ---
   'npc.prefix': 'ENHETEN //',
   'npc.error':

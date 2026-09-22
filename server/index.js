@@ -18,6 +18,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { computeFinal } from './lib/scoring.js'
+import { fermiTraff, fermiDelpoang, fermiFinal } from './lib/fermiScoring.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Ladda server/.env oavsett från vilken katalog gatewayen startas (default-
@@ -84,7 +85,27 @@ function coerceStep(obj) {
   }
 }
 
-// --- Prompt-byggare (injicerar steg/roll/scenario/resurser/prior i input) ---
+const NIVAER = ['Exceptionell', 'Stark', 'Godkänd', 'Svag']
+const FERMI_DIMS = ['dekomposition', 'antaganden', 'storleksordning', 'sanitycheck', 'osakerhet']
+
+/** Fermi: modellen ger niva + dimensioner + text; koden fyller traff/delpoäng. */
+function coerceFermiStep(obj) {
+  const o = obj ?? {}
+  const dimsIn = o.dimensioner ?? {}
+  const dimensioner = {}
+  for (const d of FERMI_DIMS) dimensioner[d] = Boolean(dimsIn[d])
+  return {
+    resonemang_niva: NIVAER.includes(o.resonemang_niva) ? o.resonemang_niva : 'Godkänd',
+    dimensioner,
+    kvitterat: String(o.kvitterat ?? ''),
+    miss: String(o.miss ?? ''),
+    ankare: String(o.ankare ?? ''),
+    svar_text: String(o.svar_text ?? ''),
+    osakert: Array.isArray(o.osakert) ? o.osakert.map(String) : [],
+  }
+}
+
+// --- Prompt-byggare (injicerar steg/roll/exempel/prior i input) ---
 function priorBlock(prior) {
   if (!prior || prior.length === 0) return '(inga tidigare steg)'
   return prior
@@ -104,7 +125,7 @@ function buildStepInput(input) {
   const lines = [
     `STEG: ${input.step} (1=packa, 2=färdsätt, 3=slå läger)`,
     `ROLL: ${input.role}`,
-    `SCENARIO: ${input.scenario}`,
+    `EXEMPEL: ${input.example}`,
     `TIDIGARE STEG (dina egna bedömningar):`,
     priorBlock(input.prior),
   ]
@@ -125,12 +146,52 @@ function buildStepInput(input) {
 function buildComposeInput(input, computed) {
   return [
     `ROLL: ${input.role}`,
-    `SCENARIO: ${input.scenario}`,
+    `EXEMPEL: ${input.example}`,
     `FASTSTÄLLD POÄNG: ${computed.poang} (skala 1–10)`,
     `FASTSTÄLLD PROFIL: ${computed.profil}`,
     `MARKERING: ${computed.markering}`,
     `STEGENS BEDÖMNINGAR:`,
     priorBlock(input.prior),
+    `Svara med ett enda giltigt JSON-objekt: { "sammanfattning": "..." }`,
+  ].join('\n')
+}
+
+// --- Fermi-specifika prompt-byggare ---
+function fermiPriorBlock(prior) {
+  if (!prior || prior.length === 0) return '(inga tidigare steg)'
+  return prior
+    .map(
+      (p) =>
+        `- steg ${p.step}: niva=${p.resonemang_niva || '—'}; traff=${p.traff || '—'}; delpoäng=${p.delpoang ?? '—'}; gissning=${p.guess ?? '(hoppade)'}`,
+    )
+    .join('\n')
+}
+
+function buildFermiStepInput(input) {
+  return [
+    `STEG: ${input.step} (1=snittbilens vikt i kg, 2=antal skrotade personbilar/år, 3=total vikt i ton)`,
+    `ROLL: ${input.role}`,
+    `TIDIGARE STEG (dina bedömningar + deras egna gissningar):`,
+    fermiPriorBlock(input.prior),
+    `GRUPPENS GISSNING DETTA STEG: ${
+      input.guess == null ? '(hoppade)' : `${input.guess} ${input.unit || ''}`
+    }`,
+    `GRUPPENS TÄNK-HÖGT (transkript — det är HÄR du klassar resonemangsnivån):`,
+    `"""`,
+    (input.transcript || '').trim() || '(tyst — inget sades)',
+    `"""`,
+    `Svara med ett enda giltigt JSON-objekt enligt schemat.`,
+  ].join('\n')
+}
+
+function buildFermiComposeInput(input, computed) {
+  return [
+    `ROLL: ${input.role}`,
+    `FASTSTÄLLD POÄNG: ${computed.poang} (skala 1–10)`,
+    `FASTSTÄLLD PROFIL: ${computed.profil}`,
+    `MARKERING: ${computed.markering}`,
+    `STEGENS BEDÖMNINGAR:`,
+    fermiPriorBlock(input.prior),
     `Svara med ett enda giltigt JSON-objekt: { "sammanfattning": "..." }`,
   ].join('\n')
 }
@@ -162,29 +223,44 @@ app.post('/assess', async (req, res) => {
     if (!configId || !input) return res.status(400).json({ error: 'configId och input krävs' })
     const cfg = loadConfig(configId)
     const model = (meta && meta.modelOverride) || cfg.model
+    const type = cfg.type || 'flykt'
 
     if (input.step === 'final') {
       // Slutpoäng deterministiskt i KOD; modellen skriver bara sammanfattning.
-      const computed = computeFinal(input.prior || [], cfg)
+      const computed = type === 'fermi' ? fermiFinal(input.prior || [], cfg) : computeFinal(input.prior || [], cfg)
+      const composeInput =
+        type === 'fermi' ? buildFermiComposeInput(input, computed) : buildComposeInput(input, computed)
       let sammanfattning = ''
       try {
-        const out = await callModelJson(model, cfg._compose, buildComposeInput(input, computed), cfg)
+        const out = await callModelJson(model, cfg._compose, composeInput, cfg)
         sammanfattning = String(out.sammanfattning ?? '')
       } catch (err) {
         console.warn('[gateway] compose-text misslyckades, tom sammanfattning:', err.message)
       }
+      const final = {
+        poang: computed.poang,
+        profil: computed.profil,
+        markering: computed.markering,
+        sammanfattning,
+      }
+      if (type === 'fermi' && cfg.facit) final.facit = cfg.facit
       return res.json({
-        final: {
-          poang: computed.poang,
-          profil: computed.profil,
-          markering: computed.markering,
-          sammanfattning,
-        },
+        final,
         meta: { model, latencyMs: Date.now() - started, strongest: computed.strongest },
       })
     }
 
     // Per-steg
+    if (type === 'fermi') {
+      const raw = await callModelJson(model, cfg._instructions, buildFermiStepInput(input), cfg)
+      const base = coerceFermiStep(raw)
+      // Koden räknar träff (gissning vs facit / egna tal) + delpoäng (matris).
+      const traff = fermiTraff(input.step, input.guess ?? null, input.prior || [], cfg)
+      const delpoang = fermiDelpoang(base.resonemang_niva, traff, cfg)
+      const assessment = { ...base, traff, delpoang }
+      return res.json({ assessment, meta: { model, latencyMs: Date.now() - started, traff, delpoang } })
+    }
+
     const raw = await callModelJson(model, cfg._instructions, buildStepInput(input), cfg)
     const assessment = coerceStep(raw)
     return res.json({ assessment, meta: { model, latencyMs: Date.now() - started } })
@@ -204,7 +280,7 @@ app.post('/speak', async (req, res) => {
   const key = process.env.ELEVENLABS_API_KEY
   if (!key) return res.status(503).json({ error: 'ELEVENLABS_API_KEY saknas i server/.env' })
   try {
-    const { configId = 'minnestest', text } = req.body ?? {}
+    const { configId = 'flykt', text } = req.body ?? {}
     if (!text || !String(text).trim()) return res.status(400).json({ error: 'text krävs' })
     const cfg = loadConfig(configId)
     const speak = cfg.speak

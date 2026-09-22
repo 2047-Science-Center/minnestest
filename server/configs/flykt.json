@@ -1,5 +1,5 @@
 {
-  "id": "minnestest",
+  "id": "flykt",
   "model": "gpt-5-mini",
   "reasoningEffort": "low",
   "maxOutputTokens": 1400,
@@ -10,12 +10,12 @@
     "voiceSettings": {
       "stability": 0.5,
       "similarity_boost": 0.75,
-      "style": 0.0,
+      "style": 0,
       "use_speaker_boost": true
     }
   },
-  "instructionsFile": "instructions/minnestest.sv.txt",
-  "composeInstructionsFile": "instructions/minnestest.compose.sv.txt",
+  "instructionsFile": "instructions/flykt.sv.txt",
+  "composeInstructionsFile": "instructions/flykt.compose.sv.txt",
   "outputSchema": {
     "type": "object",
     "required": [
@@ -135,5 +135,6 @@
       "max": 10,
       "label": "Någon andra kan luta sig mot"
     }
-  ]
+  ],
+  "type": "flykt"
 }

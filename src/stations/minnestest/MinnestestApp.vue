@@ -17,6 +17,7 @@ import StatusBar from './components/StatusBar.vue'
 import CheckinScreen from './components/CheckinScreen.vue'
 import RoleSelect from './components/RoleSelect.vue'
 import VaultTransition from './components/VaultTransition.vue'
+import FermiIntro from './components/FermiIntro.vue'
 import StepCycle from './components/StepCycle.vue'
 import VerdictScreen from './components/VerdictScreen.vue'
 import CheckoutScreen from './components/CheckoutScreen.vue'
@@ -66,6 +67,7 @@ onMounted(() => store.init())
             :lines="vaultOutLines"
             @done="store.vaultOutDone()"
           />
+          <FermiIntro v-else-if="store.phase === 'intro'" />
           <StepCycle v-else-if="store.phase === 'step'" />
           <VaultTransition
             v-else-if="store.phase === 'vaultBack'"

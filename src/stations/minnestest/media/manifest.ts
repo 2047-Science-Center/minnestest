@@ -58,6 +58,15 @@ const MEDIA: Record<string, MediaEntry> = {
     durationMs: 6000,
     file: 'flykt_3_skog.png',
   },
+
+  // --- Fermi-skrotbilar (§7) — placeholders tills media droppas. ---
+  intro_fermi: { typ: 'image', aspect: '16:9', brief: 'Skrotgård/bilkyrkogård i skymning, bärnstens-CRT-lins' },
+  steg1_bil: { typ: 'image', aspect: '16:9', brief: 'En helt vanlig personbil, ren referens' },
+  steg2_trafik: { typ: 'image', aspect: '16:9', brief: 'Trafik/många bilar — antydan om mängd, ett lands flotta' },
+  steg3_skrot: { typ: 'image', aspect: '16:9', brief: 'Berg av skrotbilar (pressade kaross-kuber)' },
+  esk1_berakning: { typ: 'image', aspect: '16:9', brief: '"Enheten beräknar" — CRT-siffervärld, vikter/vågar', durationMs: 6000 },
+  esk2_berakning: { typ: 'image', aspect: '16:9', brief: 'Latensmask steg 2 — bilar räknas, karta över Sverige fylls', durationMs: 6000 },
+  esk3_overgang: { typ: 'image', aspect: '16:9', brief: 'Övergång mot mönstringsutlåtandet, siffror växer till ett berg', durationMs: 6000 },
 }
 
 /** Slå upp media; returnerar alltid ett objekt (placeholder om okänt id). */

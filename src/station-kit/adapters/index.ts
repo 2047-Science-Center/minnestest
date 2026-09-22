@@ -66,13 +66,14 @@ function createTransport(): Transport {
   return new BroadcastChannelTransport(`minnestest-station${config.stationN}`)
 }
 
-/** /assess byggs på riktigt i båda lägen; röst tänds av config-flaggan. */
+/** /assess byggs på riktigt i båda lägen; configId skickas per anrop (fork).
+ *  Röst tänds av config-flaggan (rösten är delad → fast configId räcker). */
 function createAssess(): Assess {
-  return new HttpAssess(config.assess.baseUrl, config.assess.configId)
+  return new HttpAssess(config.assess.baseUrl)
 }
 function createSpeak(): Speak {
   return config.speak.enabled
-    ? new HttpSpeak(config.assess.baseUrl, config.assess.configId, config.speak.rate)
+    ? new HttpSpeak(config.assess.baseUrl, 'flykt', config.speak.rate)
     : new NullSpeak()
 }
 

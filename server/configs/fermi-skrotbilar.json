@@ -1,0 +1,67 @@
+{
+  "id": "fermi-skrotbilar",
+  "type": "fermi",
+  "model": "gpt-5-mini",
+  "reasoningEffort": "low",
+  "maxOutputTokens": 1400,
+  "jsonMode": true,
+  "speak": {
+    "voiceId": "Cu8zBLZATMEvxva2xzc3",
+    "modelId": "eleven_multilingual_v2",
+    "voiceSettings": { "stability": 0.5, "similarity_boost": 0.75, "style": 0.0, "use_speaker_boost": true }
+  },
+  "instructionsFile": "instructions/fermi-skrotbilar.sv.txt",
+  "composeInstructionsFile": "instructions/fermi-skrotbilar.compose.sv.txt",
+  "outputSchema": {
+    "type": "object",
+    "required": ["resonemang_niva", "dimensioner", "kvitterat", "miss", "ankare", "svar_text", "osakert"],
+    "properties": {
+      "resonemang_niva": { "type": "string", "enum": ["Exceptionell", "Stark", "Godkänd", "Svag"] },
+      "dimensioner": {
+        "type": "object",
+        "required": ["dekomposition", "antaganden", "storleksordning", "sanitycheck", "osakerhet"],
+        "properties": {
+          "dekomposition": { "type": "boolean" },
+          "antaganden": { "type": "boolean" },
+          "storleksordning": { "type": "boolean" },
+          "sanitycheck": { "type": "boolean" },
+          "osakerhet": { "type": "boolean" }
+        }
+      },
+      "kvitterat": { "type": "string" },
+      "miss": { "type": "string" },
+      "ankare": { "type": "string" },
+      "svar_text": { "type": "string" },
+      "osakert": { "type": "array", "items": { "type": "string" } }
+    }
+  },
+  "reference": {
+    "1": { "ref": 1500, "prick": [1200, 1800], "tiopotens": [[500, 1200], [1800, 3000]] },
+    "2": { "ref": 170000, "prick": [100000, 300000], "tiopotens": [[50000, 100000], [300000, 500000]] }
+  },
+  "scoring": {
+    "matrix": {
+      "Exceptionell": { "prick": 10, "tiopotens": 9, "utanfor": 7 },
+      "Stark": { "prick": 8, "tiopotens": 7, "utanfor": 6 },
+      "Godkänd": { "prick": 6, "tiopotens": 5, "utanfor": 4 },
+      "Svag": { "prick": 3, "tiopotens": 2, "utanfor": 1 }
+    },
+    "step3": { "prick": [0.7, 1.5], "tiopotens": [0.2, 5] },
+    "final": { "rodTradBonus": 1, "clamp": { "min": 1, "max": 10 } }
+  },
+  "scale": [
+    { "min": 1, "max": 2, "label": "Överlevde stunden" },
+    { "min": 3, "max": 4, "label": "Höll huvudet kallt" },
+    { "min": 5, "max": 6, "label": "Tänkte framåt" },
+    { "min": 7, "max": 8, "label": "Såg hela systemet" },
+    { "min": 9, "max": 10, "label": "Någon andra kan luta sig mot" }
+  ],
+  "profiles": {
+    "dekomposition": "Analytikern",
+    "antaganden": "Antagaren",
+    "storleksordning": "Uppskattaren",
+    "sanitycheck": "Rimlighetskollaren",
+    "osakerhet": "Den ödmjuka skattaren"
+  },
+  "facit": "Facit: ~250 000 ton per år. Så nära kom ni — men det var TÄNKANDET vi vägde."
+}

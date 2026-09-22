@@ -1,7 +1,7 @@
 /**
  * Enda /assess-implementationen: POST {baseUrl}/assess mot den lokala gatewayen.
- * INGEN MockAssess — AI:n byggs på riktigt (innehållsspec §7). Anropas en gång
- * per steg och en gång som `final`.
+ * INGEN MockAssess — AI:n byggs på riktigt. `configId` skickas per anrop (fork:
+ * metodspecialist→fermi-config, doktorand→flykt-config).
  */
 import type {
   Assess,
@@ -13,10 +13,7 @@ import type {
 } from './Assess'
 
 export class HttpAssess implements Assess {
-  constructor(
-    private readonly baseUrl: string,
-    private readonly configId: string,
-  ) {}
+  constructor(private readonly baseUrl: string) {}
 
   private async post<T>(body: unknown, pick: (json: unknown) => T): Promise<T> {
     const url = `${this.baseUrl.replace(/\/+$/, '')}/assess`
@@ -33,16 +30,16 @@ export class HttpAssess implements Assess {
     return pick(json)
   }
 
-  assessStep(input: StepInput, meta: AssessMeta): Promise<StepAssessment> {
-    return this.post({ configId: this.configId, input, meta }, (json) => {
+  assessStep(configId: string, input: StepInput, meta: AssessMeta): Promise<StepAssessment> {
+    return this.post({ configId, input, meta }, (json) => {
       const j = json as { assessment?: StepAssessment }
       if (!j.assessment) throw new Error('assess: saknar assessment i svaret')
       return j.assessment
     })
   }
 
-  composeFinal(input: FinalInput, meta: AssessMeta): Promise<FinalResult> {
-    return this.post({ configId: this.configId, input, meta }, (json) => {
+  composeFinal(configId: string, input: FinalInput, meta: AssessMeta): Promise<FinalResult> {
+    return this.post({ configId, input, meta }, (json) => {
       const j = json as { final?: FinalResult }
       if (!j.final) throw new Error('assess: saknar final i svaret')
       return j.final
