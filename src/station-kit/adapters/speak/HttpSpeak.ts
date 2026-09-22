@@ -17,6 +17,8 @@ export class HttpSpeak implements Speak {
   constructor(
     private readonly baseUrl: string,
     private readonly configId: string,
+    /** Uppspelningshastighet (1 = normal). Pitch bevaras. */
+    private readonly rate = 1,
   ) {}
 
   async speak(text: string): Promise<void> {
@@ -33,6 +35,10 @@ export class HttpSpeak implements Speak {
       this.cancel()
       this.lastUrl = URL.createObjectURL(blob)
       const el = new Audio(this.lastUrl)
+      // Snabbare uppspelning med bevarad pitch (ingen "chipmunk"-effekt).
+      const anyEl = el as HTMLAudioElement & { preservesPitch?: boolean }
+      anyEl.preservesPitch = true
+      el.playbackRate = this.rate
       this.el = el
       await el.play().catch(() => undefined)
       await new Promise<void>((resolve) => {

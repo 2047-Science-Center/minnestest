@@ -72,7 +72,7 @@ function createAssess(): Assess {
 }
 function createSpeak(): Speak {
   return config.speak.enabled
-    ? new HttpSpeak(config.assess.baseUrl, config.assess.configId)
+    ? new HttpSpeak(config.assess.baseUrl, config.assess.configId, config.speak.rate)
     : new NullSpeak()
 }
 

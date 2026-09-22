@@ -48,9 +48,11 @@ export const config = {
     configId: 'minnestest',
   },
 
-  /** NPC-röst (/speak, ElevenLabs). Texten bär alltid; röst är add-on ovanpå. */
+  /** NPC-röst (/speak, ElevenLabs). Texten bär alltid; röst är add-on ovanpå.
+   *  `rate` = uppspelningshastighet i klienten (pitch bevaras) — 1.4 = 40 % snabbare. */
   speak: {
     enabled: true,
+    rate: 1.4,
   },
 
   /** MQTT/WS-adresser fylls i driftläget (miljövariabler, ej här). */

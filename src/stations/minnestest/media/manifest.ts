@@ -42,18 +42,21 @@ const MEDIA: Record<string, MediaEntry> = {
     aspect: '16:9',
     brief: 'Familj i skymning som snabbt packar väskor i ett hem, krigsstämning, handlingskraft',
     durationMs: 6000,
+    file: 'flykt_1_packa.png',
   },
   flykt_2_vagar: {
     typ: 'image',
     aspect: '16:9',
     brief: 'En väg full av folk och bilar som flyr i skymning, trängsel',
     durationMs: 6000,
+    file: 'flykt_2_vagar.png',
   },
   flykt_3_skog: {
     typ: 'image',
     aspect: '16:9',
     brief: 'Skogsbryn i skymning, familj med väskor som måste slå läger',
     durationMs: 6000,
+    file: 'flykt_3_skog.png',
   },
 }
 
