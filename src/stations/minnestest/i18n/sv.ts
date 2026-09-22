@@ -55,6 +55,17 @@ export const sv: Record<string, string> = {
   'home.title': 'Det här är ert hem. Det här har ni att jobba med.',
   'home.sub': '(Titta er omkring — ni får inget mer.)',
   'home.begin': 'BÖRJA',
+  // --- Premiss-tavla "SÅ ÄR LÄGET" (efter hem-reveal, innan steg 1) ---
+  'premise.title': 'SÅ ÄR LÄGET',
+  'premise.l1':
+    'Ni är familjen som bor här. Ni stannar hemma — ute är det mörkt och iskallt, och myndigheterna säger: stanna inne.',
+  'premise.l2':
+    'Ingen el. Inget internet, ingen tv, inga kortbetalningar. Mobilen har lite batteri men inget nät — den kan bara ringa nödnummer, om den lever.',
+  'premise.l3':
+    'Strömmen kommer inte tillbaka ikväll, kanske inte imorgon. Räkna med att klara er själva minst ett dygn.',
+  'premise.l4': 'Ni har bara det som finns i hemmet — det ni just sett.',
+  'premise.ready': 'VI ÄR REDO',
+
   'resurs.vatten': 'Vatten',
   'resurs.gasspis': 'Gasspis',
   'resurs.ficklampa': 'Ficklampa',
@@ -84,23 +95,23 @@ export const sv: Record<string, string> = {
 
   // --- Steg 1 (ström) ---
   'strom.steg1.prompt':
-    'Ni har en halvtimmes dagsljus kvar och bara det som finns i huset. Vad gör ni först — och varför i den ordningen?',
+    'Strömmen är borta och kommer inte tillbaka ikväll. Massor slutar fungera utan el. Vad behöver ni fixa medan det fortfarande är ljust för att klara natten?',
   'strom.steg1.meter': 'DAGSLJUS',
   'strom.steg1.meter_note': 'Solen går ner om ~30 min',
 
   // --- Steg 2 (ström) ---
   'strom.steg2.banner': 'Natt, dag 1. Kallt, kolmörkt.',
   'strom.steg2.prompt':
-    'Er sista mobil har 15 % kvar och ni vet inte hur länge strömmen är borta. Vad gör ni med mobilen — och hur håller ni värmen?',
+    'Nu är det natt och kallt inne. Ni stannar inne. Hur håller ni er varma — och vad sparar ni det sista batteriet till?',
   'strom.steg2.meter_a': 'MOBIL 15 %',
   'strom.steg2.meter_b': 'INNE 14 °C ↓',
 
   // --- Steg 3 (ström) ---
-  'strom.steg3.banner': 'Dag 2. Hela regionen mörk.',
+  'strom.steg3.banner': 'Morgon, dag 2. Fortfarande ingen ström.',
   'strom.steg3.prompt':
-    'Hela kvarteret är mörkt och de äldre fryser. Ni har tills det blir natt igen. Vad gör ni så att alla på våningen klarar natten?',
-  'strom.steg3.meter_a': 'TILL NÄSTA NATT',
-  'strom.steg3.meter_b': 'Grannen: 82 år',
+    'Grannen ovanför, 82 år, knackar på — hennes lägenhet är iskall och hon är ensam. Ni har ett varmt rum, men bara så mycket filtar och mat. Vad gör ni?',
+  'strom.steg3.meter_a': 'FILTAR/MAT begränsat',
+  'strom.steg3.meter_b': 'Grannen: 82 år, vid dörren',
 
   // --- NPC-svar (ruta D) ---
   'npc.prefix': 'ENHETEN //',

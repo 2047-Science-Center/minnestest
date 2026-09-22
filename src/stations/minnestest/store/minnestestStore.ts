@@ -42,6 +42,7 @@ export type Phase =
   | 'vaultOut'
   | 'scenarioIntro'
   | 'homeReveal'
+  | 'premise'
   | 'step'
   | 'vaultBack'
   | 'verdict'
@@ -121,6 +122,11 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   }
 
   function homeRevealDone(): void {
+    // Premiss-tavlan "SÅ ÄR LÄGET" låser världen innan stegen.
+    phase.value = 'premise'
+  }
+
+  function premiseDone(): void {
     stepIndex.value = 0
     phase.value = 'step'
   }
@@ -309,6 +315,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     vaultOutDone,
     scenarioIntroDone,
     homeRevealDone,
+    premiseDone,
     assessCurrentStep,
     speakNpc,
     nextStep,

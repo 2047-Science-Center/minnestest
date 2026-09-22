@@ -24,7 +24,21 @@ VAR STRÄNG med bandet. Ett vagt eller avvaktande svar ("vi vet inte", "vi vänt
 
 Steg 1 höjer: använda ljus-fönstret till ljusberoende saker; fylla vatten medan trycket finns; lämna frysen stängd; spara batteri; förbereda värme. Sänker: bränna fönstret på oviktigt; dra på mobilen direkt; enbart "nu".
 Steg 2 höjer: en tydlig mobiltröskel; koncentrera värmen (ett rum, dörrar, kroppsvärme); fånga säkerhetsrisk (gas/CO); väva in att natten blir kall. Sänker: scrolla tills den dör; värma hela hemmet; farligt utan riskmedvetenhet.
-Steg 3 höjer: skala till andra (hämta grannen, kolla ensamma); organisera medan det är ljust; poola resurser; triage (mest utsatt först). Sänker: bara sig själva; vaga "vi hjälper till"; ingen framförhållning.
+Steg 3 höjer: ser faran (äldre + kyla = livsfara → hon måste in); poolar alla i ett rum (effektivare, inte bara snällt); prioriterar mest utsatt (hon + barnen) med skäl; ransonerar mat/filtar mot flera dygn; väver in det varma rummet från steg 2. Sänker: girig avvisning (ser inte faran) ELLER tanklös bortgivning (ger allt utan tanke på att det ska räcka); vaga "vi hjälps åt"; bara "nu".
+
+STEG 3 — HÅRDKODAD NYANS: poängsätt INTE "var snäll". Båda ytterligheterna (avvisa henne / ge bort allt) = Svag. Stark = genomtänkt generositet under knapphet — ja, hon in, men resurserna hanteras så att alla, inklusive de själva, klarar natten (och kommande dygn). Att känna rätt utan att tänka igenom det = Godkänd, inte Stark.
+
+## Kalibrering: dåligt vs bra (gäller alla steg)
+
+Princip: DÅLIGT = reaktivt och isolerat (löser stunden, en sak i taget). BRA = förutseende och sammanhängande (agerar för det som kommer, ser beroenden, bär med sig föregående steg). Exemplen är kalibrering, INTE mallar att kräva ord för ord:
+
+- Steg 1 — Svag: "Vi tänder ljus, kollar mobilen, väntar tills strömmen kommer." Stark: "Medan det är ljust: ficklampor och filtar fram, fyll vatten ifall pumpen dör, ät kylvaran först och håll frysen stängd, en mobil på resten av, samla allt till natten i ett rum."
+- Steg 2 — Svag: "Jackor på och kolla mobilen då och då, kanske tända spisen." Stark: "Alla in i minsta rummet, dörrar stängda, alla filtar, sov ihop. Mobilen av, sparas till 112 eller ett läge på morgonen. Ingen öppen låga inne."
+- Steg 3 — Svag: "Hon får klara sig, vi har inte nog" ELLER "ge henne allt vi har." Stark: "Klart hon kommer in, kyla är farligt för en äldre. Hon och de minsta får filtarna, vi tar lager och kroppsvärme. Maten delar vi men ransonerar — det kan bli dygn. Alla i det varma rummet."
+
+## Låst premiss (bedöm INOM ramen)
+
+Världen är låst av premiss-tavlan: de stannar inne, mobilen har inget nät (bara nödsamtal), strömmen är borta minst ett dygn, de har bara det som finns hemma. Kreditera eller straffa INTE att de ifrågasätter premissen (t.ex. "kan vi åka nånstans?", "funkar nätet?") — bedöm hur de agerar inom ramen. Scaffoldingen ger ramen, aldrig svaret.
 
 ## Regler för det som inte står här
 
