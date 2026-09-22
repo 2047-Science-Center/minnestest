@@ -1,18 +1,18 @@
 /**
- * Central config för Minnestestet (X&Y-riggen).
+ * Central config för Minnestestet (X&Y-riggen) — FLYKT-scenariot.
  *
  * Pilot vs drift skiljs av EN sak: `mode`. Allt annat (STATION_N, scenario-data,
  * timers, språk, gateway-URL) är konstanter/data här. Att lägga till ett
  * scenario/en station = ny data här + ny `configs/<id>.json` i gatewayen +
  * i18n/manifest — INGEN ändring i anropskoden.
  *
- * INGA hemligheter i denna fil (AI_API_KEY, ev. ElevenLabs-nyckel hör hemma i
+ * INGA hemligheter i denna fil (AI_API_KEY, ElevenLabs-nyckel hör hemma i
  * gatewayns .env, aldrig i git). Fronten pratar aldrig direkt med OpenAI/
  * ElevenLabs — alltid via adapter → gateway.
  */
 
 export type Mode = 'pilot' | 'production'
-export type ScenarioId = 'strom' | 'internet'
+export type ScenarioId = 'flykt'
 export type RoleId = 'metodspecialist' | 'doktorand'
 
 /** Stationens nummer i riggen. Topic-namespace blir `station<N>/…`.
@@ -26,8 +26,8 @@ export const config = {
 
   stationN: STATION_N,
 
-  /** Aktivt scenario. 'strom' byggs skarpt; 'internet' är stubbad struktur. */
-  scenario: 'strom' as ScenarioId,
+  /** Aktivt scenario. */
+  scenario: 'flykt' as ScenarioId,
 
   /** Aktivt språk. Svenska byggd; no/svorsk stubbade. */
   lang: 'sv' as 'sv' | 'no' | 'svorsk',
@@ -36,11 +36,13 @@ export const config = {
   stepSeconds: 60,
   warnAtSeconds: 10,
 
+  /** Nedräkning innan uppgiften startar (beat 3): "Uppgiften börjar om …10, 9 …". */
+  startCountdown: 10,
+
   /** Incheckningens auto-vidare (ms). */
   checkinAutoMs: 2000,
 
-  /** /assess-gatewayen. baseUrl byts pilot→drift (config.mode/driftadress);
-   *  configId väljer `configs/<id>.json` i gatewayen. */
+  /** /assess-gatewayen. baseUrl byts pilot→drift; configId väljer configs/<id>.json. */
   assess: {
     baseUrl: import.meta.env.VITE_ASSESS_URL || 'http://localhost:8787',
     configId: 'minnestest',
@@ -68,8 +70,7 @@ export function asset(path: string): string {
 
 /* ------------------------------------------------------------------ *
  * Roller — rollvalet är det könssiffran mäter (chosen_role/role_presented_as).
- * Rollen är en lins: samma trestegsmotor, rollen färgar framing + det tunna
- * bedömnings-lagret (dim. 4). Två LIKVÄRDIGA kort.
+ * Rollen är en lins: samma trestegsmotor, rollen färgar framing. Två LIKVÄRDIGA kort.
  * ------------------------------------------------------------------ */
 
 export interface RoleDef {
@@ -86,70 +87,33 @@ export const ROLES: RoleDef[] = [
 ]
 
 /* ------------------------------------------------------------------ *
- * Scenarion — samma motor, olika skinn. All scenario-specifik text/media
- * ligger som DATA (i18n + manifest) keyat på scenarioId. 'strom' skarpt,
- * 'internet' stubbad (struktur redo, copy fylls i i18n senare).
+ * Scenario — flykt undan krig i tre steg: packa → ta sig fram → slå läger.
+ * Per-uppgifts-läges-flöde (§3): bild+undertext → pop-up "DET HÄR ÄR LÄGET" →
+ * nedräkning 10 → tänk-högt. All copy ligger som DATA (i18n), keyad på step.key.
  * ------------------------------------------------------------------ */
 
 export interface StepDef {
-  /** i18n-nyckelrot, t.ex. 'strom.steg1' → '<rot>.prompt', '<rot>.lage'. */
+  /** i18n-nyckelrot, t.ex. 'flykt.steg1' → '<rot>.undertext', '.popup1..3',
+   *  '.fraga'. */
   key: string
-  /** Lägesklipp (delruta A). null = ingen ny video, bara banner (i18n '<key>.banner'). */
-  lagesMedia: string | null
-  /** Eskaleringsklipp (delruta C) — fast längd = latensmask. */
-  eskaleringMedia: string
-  /** Diegetiska mätaretiketter (i18n-nycklar). En eller flera. */
-  meterKeys: string[]
+  /** Stegets referensbild (media-id) — fyller beat 1 och ligger kvar centrerad
+   *  genom tänk-högt (beat 4) och analys-rutan (latensmask). */
+  referenceMedia: string
 }
 
 export interface ScenarioDef {
   id: ScenarioId
-  /** Resurs-id:n som AI:n får veta finns (skickas som `resources` till /assess);
-   *  visningsnamn via i18n `resurs.<id>`. Exakt de etiketterade i hem-revealet. */
-  resources: string[]
-  introMedia: string
-  homeMedia: string
   /** Exakt tre steg. */
   steps: StepDef[]
 }
 
 export const SCENARIOS: Record<ScenarioId, ScenarioDef> = {
-  strom: {
-    id: 'strom',
-    resources: ['vatten', 'gasspis', 'ficklampa', 'filtar', 'bilen', 'grannen'],
-    introMedia: 'intro_strommen',
-    homeMedia: 'hem_oversikt',
+  flykt: {
+    id: 'flykt',
     steps: [
-      {
-        key: 'strom.steg1',
-        lagesMedia: 'steg1_narr',
-        eskaleringMedia: 'steg1_eskalering',
-        meterKeys: ['strom.steg1.meter'],
-      },
-      {
-        key: 'strom.steg2',
-        lagesMedia: null,
-        eskaleringMedia: 'steg2_eskalering',
-        meterKeys: ['strom.steg2.meter_a', 'strom.steg2.meter_b'],
-      },
-      {
-        key: 'strom.steg3',
-        lagesMedia: null,
-        eskaleringMedia: 'steg3_overgang',
-        meterKeys: ['strom.steg3.meter_a', 'strom.steg3.meter_b'],
-      },
-    ],
-  },
-  // STUBB: doktorand/uppkopplingen — samma struktur, copy fylls i i18n (internet.*).
-  internet: {
-    id: 'internet',
-    resources: ['router', 'powerbank', 'grannen', 'radio', 'kontanter', 'bilen'],
-    introMedia: 'intro_internet',
-    homeMedia: 'hem_oversikt_internet',
-    steps: [
-      { key: 'internet.steg1', lagesMedia: 'steg1_narr_internet', eskaleringMedia: 'steg1_eskalering_internet', meterKeys: ['internet.steg1.meter'] },
-      { key: 'internet.steg2', lagesMedia: null, eskaleringMedia: 'steg2_eskalering_internet', meterKeys: ['internet.steg2.meter_a', 'internet.steg2.meter_b'] },
-      { key: 'internet.steg3', lagesMedia: null, eskaleringMedia: 'steg3_overgang_internet', meterKeys: ['internet.steg3.meter_a', 'internet.steg3.meter_b'] },
+      { key: 'flykt.steg1', referenceMedia: 'flykt_1_packa' },
+      { key: 'flykt.steg2', referenceMedia: 'flykt_2_vagar' },
+      { key: 'flykt.steg3', referenceMedia: 'flykt_3_skog' },
     ],
   },
 }
@@ -160,9 +124,8 @@ export function activeScenario(): ScenarioDef {
 }
 
 /* ------------------------------------------------------------------ *
- * Stigande slutskala 1–10 — namngivna markeringar (innehållsspec §4 ruta 17),
- * låg→hög. `key` slås upp i i18n. Gatewayns final-compose härleder `markering`
- * ur samma intervall så UI och poäng aldrig glider isär.
+ * Stigande slutskala 1–10 — namngivna markeringar, låg→hög. `key` slås upp i
+ * i18n. Gatewayns final-compose härleder `markering` ur samma intervall.
  * ------------------------------------------------------------------ */
 
 export interface ScaleMark {

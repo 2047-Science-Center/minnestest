@@ -17,9 +17,6 @@ import StatusBar from './components/StatusBar.vue'
 import CheckinScreen from './components/CheckinScreen.vue'
 import RoleSelect from './components/RoleSelect.vue'
 import VaultTransition from './components/VaultTransition.vue'
-import ScenarioIntro from './components/ScenarioIntro.vue'
-import HomeReveal from './components/HomeReveal.vue'
-import PremiseBoard from './components/PremiseBoard.vue'
 import StepCycle from './components/StepCycle.vue'
 import VerdictScreen from './components/VerdictScreen.vue'
 import CheckoutScreen from './components/CheckoutScreen.vue'
@@ -69,9 +66,6 @@ onMounted(() => store.init())
             :lines="vaultOutLines"
             @done="store.vaultOutDone()"
           />
-          <ScenarioIntro v-else-if="store.phase === 'scenarioIntro'" />
-          <HomeReveal v-else-if="store.phase === 'homeReveal'" />
-          <PremiseBoard v-else-if="store.phase === 'premise'" />
           <StepCycle v-else-if="store.phase === 'step'" />
           <VaultTransition
             v-else-if="store.phase === 'vaultBack'"

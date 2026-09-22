@@ -7,17 +7,15 @@ const meta: AssessMeta = { lang: 'sv' }
 const stepInput: StepInput = {
   step: 1,
   role: 'metodspecialist',
-  scenario: 'strom',
-  transcript: 'vi fyller vatten och lämnar frysen stängd',
-  resources: ['vatten', 'gasspis'],
+  scenario: 'flykt',
+  transcript: 'vi tar passen och vatten som räcker flera dagar',
   prior: [],
 }
 
 const finalInput: FinalInput = {
   step: 'final',
   role: 'metodspecialist',
-  scenario: 'strom',
-  resources: ['vatten'],
+  scenario: 'flykt',
   prior: [],
 }
 

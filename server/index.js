@@ -68,9 +68,14 @@ function coerceStep(obj) {
   const dimsIn = o.dimensioner ?? {}
   const dimensioner = {}
   for (const d of DIMS) dimensioner[d] = Boolean(dimsIn[d])
+  const motiverat = Boolean(o.motiverat)
+  let band = BANDS.includes(o.band) ? o.band : 'Godkänd'
+  // §5 (hård regel, deterministisk): utan motivering nås aldrig Stark — tak Godkänd.
+  if (!motiverat && band === 'Stark') band = 'Godkänd'
   return {
-    band: BANDS.includes(o.band) ? o.band : 'Godkänd',
+    band,
     dimensioner,
+    motiverat,
     kvitterat: String(o.kvitterat ?? ''),
     miss: String(o.miss ?? ''),
     ankare: String(o.ankare ?? ''),
@@ -96,19 +101,25 @@ function priorBlock(prior) {
 }
 
 function buildStepInput(input) {
-  return [
-    `STEG: ${input.step}`,
+  const lines = [
+    `STEG: ${input.step} (1=packa, 2=färdsätt, 3=slå läger)`,
     `ROLL: ${input.role}`,
     `SCENARIO: ${input.scenario}`,
-    `RESURSER SOM FINNS I HEMMET: ${(input.resources || []).join(', ') || '—'}`,
     `TIDIGARE STEG (dina egna bedömningar):`,
     priorBlock(input.prior),
+  ]
+  // Packlistan från steg 1 skickas i steg 3 → korsreferera (§7 återkoppling).
+  if (input.packlista) {
+    lines.push(`PACKLISTA (vad de sa att de tog med i steg 1):`, `"""`, String(input.packlista).trim() || '—', `"""`)
+  }
+  lines.push(
     `GRUPPENS TÄNK-HÖGT (transkript):`,
     `"""`,
     (input.transcript || '').trim() || '(tyst — inget sades)',
     `"""`,
     `Svara med ett enda giltigt JSON-objekt enligt schemat.`,
-  ].join('\n')
+  )
+  return lines.join('\n')
 }
 
 function buildComposeInput(input, computed) {

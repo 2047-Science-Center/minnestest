@@ -34,7 +34,8 @@ export interface StepInput {
   role: string
   scenario: string
   transcript: string
-  resources: string[]
+  /** Packlistan från steg 1 (skickas i steg 3 för retroaktiv korsreferens, §9). */
+  packlista?: string
   prior: PriorStep[]
 }
 
@@ -42,7 +43,6 @@ export interface FinalInput {
   step: 'final'
   role: string
   scenario: string
-  resources: string[]
   prior: PriorStep[]
 }
 
@@ -55,6 +55,8 @@ export interface AssessMeta {
 export interface StepAssessment {
   band: Band
   dimensioner: Dimensioner
+  /** Motiverade de sitt val ("varför")? false → taket är Godkänd (§5). */
+  motiverat: boolean
   kvitterat: string
   miss: string
   ankare: string

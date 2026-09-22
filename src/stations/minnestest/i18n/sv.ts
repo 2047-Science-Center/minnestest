@@ -1,9 +1,6 @@
 /**
- * Svenska — all Minnestest-copy (byggs skarpt). Injiceras i kitets i18n-bundle
+ * Svenska — all Minnestest-copy (FLYKT-scenariot). Injiceras i kitets i18n-bundle
  * via registerMessages(). Kitet självt hålls rent från station-copy.
- *
- * 'strom.*' = metodspecialist/ström (skarpt). 'internet.*' = doktorand/
- * uppkopplingen (STUBB — samma nyckeluppsättning, fylls senare).
  */
 export const sv: Record<string, string> = {
   // --- Kit-överskrivningar ---
@@ -17,9 +14,6 @@ export const sv: Record<string, string> = {
   'common.continue': 'FORTSÄTT',
   'common.begin': 'BÖRJA',
   'common.next': 'NÄSTA',
-  'step.next': 'NÄSTA',
-  // Dold pilot-skip på analys-rutan (kit-nyckel, överskriven för denna kontext).
-  'onboarding.skip': 'hoppa över',
 
   // --- Statusrad ---
   'status.station': 'BORTFALLET',
@@ -27,10 +21,10 @@ export const sv: Record<string, string> = {
   'status.moment': 'MOMENT {n}/3',
   'status.pretext': '// tiden före valvet',
 
-  // --- Incheckning (ruta 2) ---
+  // --- Incheckning ---
   'checkin.read': 'BAND AVLÄST // GRUPP {grupp} // {n} DELTAGARE',
 
-  // --- Rollval (ruta 3) ---
+  // --- Rollval ---
   'roleselect.title': 'VÄLJ DIN ROLL',
   'roleselect.subtitle': 'Se en dag i vardera, välj den du känner igen dig i.',
   'roleselect.pick': 'VÄLJ',
@@ -41,51 +35,30 @@ export const sv: Record<string, string> = {
   'role.doktorand.upper': 'DOKTORAND',
   'role.doktorand.blurb': 'Den som tänker ut vad som händer sen.',
 
-  // --- Utplockning ur valvet (ruta 4) ---
+  // --- Utplockning ur valvet ---
   'vaultout.l1': 'MÖNSTRING PAUSAD.',
   'vaultout.l2': 'Vi förflyttar er till tiden före valvet.',
   'vaultout.l3': 'Platsen: ett vanligt hem. En vanlig kväll.',
   'vaultout.l4': 'Situationen börjar nu.',
 
-  // --- Scenario-intro (ruta 5) ---
-  'strom.intro':
-    'Klockan är 16:47. Strömmen slocknar — inte bara hos er, hela stan. Sista beskedet innan näten dog: den är inte tillbaka ikväll. Du är den i hemmet som brukar lösa saker. Nu är det ni tre och det som finns här.',
-
-  // --- Hem- & resurs-reveal (ruta 6) ---
-  'home.title': 'Det här är ert hem. Det här har ni att jobba med.',
-  'home.sub': '(Titta er omkring — ni får inget mer.)',
-  'home.begin': 'BÖRJA',
-  // --- Premiss-tavla "SÅ ÄR LÄGET" (efter hem-reveal, innan steg 1) ---
-  'premise.title': 'SÅ ÄR LÄGET',
-  'premise.l1':
-    'Ni är familjen som bor här. Ni stannar hemma — ute är det mörkt och iskallt, och myndigheterna säger: stanna inne.',
-  'premise.l2':
-    'Ingen el. Inget internet, ingen tv, inga kortbetalningar. Mobilen har lite batteri men inget nät — den kan bara ringa nödnummer, om den lever.',
-  'premise.l3':
-    'Strömmen kommer inte tillbaka ikväll, kanske inte imorgon. Räkna med att klara er själva minst ett dygn.',
-  'premise.l4': 'Ni har bara det som finns i hemmet — det ni just sett.',
-  'premise.ready': 'VI ÄR REDO',
-
-  'resurs.vatten': 'Vatten',
-  'resurs.gasspis': 'Gasspis',
-  'resurs.ficklampa': 'Ficklampa',
-  'resurs.filtar': 'Filtar',
-  'resurs.bilen': 'Bilen',
-  'resurs.grannen': 'Grannen',
+  // --- Läges-flöde (IDENTISKT för uppgift 1–3) ---
+  'lage.title': 'DET HÄR ÄR LÄGET',
+  'lage.ready': 'VI ÄR REDO',
+  'countdown.prefix': 'Uppgiften börjar om',
 
   // --- Steg-cykel (generellt) ---
-  'step.think_together': 'Prata högt tillsammans. Enheten lyssnar.',
+  'step.talk_motiv': 'Prata högt tillsammans — och säg VARFÖR ni väljer som ni gör.',
+  'step.why_line': 'Säg VARFÖR ni väljer som ni gör. Det är motiveringen som räknas.',
   'step.mic_active': '🎙 MIK AKTIV',
   'step.talk_now': '🎙 PRATA NU',
   'step.we_are_done': 'VI ÄR KLARA',
   'step.warn': '10 SEK KVAR',
   'step.time_up': 'TIDEN UTE',
   'step.analyzing': 'ENHETEN ANALYSERAR ERT BESLUT …',
-  'step.lage_label': 'LÄGE: {text}',
+  'step.next': 'NÄSTA',
   'step.no_speech':
     'Taligenkänning stöds inte i denna webbläsare — prata ändå, eller skriv era beslut i fältet.',
   'step.manual_placeholder': 'Skriv ert beslut här …',
-  // Mikrofon-fel (talfångst) — visas i delruta B om något går snett.
   'step.mic_err.not-allowed':
     'Mikrofonen är blockerad. Tillåt mikrofon i webbläsaren (klicka på hänglåset i adressfältet → Mikrofon → Tillåt) och försök igen. Ni kan skriva i fältet så länge.',
   'step.mic_err.no-mic': 'Ingen mikrofon hittades. Skriv era beslut i fältet i stället.',
@@ -94,37 +67,38 @@ export const sv: Record<string, string> = {
   'step.mic_err.unsupported':
     'Den här webbläsaren stödjer inte taligenkänning — använd Chrome, eller skriv i fältet.',
 
-  // --- Steg 1 (ström) ---
-  'strom.steg1.prompt':
-    'Strömmen är borta och kommer inte tillbaka ikväll. Massor slutar fungera utan el. Vad behöver ni fixa medan det fortfarande är ljust för att klara natten?',
-  'strom.steg1.meter': 'DAGSLJUS',
-  'strom.steg1.meter_note': 'Solen går ner om ~30 min',
+  // --- Uppgift 1 · Packa ---
+  'flykt.steg1.undertext': 'Kriget har brutit ut — ni måste fly landet.',
+  'flykt.steg1.popup1': 'Kriget har nått er stad. Ni är familjen som bor här.',
+  'flykt.steg1.popup2': 'Ni måste fly landet — nu.',
+  'flykt.steg1.popup3': 'Ni vet inte hur länge ni blir borta eller vart ni hamnar.',
+  'flykt.steg1.fraga': 'Vad tar ni med er — och varför just det?',
 
-  // --- Steg 2 (ström) ---
-  'strom.steg2.banner': 'Natt, dag 1. Kallt, kolmörkt.',
-  'strom.steg2.prompt':
-    'Nu är det natt och kallt inne. Ni stannar inne. Hur håller ni er varma — och vad sparar ni det sista batteriet till?',
-  'strom.steg2.meter_a': 'MOBIL 15 %',
-  'strom.steg2.meter_b': 'INNE 14 °C ↓',
+  // --- Uppgift 2 · Färdsätt ---
+  'flykt.steg2.undertext': 'Vägarna är fulla av folk som flyr.',
+  'flykt.steg2.popup1': 'Ni har tagit er ut ur staden.',
+  'flykt.steg2.popup2': 'Vägarna är redan fulla av folk som flyr.',
+  'flykt.steg2.popup3': 'Ni måste välja hur ni tar er vidare.',
+  'flykt.steg2.fraga': 'Hur väljer ni att ta er fram — och varför det sättet framför andra?',
 
-  // --- Steg 3 (ström) ---
-  'strom.steg3.banner': 'Morgon, dag 2. Fortfarande ingen ström.',
-  'strom.steg3.prompt':
-    'Grannen ovanför, 82 år, knackar på — hennes lägenhet är iskall och hon är ensam. Ni har ett varmt rum, men bara så mycket filtar och mat. Vad gör ni?',
-  'strom.steg3.meter_a': 'FILTAR/MAT begränsat',
-  'strom.steg3.meter_b': 'Grannen: 82 år, vid dörren',
+  // --- Uppgift 3 · Slå läger ---
+  'flykt.steg3.undertext': 'Ni kommer inte längre ikväll.',
+  'flykt.steg3.popup1': 'Det blev stopp. Ni kommer inte längre ikväll.',
+  'flykt.steg3.popup2': 'Ni måste stanna och slå läger i skogen, några nätter.',
+  'flykt.steg3.popup3': '',
+  'flykt.steg3.fraga': 'Vad gör ni först — och varför är det viktigast?',
 
-  // --- NPC-svar (ruta D) ---
+  // --- NPC-svar ---
   'npc.prefix': 'ENHETEN //',
   'npc.error':
     'Enheten tappade uppkopplingen ett ögonblick och kunde inte väga ert svar den här gången. Ni kan gå vidare.',
 
-  // --- Återförs till valvet (ruta 16) ---
+  // --- Återförs till valvet ---
   'vaultback.l1': 'SITUATIONEN AVSLUTAD.',
   'vaultback.l2': 'Ni återförs till valvet.',
   'vaultback.l3': 'Enheten sammanställer er mönstring …',
 
-  // --- Mönstringsutlåtande / stigande skala (ruta 17) ---
+  // --- Mönstringsutlåtande / stigande skala ---
   'verdict.title': 'MÖNSTRINGSUTLÅTANDE',
   'verdict.profile_label': '{roll}-PROFIL: {profil}',
   'verdict.score_registered': 'Er poäng registreras.',
@@ -135,27 +109,9 @@ export const sv: Record<string, string> = {
   'skala.mark_7_8': 'Såg hela systemet',
   'skala.mark_9_10': 'Någon andra kan luta sig mot',
 
-  // --- Utcheckning (ruta 18) ---
+  // --- Utcheckning ---
   'checkout.title': 'KLART.',
   'checkout.body': 'Bippa bandet och gå vidare.',
   'checkout.next': 'Nästa: {dyn}',
   'checkout.next_unknown': 'nästa station',
-
-  // --- Doktorand/uppkopplingen (STUBB) ---
-  'internet.intro': '(stubbad copy — doktorand/uppkopplingen speglas senare)',
-  'internet.steg1.prompt': '(stubb) Steg 1 — uppkopplingen dör.',
-  'internet.steg1.meter': 'UPPKOPPLING',
-  'internet.steg1.meter_note': '(stubb)',
-  'internet.steg2.banner': '(stubb) Läge steg 2',
-  'internet.steg2.prompt': '(stubb) Steg 2.',
-  'internet.steg2.meter_a': '(stubb)',
-  'internet.steg2.meter_b': '(stubb)',
-  'internet.steg3.banner': '(stubb) Läge steg 3',
-  'internet.steg3.prompt': '(stubb) Steg 3.',
-  'internet.steg3.meter_a': '(stubb)',
-  'internet.steg3.meter_b': '(stubb)',
-  'resurs.router': 'Router',
-  'resurs.powerbank': 'Powerbank',
-  'resurs.radio': 'Radio',
-  'resurs.kontanter': 'Kontanter',
 }

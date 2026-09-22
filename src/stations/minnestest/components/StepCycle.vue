@@ -1,16 +1,16 @@
 <script setup lang="ts">
 /**
- * En stegcykel A→B→C→D för aktuellt steg; tre varv via StepShell (progress =
- * 3 steg). UI-hierarki styr läsordningen (viktigast först), rutorna renodlade.
- *
- *  A · Läge        — steg 1: lägesklipp; steg 2–3: banner "LÄGE: …".
- *  B · Tänk-högt   — TVÅFAS: fas 1 frågan hero; fas 2 live-transkriptet hero med
- *                    frågan dockad överst + referensbilden kvar som sidopanel.
- *  C · Analys      — eskaleringsbilden dominerar (latensmask); tunn analys-strip
- *                    nederst. Denna bild blir REFERENSBILD i nästa stegs B.
- *  D · AI-svar     — svaret hero (stor teletype + ev. röst), NÄSTA ▸.
+ * En uppgifts-cykel för aktuellt steg (FLYKT). Förenklat läges-flöde (§3),
+ * IDENTISKT för uppgift 1–3:
+ *   situation  — referensbilden + undertext (1 mening) + pop-up "DET HÄR ÄR
+ *                LÄGET" (2–3 rader) med VI ÄR REDO.
+ *   countdown  — "Uppgiften börjar om …10, 9, 8 …".
+ *   think      — tänk-högt (tvåfas): fråga hero → transkript hero; referensbilden
+ *                kvar centrerad; nedräkningstimer väl synlig; motivering efterfrågas.
+ *   analys     — referensbilden dominerar (latensmask) medan /assess körs.
+ *   reply      — NPC-svaret hero (+ ev. röst), NÄSTA ▸.
  */
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
 import { config } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
@@ -18,17 +18,15 @@ import { useSpeechCapture } from '@/station-kit/capture/useSpeechCapture'
 import type { StepAssessment } from '@/station-kit/adapters/assess/Assess'
 
 import { useMinnestestStore } from '../store/minnestestStore'
-import StepShell from '@/station-kit/components/StepShell.vue'
 import MediaSlot from './MediaSlot.vue'
-import DiegeticMeter from './DiegeticMeter.vue'
 import NpcReply from './NpcReply.vue'
 import { media } from '../media/manifest'
 
 const { t } = useI18n()
 const store = useMinnestestStore()
 
-type Sub = 'A' | 'B' | 'C' | 'D'
-const sub = ref<Sub>('A')
+type Sub = 'situation' | 'countdown' | 'think' | 'analys' | 'reply'
+const sub = ref<Sub>('situation')
 
 const WINDOW_MS = config.stepSeconds * 1000
 const WARN_MS = config.warnAtSeconds * 1000
@@ -38,53 +36,100 @@ const manualText = ref('')
 
 const step = computed(() => store.currentStep)
 const stepKey = computed(() => step.value.key)
-const isPilot = config.mode === 'pilot'
+const referenceMedia = computed(() => step.value.referenceMedia)
 
-// --- Härledd copy ---
-const bannerText = computed(() => t(`${stepKey.value}.banner`))
-const promptText = computed(() => t(`${stepKey.value}.prompt`))
-const meterLabels = computed(() => step.value.meterKeys.map((k) => t(k)))
-const meterNote = computed(() => {
-  const key = `${stepKey.value}.meter_note`
-  const val = t(key)
-  return val === key ? '' : val
-})
+const undertext = computed(() => t(`${stepKey.value}.undertext`))
+const promptText = computed(() => t(`${stepKey.value}.fraga`))
+const popupLines = computed(() =>
+  ['popup1', 'popup2', 'popup3']
+    .map((k) => t(`${stepKey.value}.${k}`))
+    .filter((s) => s.trim().length > 0),
+)
 
-// --- Referensbild i tänk-högt = föregående stegs eskaleringsbild.
-//     Steg 1: stegets läge-klipp (eller hem-bilden) — "var är jag". ---
-const referenceMedia = computed(() => {
-  const idx = store.stepIndex
-  if (idx === 0) return step.value.lagesMedia ?? store.scenario.homeMedia
-  return store.steps[idx - 1].eskaleringMedia
-})
+// --- situation (beat 1 + 2) ---
+const popupShown = ref(false)
+let popupTimer: ReturnType<typeof setTimeout> | null = null
 
-// --- B: tvåfas + talfångst + fönster ---
+// --- countdown (beat 3) ---
+const countdownN = ref(config.startCountdown)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+// --- think (beat 4, tvåfas) ---
 const bPhase = ref<1 | 2>(1)
 const PHASE1_MS = 4500
 let phaseTimer: ReturnType<typeof setTimeout> | null = null
 const warned = ref(false)
-const warn = computed(() => (capture.remainingMs.value ?? WINDOW_MS) <= WARN_MS)
-const timeUp = computed(() => (capture.remainingMs.value ?? WINDOW_MS) <= 0)
+const remainingMs = computed(() => capture.remainingMs.value ?? WINDOW_MS)
+const warn = computed(() => remainingMs.value <= WARN_MS)
+const timeUp = computed(() => remainingMs.value <= 0)
+const timeLabel = computed(() => {
+  const s = Math.max(0, Math.ceil(remainingMs.value / 1000))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+})
 
-watch(
-  () => capture.remainingMs.value,
-  (ms) => {
-    if (sub.value !== 'B' || ms == null) return
-    if (!warned.value && ms <= WARN_MS) {
-      warned.value = true
-      audio.play('deny')
+// --- analys (latensmask) ---
+const dwellDone = ref(false)
+const assessDone = ref(false)
+const assessResult = ref<StepAssessment | null>(null)
+let dwellTimer: ReturnType<typeof setTimeout> | null = null
+
+// --- reply ---
+const npcDone = ref(false)
+
+const showManualFallback = computed(() => !capture.supported || Boolean(capture.error.value))
+
+function collectedTranscript(): string {
+  return [capture.finalTranscript.value.trim(), manualText.value.trim()]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
+}
+
+function clearTimers(): void {
+  if (popupTimer) clearTimeout(popupTimer)
+  if (countdownTimer) clearInterval(countdownTimer)
+  if (phaseTimer) clearTimeout(phaseTimer)
+  if (dwellTimer) clearTimeout(dwellTimer)
+  popupTimer = countdownTimer = phaseTimer = dwellTimer = null
+}
+
+// --- Beats ---
+function enterSituation(): void {
+  clearTimers()
+  sub.value = 'situation'
+  popupShown.value = false
+  manualText.value = ''
+  bPhase.value = 1
+  warned.value = false
+  popupTimer = setTimeout(() => (popupShown.value = true), 1500)
+}
+
+function ready(): void {
+  clearTimers()
+  sub.value = 'countdown'
+  countdownN.value = config.startCountdown
+  audio.play('blip')
+  countdownTimer = setInterval(() => {
+    countdownN.value -= 1
+    if (countdownN.value > 0) {
+      audio.play('blip')
+    } else {
+      if (countdownTimer) clearInterval(countdownTimer)
+      countdownTimer = null
+      startThink()
     }
-    if (ms <= 0) finishThink()
-  },
-)
+  }, 1000)
+}
 
-// Så fort de börjar tala → gå till fas 2 (transkriptet blir hero).
-watch(
-  () => capture.transcript.value,
-  (v) => {
-    if (sub.value === 'B' && bPhase.value === 1 && v.trim()) toPhase2()
-  },
-)
+function startThink(): void {
+  sub.value = 'think'
+  bPhase.value = 1
+  warned.value = false
+  if (phaseTimer) clearTimeout(phaseTimer)
+  phaseTimer = setTimeout(() => toPhase2(), PHASE1_MS)
+  capture.reset()
+  capture.start()
+}
 
 function toPhase2(): void {
   bPhase.value = 2
@@ -94,36 +139,27 @@ function toPhase2(): void {
   }
 }
 
-// --- C: latensmask (klipp-golv + assess) ---
-const dwellDone = ref(false)
-const assessDone = ref(false)
-const assessResult = ref<StepAssessment | null>(null)
-let dwellTimer: ReturnType<typeof setTimeout> | null = null
+watch(
+  () => capture.transcript.value,
+  (v) => {
+    if (sub.value === 'think' && bPhase.value === 1 && v.trim()) toPhase2()
+  },
+)
 
-// --- D: npc ---
-const npcDone = ref(false)
-
-function collectedTranscript(): string {
-  return [capture.finalTranscript.value.trim(), manualText.value.trim()]
-    .filter(Boolean)
-    .join(' ')
-    .trim()
-}
-
-// --- Övergångar mellan delrutor ---
-function startThink(): void {
-  warned.value = false
-  manualText.value = ''
-  bPhase.value = 1
-  if (phaseTimer) clearTimeout(phaseTimer)
-  phaseTimer = setTimeout(() => toPhase2(), PHASE1_MS)
-  capture.reset()
-  capture.start()
-  sub.value = 'B'
-}
+watch(
+  () => capture.remainingMs.value,
+  (ms) => {
+    if (sub.value !== 'think' || ms == null) return
+    if (!warned.value && ms <= WARN_MS) {
+      warned.value = true
+      audio.play('deny')
+    }
+    if (ms <= 0) finishThink()
+  },
+)
 
 function finishThink(): void {
-  if (sub.value !== 'B') return
+  if (sub.value !== 'think') return
   if (phaseTimer) {
     clearTimeout(phaseTimer)
     phaseTimer = null
@@ -133,11 +169,11 @@ function finishThink(): void {
 }
 
 function enterAnalys(): void {
-  sub.value = 'C'
+  sub.value = 'analys'
   dwellDone.value = false
   assessDone.value = false
   assessResult.value = null
-  const dwellMs = media(step.value.eskaleringMedia).durationMs ?? 6000
+  const dwellMs = media(referenceMedia.value).durationMs ?? 6000
   dwellTimer = setTimeout(() => {
     dwellDone.value = true
     maybeReveal()
@@ -150,317 +186,331 @@ function enterAnalys(): void {
 }
 
 function maybeReveal(): void {
-  if (sub.value === 'C' && dwellDone.value && assessDone.value && assessResult.value) {
+  if (sub.value === 'analys' && dwellDone.value && assessDone.value && assessResult.value) {
     npcDone.value = false
-    sub.value = 'D'
+    sub.value = 'reply'
     void store.speakNpc(assessResult.value.svar_text)
   }
 }
 
-/** Dold pilot-skip på C: hoppa över klipp-golvet (väntar ändå på assess). */
 function skipDwell(): void {
   if (dwellTimer) clearTimeout(dwellTimer)
   dwellDone.value = true
   maybeReveal()
 }
 
-// --- StepShell-styrning per delruta ---
-const forwardKey = computed(() => {
-  switch (sub.value) {
-    case 'A':
-      return 'common.continue'
-    case 'B':
-      return 'step.we_are_done'
-    case 'D':
-      return 'step.next'
-    default:
-      return 'common.next'
-  }
-})
-const canAdvance = computed(() => {
-  switch (sub.value) {
-    case 'A':
-      return true
-    case 'B':
-      return true
-    case 'C':
-      return false
-    case 'D':
-      return npcDone.value
-  }
-  return false
-})
-const showSkip = computed(() => isPilot && sub.value === 'C')
+const isPilot = config.mode === 'pilot'
 
-function onAdvance(): void {
-  if (sub.value === 'A') startThink()
-  else if (sub.value === 'B') finishThink()
-  else if (sub.value === 'D') void store.nextStep()
-}
-
-// Nytt steg (stepIndex ändras) → börja om på A.
+// Nytt steg (stepIndex ändras) → nytt läges-flöde från början.
 watch(
   () => store.stepIndex,
-  () => {
-    sub.value = 'A'
-    warned.value = false
-    bPhase.value = 1
-  },
+  () => enterSituation(),
 )
 
-const showManualFallback = computed(() => !capture.supported || Boolean(capture.error.value))
-
+onMounted(() => enterSituation())
 onUnmounted(() => {
-  if (dwellTimer) clearTimeout(dwellTimer)
-  if (phaseTimer) clearTimeout(phaseTimer)
+  clearTimers()
   capture.stop()
 })
 </script>
 
 <template>
-  <StepShell
-    :step-index="store.stepIndex"
-    :step-count="3"
-    :can-advance="canAdvance"
-    :forward-key="forwardKey"
-    :show-skip="showSkip"
-    @advance="onAdvance"
-    @skip="skipDwell"
-  >
-    <!-- A · Läge -->
-    <section v-if="sub === 'A'" class="frame frame--a">
-      <MediaSlot v-if="step.lagesMedia" :id="step.lagesMedia" />
-      <div v-else class="frame__banner">{{ t('step.lage_label', { text: bannerText }) }}</div>
+  <div class="cycle">
+    <!-- SITUATION (beat 1 + 2) -->
+    <section v-if="sub === 'situation'" class="situation">
+      <div class="situation__media"><MediaSlot :id="referenceMedia" :autoplay="false" /></div>
+      <p class="situation__undertext">{{ undertext }}</p>
+
+      <transition name="pop">
+        <div v-if="popupShown" class="popup amber-frame">
+          <h3 class="popup__title ink-strong">{{ t('lage.title') }}</h3>
+          <ul class="popup__lines">
+            <li v-for="(l, i) in popupLines" :key="i">{{ l }}</li>
+          </ul>
+          <button class="crt-button crt-button--strong popup__go" @click="ready()">
+            {{ t('lage.ready') }} ▸
+          </button>
+        </div>
+      </transition>
     </section>
 
-    <!-- B · Tänk-högt (tvåfas) -->
-    <section v-else-if="sub === 'B'" class="frame">
-      <!-- FAS 1: frågan hero -->
-      <div v-if="bPhase === 1" class="bp1">
-        <div class="bp1__ref" aria-hidden="true">
-          <MediaSlot :id="referenceMedia" :autoplay="false" />
-        </div>
-        <p class="bp1__q ink-strong">{{ promptText }}</p>
-        <span class="bp1__mic">{{ t('step.talk_now') }}</span>
-        <div class="bp1__meter">
-          <DiegeticMeter
-            :labels="meterLabels"
-            :note="meterNote"
-            :remaining-ms="capture.remainingMs.value ?? WINDOW_MS"
-            :total-ms="WINDOW_MS"
-            :warn="warn"
-          />
-        </div>
-      </div>
-
-      <!-- FAS 2: live-transkriptet hero, frågan dockad, referensbilden kvar -->
-      <div v-else class="bp2">
-        <p class="bp2__q">{{ promptText }}</p>
-        <div class="bp2__body">
-          <div class="bp2__ref">
-            <MediaSlot :id="referenceMedia" :autoplay="false" />
-          </div>
-          <div class="bp2__live">
-            <p class="bp2__transcript" :class="{ 'bp2__transcript--empty': !capture.transcript.value }">
-              {{ capture.transcript.value || t('step.think_together') }}
-            </p>
-          </div>
-        </div>
-        <div class="bp2__foot">
-          <span class="bp2__mic">{{ t('step.mic_active') }}</span>
-          <DiegeticMeter
-            class="bp2__meter"
-            :labels="meterLabels"
-            :note="meterNote"
-            :remaining-ms="capture.remainingMs.value ?? WINDOW_MS"
-            :total-ms="WINDOW_MS"
-            :warn="warn"
-          />
-          <span v-if="timeUp" class="frame__warn">{{ t('step.time_up') }}</span>
-        </div>
-        <template v-if="showManualFallback">
-          <p v-if="!capture.supported" class="frame__nospeech">{{ t('step.no_speech') }}</p>
-          <p v-else class="frame__nospeech frame__nospeech--err">
-            {{ t(`step.mic_err.${capture.error.value}`) }}
-          </p>
-          <textarea
-            v-model="manualText"
-            class="frame__manual"
-            :placeholder="t('step.manual_placeholder')"
-            rows="2"
-          />
-        </template>
-      </div>
+    <!-- COUNTDOWN (beat 3) -->
+    <section v-else-if="sub === 'countdown'" class="countdown">
+      <p class="countdown__label">{{ t('countdown.prefix') }} …</p>
+      <div class="countdown__num" :key="countdownN">{{ countdownN }}</div>
     </section>
 
-    <!-- C · Analys + eskalering (bilden dominerar, strip nederst) -->
-    <section v-else-if="sub === 'C'" class="frame frame--c">
-      <div class="c-media">
-        <MediaSlot :id="step.eskaleringMedia" />
+    <!-- THINK (beat 4, tvåfas) -->
+    <section v-else-if="sub === 'think'" class="think" :class="bPhase === 1 ? 'tp1' : 'tp2'">
+      <div class="think__ref" aria-hidden="true"><MediaSlot :id="referenceMedia" :autoplay="false" /></div>
+
+      <div class="think__top">
+        <p class="think__q">{{ promptText }}</p>
+        <div class="think__timer" :class="{ 'think__timer--warn': warn }">{{ timeLabel }}</div>
       </div>
-      <div class="c-strip">
+
+      <div v-if="bPhase === 2" class="think__live">
+        <p class="think__transcript" :class="{ 'think__transcript--empty': !capture.transcript.value }">
+          {{ capture.transcript.value || t('step.talk_motiv') }}
+        </p>
+      </div>
+
+      <div class="think__foot">
+        <span class="think__mic">{{ bPhase === 1 ? t('step.talk_now') : t('step.mic_active') }}</span>
+        <span class="think__why">{{ t('step.why_line') }}</span>
+        <span v-if="warn && !timeUp" class="think__warn">{{ t('step.warn') }}</span>
+        <span v-if="timeUp" class="think__warn">{{ t('step.time_up') }}</span>
+        <button class="crt-button crt-button--strong think__done" @click="finishThink()">
+          {{ t('step.we_are_done') }} ▸
+        </button>
+      </div>
+
+      <template v-if="showManualFallback">
+        <p v-if="!capture.supported" class="frame__nospeech">{{ t('step.no_speech') }}</p>
+        <p v-else class="frame__nospeech frame__nospeech--err">
+          {{ t(`step.mic_err.${capture.error.value}`) }}
+        </p>
+        <textarea
+          v-model="manualText"
+          class="frame__manual"
+          :placeholder="t('step.manual_placeholder')"
+          rows="2"
+        />
+      </template>
+    </section>
+
+    <!-- ANALYS (latensmask) -->
+    <section v-else-if="sub === 'analys'" class="analys">
+      <div class="analys__media"><MediaSlot :id="referenceMedia" :autoplay="false" /></div>
+      <div class="analys__strip">
         <span>{{ t('step.analyzing') }}</span>
-        <span class="c-dots"><i /><i /><i /></span>
+        <span class="analys__dots"><i /><i /><i /></span>
+        <button v-if="isPilot" class="analys__skip" @click="skipDwell()">hoppa över</button>
       </div>
     </section>
 
-    <!-- D · AI-svar (hero) -->
-    <section v-else class="frame frame--d">
+    <!-- REPLY (NPC-svar) -->
+    <section v-else class="reply">
       <NpcReply
         v-if="assessResult"
         :text="assessResult.svar_text"
         :speaking="store.speaking"
         @done="npcDone = true"
       />
+      <button
+        class="crt-button crt-button--strong reply__next"
+        :disabled="!npcDone"
+        @click="store.nextStep()"
+      >
+        {{ t('step.next') }} ▸
+      </button>
     </section>
-  </StepShell>
+  </div>
 </template>
 
 <style scoped>
-.frame {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.cycle {
   height: 100%;
   min-height: 0;
-}
-.frame--a {
-  justify-content: center;
-}
-.frame__banner {
-  font-family: var(--font-retro);
-  letter-spacing: 0.14em;
-  color: var(--color-primary);
-  font-size: 1.2rem;
-  text-align: center;
-  border: 1px solid var(--color-primary-dim);
-  border-radius: var(--radius, 8px);
-  padding: 1.4rem;
 }
 
-/* ---------- B · fas 1: frågan hero ---------- */
-.bp1 {
+/* ---------- SITUATION ---------- */
+.situation {
   position: relative;
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.6rem;
-  text-align: center;
-  padding-bottom: 2rem;
 }
-.bp1__ref {
-  position: absolute;
-  inset: 0;
-  opacity: 0.14;
-  pointer-events: none;
+.situation__media {
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
+  overflow: hidden;
+}
+.situation__undertext {
+  text-align: center;
+  font-size: 1.15rem;
+  color: var(--color-ink-strong);
+  margin: 0.8rem 0 0;
+}
+.popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(90%, 46ch);
+  padding: 1.4rem 1.6rem;
+  border-radius: var(--radius, 8px);
+  background: rgba(0, 0, 0, 0.82);
+  text-align: center;
+}
+.popup__title {
+  font-family: var(--font-retro);
+  letter-spacing: 0.16em;
+  color: var(--color-primary);
+  margin: 0 0 1rem;
+}
+.popup__lines {
+  list-style: none;
+  margin: 0 0 1.2rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.popup__lines li {
+  color: var(--color-ink-strong);
+  line-height: 1.4;
+}
+.pop-enter-active {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.pop-enter-from {
+  opacity: 0;
+  transform: translate(-50%, -46%);
+}
+
+/* ---------- COUNTDOWN ---------- */
+.countdown {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  gap: 1rem;
 }
-.bp1__q {
-  position: relative;
-  font-size: clamp(1.5rem, 3.4vw, 2.2rem);
-  line-height: 1.35;
-  max-width: 26ch;
-  margin: 0;
-}
-.bp1__mic {
-  position: relative;
+.countdown__label {
   font-family: var(--font-mono);
   letter-spacing: 0.08em;
-  color: var(--color-primary);
-  animation: mic-pulse 1.3s ease-in-out infinite;
+  color: var(--color-ink-muted);
+  margin: 0;
 }
-.bp1__meter {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+.countdown__num {
+  font-family: var(--font-retro);
+  font-size: clamp(5rem, 18vw, 10rem);
+  line-height: 1;
+  color: var(--color-primary);
+  text-shadow: var(--glow-strong, 0 0 24px rgba(255, 176, 0, 0.7));
+  animation: cd-pop 0.9s ease-out;
+}
+@keyframes cd-pop {
+  from {
+    transform: scale(1.35);
+    opacity: 0.4;
+  }
 }
 
-/* ---------- B · fas 2: transkriptet hero ---------- */
-.bp2 {
+/* ---------- THINK ---------- */
+.think {
+  position: relative;
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
 }
-.bp2__q {
-  font-size: 1.05rem;
-  line-height: 1.35;
-  color: var(--color-primary);
-  margin: 0;
-  flex: 0 0 auto;
-}
-.bp2__body {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: 40% 60%;
-  gap: 1rem;
-}
-.bp2__ref {
-  min-height: 0;
-  overflow: hidden;
+.think__ref {
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  pointer-events: none;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
-.bp2__live {
+.think__top {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.think__q {
+  flex: 1;
+  margin: 0;
+  color: var(--color-ink-strong);
+}
+.tp1 .think__q {
+  font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+  line-height: 1.35;
+  text-align: center;
+  padding-top: 12vh;
+}
+.tp2 .think__q {
+  font-size: 1.05rem;
+  color: var(--color-primary);
+}
+.think__timer {
+  position: relative;
+  font-family: var(--font-retro);
+  font-size: 1.4rem;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-dim);
+  border-radius: 6px;
+  padding: 0.1em 0.5em;
+}
+.think__timer--warn {
+  color: var(--color-danger, #ff5a5a);
+  border-color: var(--color-danger, #ff5a5a);
+  animation: blink 0.5s steps(2, start) infinite;
+}
+.think__live {
+  position: relative;
+  flex: 1;
   min-height: 0;
   overflow: auto;
   display: flex;
   align-items: flex-start;
 }
-.bp2__transcript {
-  font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+.think__transcript {
+  font-size: clamp(1.3rem, 2.6vw, 1.9rem);
   line-height: 1.5;
   color: var(--color-ink-strong);
   margin: 0;
 }
-.bp2__transcript--empty {
+.think__transcript--empty {
   color: var(--color-ink-muted);
   font-style: italic;
 }
-.bp2__foot {
+.think__foot {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex: 0 0 auto;
+  flex-wrap: wrap;
 }
-.bp2__mic {
+.think__mic {
   font-family: var(--font-mono);
   color: var(--color-primary);
   white-space: nowrap;
   animation: mic-pulse 1.3s ease-in-out infinite;
 }
-.bp2__meter {
+.think__why {
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
   flex: 1;
+  min-width: 12ch;
 }
-@media (max-width: 760px) {
-  .bp2__body {
-    grid-template-columns: 1fr;
-  }
-}
-
-.frame__warn {
+.think__warn {
   font-family: var(--font-retro);
-  letter-spacing: 0.1em;
   color: var(--color-danger, #ff5a5a);
   white-space: nowrap;
+}
+.think__done {
+  margin-left: auto;
 }
 .frame__nospeech {
   color: var(--color-ink-muted);
   font-size: 0.85rem;
   margin: 0;
+  position: relative;
 }
 .frame__nospeech--err {
   color: var(--color-danger, #ff5a5a);
 }
 .frame__manual {
+  position: relative;
   width: 100%;
   background: #0a0a0a;
   color: var(--color-ink-strong);
@@ -471,17 +521,22 @@ onUnmounted(() => {
   resize: vertical;
 }
 
-/* ---------- C · analys ---------- */
-.frame--c {
-  justify-content: flex-start;
+/* ---------- ANALYS ---------- */
+.analys {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
 }
-.c-media {
+.analys__media {
   flex: 1;
   min-height: 0;
   display: flex;
   align-items: center;
+  overflow: hidden;
 }
-.c-strip {
+.analys__strip {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -489,29 +544,45 @@ onUnmounted(() => {
   color: var(--color-ink-muted);
   font-family: var(--font-mono);
   letter-spacing: 0.06em;
-  flex: 0 0 auto;
 }
-.c-dots {
+.analys__dots {
   display: inline-flex;
   gap: 3px;
 }
-.c-dots i {
+.analys__dots i {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: var(--color-primary);
   animation: dot-blink 1s infinite;
 }
-.c-dots i:nth-child(2) {
+.analys__dots i:nth-child(2) {
   animation-delay: 0.2s;
 }
-.c-dots i:nth-child(3) {
+.analys__dots i:nth-child(3) {
   animation-delay: 0.4s;
 }
+.analys__skip {
+  background: none;
+  border: none;
+  color: var(--color-ink-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0.5;
+  margin-left: 1rem;
+}
 
-/* ---------- D · AI-svar ---------- */
-.frame--d {
+/* ---------- REPLY ---------- */
+.reply {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
+  gap: 1.5rem;
+}
+.reply__next {
+  align-self: center;
 }
 
 @keyframes mic-pulse {
@@ -524,15 +595,17 @@ onUnmounted(() => {
     opacity: 0.2;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .bp1__mic,
-  .bp2__mic,
-  .c-dots i {
-    animation: none;
+@keyframes blink {
+  50% {
+    opacity: 0.4;
   }
-  .bp1__mic,
-  .bp2__mic {
-    opacity: 0.75;
+}
+@media (prefers-reduced-motion: reduce) {
+  .think__mic,
+  .analys__dots i,
+  .think__timer--warn,
+  .countdown__num {
+    animation: none;
   }
 }
 </style>

@@ -21,6 +21,7 @@
     "required": [
       "band",
       "dimensioner",
+      "motiverat",
       "kvitterat",
       "miss",
       "ankare",
@@ -35,6 +36,9 @@
           "Godkänd",
           "Svag"
         ]
+      },
+      "motiverat": {
+        "type": "boolean"
       },
       "dimensioner": {
         "type": "object",

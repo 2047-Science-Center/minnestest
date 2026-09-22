@@ -40,9 +40,6 @@ export type Phase =
   | 'checkin'
   | 'roleSelect'
   | 'vaultOut'
-  | 'scenarioIntro'
-  | 'homeReveal'
-  | 'premise'
   | 'step'
   | 'vaultBack'
   | 'verdict'
@@ -63,6 +60,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   const transcripts = ref<string[]>(['', '', ''])
   const assessments = ref<(StepAssessment | null)[]>([null, null, null])
   const final = ref<FinalResult | null>(null)
+  /** Packlistan från steg 1 (§9) — återanvänds i steg 3 för retroaktiv återkoppling. */
+  const packlista = ref('')
 
   /** Sant medan /assess-anropet för aktuellt steg pågår (delruta C väntar). */
   const assessing = ref(false)
@@ -114,19 +113,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   }
 
   function vaultOutDone(): void {
-    phase.value = 'scenarioIntro'
-  }
-
-  function scenarioIntroDone(): void {
-    phase.value = 'homeReveal'
-  }
-
-  function homeRevealDone(): void {
-    // Premiss-tavlan "SÅ ÄR LÄGET" låser världen innan stegen.
-    phase.value = 'premise'
-  }
-
-  function premiseDone(): void {
+    // Rakt in i uppgift 1; scenariot introduceras av stegets läges-flöde
+    // (bild+undertext → pop-up "DET HÄR ÄR LÄGET" → nedräkning → tänk-högt).
     stepIndex.value = 0
     phase.value = 'step'
   }
@@ -158,6 +146,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   async function assessCurrentStep(transcript: string): Promise<StepAssessment> {
     const idx = stepIndex.value
     transcripts.value[idx] = transcript
+    // Steg 1 = packningen → spara som packlista för retroaktiv återkoppling i steg 3.
+    if (idx === 0) packlista.value = transcript
     assessing.value = true
     try {
       const a = await adapters.value!.assess.assessStep(
@@ -166,7 +156,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
           role: roleId.value ?? 'metodspecialist',
           scenario: scenarioId.value,
           transcript,
-          resources: scenario.value.resources,
+          // Packlistan skickas från och med steg 3 (§9) för korsreferensen.
+          packlista: idx >= 2 ? packlista.value : undefined,
           prior: priorSoFar(idx),
         },
         { lang: config.lang },
@@ -179,6 +170,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
       const fallback: StepAssessment = {
         band: 'Godkänd',
         dimensioner: emptyDims(),
+        motiverat: false,
         kvitterat: '',
         miss: '',
         ankare: '',
@@ -227,7 +219,6 @@ export const useMinnestestStore = defineStore('minnestest', () => {
           step: 'final',
           role: roleId.value ?? 'metodspecialist',
           scenario: scenarioId.value,
-          resources: scenario.value.resources,
           prior: priorSoFar(steps.value.length),
         },
         { lang: config.lang },
@@ -260,6 +251,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     transcripts.value = ['', '', '']
     assessments.value = [null, null, null]
     final.value = null
+    packlista.value = ''
     group.value = { id: PILOT_GROUP.id, members: [...PILOT_GROUP.members] }
   }
 
@@ -313,9 +305,6 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     checkinDone,
     chooseRole,
     vaultOutDone,
-    scenarioIntroDone,
-    homeRevealDone,
-    premiseDone,
     assessCurrentStep,
     speakNpc,
     nextStep,
