@@ -9,7 +9,7 @@
  *
  *   npm run gateway   (kräver server/.env med AI_API_KEY=...)
  */
-import 'dotenv/config'
+import dotenv from 'dotenv'
 import express from 'express'
 import cors from 'cors'
 import OpenAI from 'openai'
@@ -20,6 +20,10 @@ import { fileURLToPath } from 'node:url'
 import { computeFinal } from './lib/scoring.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// Ladda server/.env oavsett från vilken katalog gatewayen startas (default-
+// dotenv läser cwd/.env — vi vill alltid ha nyckeln bredvid denna fil).
+dotenv.config({ path: path.join(__dirname, '.env') })
+
 const PORT = process.env.PORT || 8787
 const API_KEY = process.env.AI_API_KEY || process.env.OPENAI_API_KEY
 
@@ -103,6 +107,7 @@ function buildStepInput(input) {
     `"""`,
     (input.transcript || '').trim() || '(tyst — inget sades)',
     `"""`,
+    `Svara med ett enda giltigt JSON-objekt enligt schemat.`,
   ].join('\n')
 }
 
@@ -115,12 +120,20 @@ function buildComposeInput(input, computed) {
     `MARKERING: ${computed.markering}`,
     `STEGENS BEDÖMNINGAR:`,
     priorBlock(input.prior),
+    `Svara med ett enda giltigt JSON-objekt: { "sammanfattning": "..." }`,
   ].join('\n')
 }
 
-async function callModelJson(model, instructions, input) {
+async function callModelJson(model, instructions, input, cfg) {
   if (!openai) throw new Error('ingen AI_API_KEY konfigurerad i server/.env')
-  const response = await openai.responses.create({ model, instructions, input })
+  const req = { model, instructions, input }
+  // gpt-5-familjen: låg reasoning-effort kapar latensen kraftigt (config-styrt).
+  if (cfg && cfg.reasoningEffort) req.reasoning = { effort: cfg.reasoningEffort }
+  if (cfg && cfg.maxOutputTokens) req.max_output_tokens = cfg.maxOutputTokens
+  // JSON-läge: modellen kan bara emittera giltig JSON (rätt escaping) → inga
+  // trasiga svar. coerceStep normaliserar ändå formen.
+  if (cfg && cfg.jsonMode) req.text = { format: { type: 'json_object' } }
+  const response = await openai.responses.create(req)
   return parseJsonLoose(response.output_text)
 }
 
@@ -144,7 +157,7 @@ app.post('/assess', async (req, res) => {
       const computed = computeFinal(input.prior || [], cfg)
       let sammanfattning = ''
       try {
-        const out = await callModelJson(model, cfg._compose, buildComposeInput(input, computed))
+        const out = await callModelJson(model, cfg._compose, buildComposeInput(input, computed), cfg)
         sammanfattning = String(out.sammanfattning ?? '')
       } catch (err) {
         console.warn('[gateway] compose-text misslyckades, tom sammanfattning:', err.message)
@@ -161,7 +174,7 @@ app.post('/assess', async (req, res) => {
     }
 
     // Per-steg
-    const raw = await callModelJson(model, cfg._instructions, buildStepInput(input))
+    const raw = await callModelJson(model, cfg._instructions, buildStepInput(input), cfg)
     const assessment = coerceStep(raw)
     return res.json({ assessment, meta: { model, latencyMs: Date.now() - started } })
   } catch (err) {

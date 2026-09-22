@@ -1,6 +1,9 @@
 {
   "id": "minnestest",
   "model": "gpt-5-nano",
+  "reasoningEffort": "low",
+  "maxOutputTokens": 1400,
+  "jsonMode": true,
   "instructionsFile": "instructions/minnestest.sv.txt",
   "composeInstructionsFile": "instructions/minnestest.compose.sv.txt",
   "outputSchema": {
