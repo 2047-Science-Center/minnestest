@@ -56,6 +56,10 @@ const isVideo = computed(() => m.value.typ !== 'image')
   position: relative;
   width: 100%;
   max-width: 100%;
+  /* Överskrid aldrig förälderns höjd (flex:1-scen) — annars kan den höga
+   *  16:9-rutan svämma över och täcka knappar under (t.ex. BÖRJA på hem-
+   *  revealet på breda skärmar). Höjd har företräde → aspect-ratio ger vika. */
+  max-height: 100%;
   overflow: hidden;
   border-radius: var(--radius, 8px);
   background: #0a0a0a;

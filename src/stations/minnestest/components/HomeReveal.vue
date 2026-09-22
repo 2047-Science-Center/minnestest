@@ -44,8 +44,11 @@ const store = useMinnestestStore()
   position: relative;
   flex: 1;
   min-height: 0;
+  /* Klipp ev. överflöd så scenen aldrig ritar över foten (BÖRJA-knappen). */
+  overflow: hidden;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 .home__markers {
   position: absolute;

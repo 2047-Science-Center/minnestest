@@ -38,7 +38,9 @@ function pick(id: RoleId): void {
           'role-card--dim': picked && picked !== r.id,
         }"
       >
-        <MediaSlot :id="r.media" />
+        <div class="role-card__media">
+          <MediaSlot :id="r.media" />
+        </div>
         <h3 class="role-card__title">{{ t(`role.${r.id}.title`) }}</h3>
         <p class="role-card__blurb">{{ t(`role.${r.id}.blurb`) }}</p>
         <button class="crt-button crt-button--strong role-card__pick" :disabled="!!picked" @click="pick(r.id)">
@@ -80,9 +82,21 @@ function pick(id: RoleId): void {
   flex-direction: column;
   gap: 0.7rem;
   padding: 1rem;
+  min-height: 0;
+  overflow: hidden;
   border: 1px solid var(--color-primary-dim);
   border-radius: var(--radius, 8px);
   transition: opacity 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+/* Klippbar, höjd-bunden yta för klippet → MediaSlot (max-height:100%) kapas och
+ * kan aldrig svämma över och täcka VÄLJ-knappen på breda skärmar. */
+.role-card__media {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 .role-card--picked {
   border-color: var(--color-primary);
