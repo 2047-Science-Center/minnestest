@@ -4,7 +4,7 @@
  */
 export const sv: Record<string, string> = {
   // --- Kit-överskrivningar ---
-  'app.title': 'BORTFALLET',
+  'app.title': 'FLYKTEN',
   'app.subtitle': 'X&Y-riggen · 2047',
   'attract.tagline': 'Mönstring pågår. Bippa ditt band för att ta plats.',
   'attract.boot': 'STARTAR …',
@@ -16,7 +16,7 @@ export const sv: Record<string, string> = {
   'common.next': 'NÄSTA',
 
   // --- Statusrad ---
-  'status.station': 'BORTFALLET',
+  'status.station': 'FLYKTEN',
   'status.group': 'GRUPP {grupp}',
   'status.moment': 'MOMENT {n}/3',
   'status.pretext': '// tiden före valvet',
