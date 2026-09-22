@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.vite
+coverage
+
+# Hemligheter — aldrig i git. Nyckel (AI_API_KEY, ev. ELEVENLABS_API_KEY) bor i
+# gatewayns .env och ingenstans annars.
+.env
+.env.*
+server/.env

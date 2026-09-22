@@ -1,0 +1,48 @@
+{
+  "id": "minnestest",
+  "model": "gpt-5-nano",
+  "instructionsFile": "instructions/minnestest.sv.txt",
+  "composeInstructionsFile": "instructions/minnestest.compose.sv.txt",
+  "outputSchema": {
+    "type": "object",
+    "required": ["band", "dimensioner", "kvitterat", "miss", "ankare", "svar_text", "osakert"],
+    "properties": {
+      "band": { "type": "string", "enum": ["Stark", "Godkänd", "Svag"] },
+      "dimensioner": {
+        "type": "object",
+        "required": ["system", "framforhallning", "prioritering", "resurs", "anpassning"],
+        "properties": {
+          "system": { "type": "boolean" },
+          "framforhallning": { "type": "boolean" },
+          "prioritering": { "type": "boolean" },
+          "resurs": { "type": "boolean" },
+          "anpassning": { "type": "boolean" }
+        }
+      },
+      "kvitterat": { "type": "string" },
+      "miss": { "type": "string" },
+      "ankare": { "type": "string" },
+      "svar_text": { "type": "string" },
+      "osakert": { "type": "array", "items": { "type": "string" } }
+    }
+  },
+  "profiles": {
+    "system": "Systemtänkaren",
+    "framforhallning": "Den förutseende",
+    "prioritering": "Prioriteraren",
+    "resurs": "Improvisatören",
+    "anpassning": "Lagets klippa"
+  },
+  "scoring": {
+    "bandPoints": { "Svag": 1, "Godkänd": 2, "Stark": 3 },
+    "bonus": { "minSteps": 2, "points": 1 },
+    "clamp": { "min": 1, "max": 10 }
+  },
+  "scale": [
+    { "min": 1, "max": 2, "label": "Överlevde stunden" },
+    { "min": 3, "max": 4, "label": "Höll huvudet kallt" },
+    { "min": 5, "max": 6, "label": "Tänkte framåt" },
+    { "min": 7, "max": 8, "label": "Såg hela systemet" },
+    { "min": 9, "max": 10, "label": "Någon andra kan luta sig mot" }
+  ]
+}
