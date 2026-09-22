@@ -68,25 +68,29 @@ export const sv: Record<string, string> = {
     'Den här webbläsaren stödjer inte taligenkänning — använd Chrome, eller skriv i fältet.',
 
   // --- Uppgift 1 · Packa ---
-  'flykt.steg1.undertext': 'Kriget har brutit ut — ni måste fly landet.',
+  //   context = liten rad ovanför, task = STORA frågan (syns hela tiden), time = tidsgräns.
+  'flykt.steg1.context': 'Ett krig har brutit ut och ni måste fly.',
+  'flykt.steg1.task': 'Vad tar ni med er?',
+  'flykt.steg1.time': 'Ni får EN MINUT på er att komma på vad ni packar — mer tid har ni inte.',
   'flykt.steg1.popup1': 'Kriget har nått er stad. Ni är familjen som bor här.',
-  'flykt.steg1.popup2': 'Ni måste fly landet — nu.',
-  'flykt.steg1.popup3': 'Ni vet inte hur länge ni blir borta eller vart ni hamnar.',
-  'flykt.steg1.fraga': 'Vad tar ni med er — och varför just det?',
+  'flykt.steg1.popup2': 'Ni måste fly landet — nu — och vet inte hur länge ni blir borta.',
+  'flykt.steg1.popup3': '',
 
   // --- Uppgift 2 · Färdsätt ---
-  'flykt.steg2.undertext': 'Vägarna är fulla av folk som flyr.',
+  'flykt.steg2.context': 'Vägarna är fulla av folk som flyr.',
+  'flykt.steg2.task': 'Hur tar ni er fram?',
+  'flykt.steg2.time': 'Ni får EN MINUT på er att bestämma hur ni tar er vidare — mer tid har ni inte.',
   'flykt.steg2.popup1': 'Ni har tagit er ut ur staden.',
-  'flykt.steg2.popup2': 'Vägarna är redan fulla av folk som flyr.',
-  'flykt.steg2.popup3': 'Ni måste välja hur ni tar er vidare.',
-  'flykt.steg2.fraga': 'Hur väljer ni att ta er fram — och varför det sättet framför andra?',
+  'flykt.steg2.popup2': 'Vägarna är redan fulla av folk som flyr — ni måste välja hur ni tar er vidare.',
+  'flykt.steg2.popup3': '',
 
   // --- Uppgift 3 · Slå läger ---
-  'flykt.steg3.undertext': 'Ni kommer inte längre ikväll.',
+  'flykt.steg3.context': 'Ni kommer inte längre ikväll.',
+  'flykt.steg3.task': 'Vad gör ni först?',
+  'flykt.steg3.time': 'Ni får EN MINUT på er att bestämma vad ni gör först — mer tid har ni inte.',
   'flykt.steg3.popup1': 'Det blev stopp. Ni kommer inte längre ikväll.',
   'flykt.steg3.popup2': 'Ni måste stanna och slå läger i skogen, några nätter.',
   'flykt.steg3.popup3': '',
-  'flykt.steg3.fraga': 'Vad gör ni först — och varför är det viktigast?',
 
   // --- NPC-svar ---
   'npc.prefix': 'ENHETEN //',

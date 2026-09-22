@@ -2,11 +2,12 @@
 /**
  * En uppgifts-cykel för aktuellt steg (FLYKT). Förenklat läges-flöde (§3),
  * IDENTISKT för uppgift 1–3:
- *   situation  — referensbilden + undertext (1 mening) + pop-up "DET HÄR ÄR
- *                LÄGET" (2–3 rader) med VI ÄR REDO.
+ *   situation  — referensbilden + caption (kontext + STORA uppgiften) + pop-up
+ *                med uppgiften som titel, lägesrader och tidsgränsen (1 min).
  *   countdown  — "Uppgiften börjar om …10, 9, 8 …".
- *   think      — tänk-högt (tvåfas): fråga hero → transkript hero; referensbilden
- *                kvar centrerad; nedräkningstimer väl synlig; motivering efterfrågas.
+ *   think      — tänk-högt (tvåfas). UPPGIFTEN står STOR och tydlig HELA TIDEN
+ *                (liten kontext-rad ovanför), så den som inte lyssnat ser den.
+ *                Nedräkningstimer väl synlig; motivering efterfrågas.
  *   analys     — referensbilden dominerar (latensmask) medan /assess körs.
  *   reply      — NPC-svaret hero (+ ev. röst), NÄSTA ▸.
  */
@@ -38,8 +39,9 @@ const step = computed(() => store.currentStep)
 const stepKey = computed(() => step.value.key)
 const referenceMedia = computed(() => step.value.referenceMedia)
 
-const undertext = computed(() => t(`${stepKey.value}.undertext`))
-const promptText = computed(() => t(`${stepKey.value}.fraga`))
+const context = computed(() => t(`${stepKey.value}.context`))
+const task = computed(() => t(`${stepKey.value}.task`))
+const timeLine = computed(() => t(`${stepKey.value}.time`))
 const popupLines = computed(() =>
   ['popup1', 'popup2', 'popup3']
     .map((k) => t(`${stepKey.value}.${k}`))
@@ -201,7 +203,6 @@ function skipDwell(): void {
 
 const isPilot = config.mode === 'pilot'
 
-// Nytt steg (stepIndex ändras) → nytt läges-flöde från början.
 watch(
   () => store.stepIndex,
   () => enterSituation(),
@@ -219,14 +220,19 @@ onUnmounted(() => {
     <!-- SITUATION (beat 1 + 2) -->
     <section v-if="sub === 'situation'" class="situation">
       <div class="situation__media"><MediaSlot :id="referenceMedia" :autoplay="false" /></div>
-      <p class="situation__undertext">{{ undertext }}</p>
+      <div class="situation__cap">
+        <p class="situation__context">{{ context }}</p>
+        <p class="situation__task ink-strong">{{ task }}</p>
+      </div>
 
       <transition name="pop">
         <div v-if="popupShown" class="popup amber-frame">
-          <h3 class="popup__title ink-strong">{{ t('lage.title') }}</h3>
+          <p class="popup__eyebrow">{{ t('lage.title') }}</p>
+          <h3 class="popup__task ink-strong">{{ task }}</h3>
           <ul class="popup__lines">
             <li v-for="(l, i) in popupLines" :key="i">{{ l }}</li>
           </ul>
+          <p class="popup__time">{{ timeLine }}</p>
           <button class="crt-button crt-button--strong popup__go" @click="ready()">
             {{ t('lage.ready') }} ▸
           </button>
@@ -240,30 +246,39 @@ onUnmounted(() => {
       <div class="countdown__num" :key="countdownN">{{ countdownN }}</div>
     </section>
 
-    <!-- THINK (beat 4, tvåfas) -->
+    <!-- THINK (beat 4, tvåfas) — UPPGIFTEN stor och tydlig HELA TIDEN -->
     <section v-else-if="sub === 'think'" class="think" :class="bPhase === 1 ? 'tp1' : 'tp2'">
       <div class="think__ref" aria-hidden="true"><MediaSlot :id="referenceMedia" :autoplay="false" /></div>
 
-      <div class="think__top">
-        <p class="think__q">{{ promptText }}</p>
+      <header class="think__header">
+        <div class="think__q">
+          <p class="think__context">{{ context }}</p>
+          <h2 class="think__task ink-strong">{{ task }}</h2>
+        </div>
         <div class="think__timer" :class="{ 'think__timer--warn': warn }">{{ timeLabel }}</div>
+      </header>
+
+      <div v-if="bPhase === 1" class="think__prompt">
+        <span class="think__mic">{{ t('step.talk_now') }}</span>
+        <p class="think__why">{{ t('step.why_line') }}</p>
       </div>
 
-      <div v-if="bPhase === 2" class="think__live">
-        <p class="think__transcript" :class="{ 'think__transcript--empty': !capture.transcript.value }">
-          {{ capture.transcript.value || t('step.talk_motiv') }}
-        </p>
-      </div>
-
-      <div class="think__foot">
-        <span class="think__mic">{{ bPhase === 1 ? t('step.talk_now') : t('step.mic_active') }}</span>
-        <span class="think__why">{{ t('step.why_line') }}</span>
-        <span v-if="warn && !timeUp" class="think__warn">{{ t('step.warn') }}</span>
-        <span v-if="timeUp" class="think__warn">{{ t('step.time_up') }}</span>
-        <button class="crt-button crt-button--strong think__done" @click="finishThink()">
-          {{ t('step.we_are_done') }} ▸
-        </button>
-      </div>
+      <template v-else>
+        <div class="think__live">
+          <p class="think__transcript" :class="{ 'think__transcript--empty': !capture.transcript.value }">
+            {{ capture.transcript.value || t('step.talk_motiv') }}
+          </p>
+        </div>
+        <div class="think__foot">
+          <span class="think__mic">{{ t('step.mic_active') }}</span>
+          <span class="think__why">{{ t('step.why_line') }}</span>
+          <span v-if="warn && !timeUp" class="think__warn">{{ t('step.warn') }}</span>
+          <span v-if="timeUp" class="think__warn">{{ t('step.time_up') }}</span>
+          <button class="crt-button crt-button--strong think__done" @click="finishThink()">
+            {{ t('step.we_are_done') }} ▸
+          </button>
+        </div>
+      </template>
 
       <template v-if="showManualFallback">
         <p v-if="!capture.supported" class="frame__nospeech">{{ t('step.no_speech') }}</p>
@@ -329,32 +344,50 @@ onUnmounted(() => {
   align-items: center;
   overflow: hidden;
 }
-.situation__undertext {
+.situation__cap {
   text-align: center;
-  font-size: 1.15rem;
-  color: var(--color-ink-strong);
-  margin: 0.8rem 0 0;
+  margin-top: 0.8rem;
+}
+.situation__context {
+  color: var(--color-ink-muted);
+  margin: 0 0 0.2rem;
+  font-size: 0.95rem;
+}
+.situation__task {
+  font-family: var(--font-retro);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  letter-spacing: 0.04em;
+  color: var(--color-primary);
+  margin: 0;
 }
 .popup {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(90%, 46ch);
+  width: min(92%, 48ch);
   padding: 1.4rem 1.6rem;
   border-radius: var(--radius, 8px);
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(0, 0, 0, 0.85);
   text-align: center;
 }
-.popup__title {
+.popup__eyebrow {
+  font-family: var(--font-mono);
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  color: var(--color-ink-muted);
+  margin: 0 0 0.4rem;
+}
+.popup__task {
   font-family: var(--font-retro);
-  letter-spacing: 0.16em;
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  letter-spacing: 0.04em;
   color: var(--color-primary);
   margin: 0 0 1rem;
 }
 .popup__lines {
   list-style: none;
-  margin: 0 0 1.2rem;
+  margin: 0 0 1rem;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -362,6 +395,12 @@ onUnmounted(() => {
 }
 .popup__lines li {
   color: var(--color-ink-strong);
+  line-height: 1.4;
+}
+.popup__time {
+  color: var(--color-primary);
+  font-weight: 600;
+  margin: 0 0 1.2rem;
   line-height: 1.4;
 }
 .pop-enter-active {
@@ -420,7 +459,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
 }
-.think__top {
+/* Uppgiften: STOR och tydlig i BÅDA faser. */
+.think__header {
   position: relative;
   display: flex;
   align-items: flex-start;
@@ -428,32 +468,44 @@ onUnmounted(() => {
 }
 .think__q {
   flex: 1;
-  margin: 0;
-  color: var(--color-ink-strong);
 }
-.tp1 .think__q {
-  font-size: clamp(1.5rem, 3.4vw, 2.2rem);
-  line-height: 1.35;
-  text-align: center;
-  padding-top: 12vh;
+.think__context {
+  color: var(--color-ink-muted);
+  font-size: 0.95rem;
+  margin: 0 0 0.2rem;
 }
-.tp2 .think__q {
-  font-size: 1.05rem;
+.think__task {
+  font-family: var(--font-retro);
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+  line-height: 1.15;
+  letter-spacing: 0.03em;
   color: var(--color-primary);
+  margin: 0;
 }
 .think__timer {
-  position: relative;
   font-family: var(--font-retro);
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   color: var(--color-primary);
   border: 1px solid var(--color-primary-dim);
   border-radius: 6px;
   padding: 0.1em 0.5em;
+  white-space: nowrap;
 }
 .think__timer--warn {
   color: var(--color-danger, #ff5a5a);
   border-color: var(--color-danger, #ff5a5a);
   animation: blink 0.5s steps(2, start) infinite;
+}
+/* Fas 1: bara uppmaningen under den stora frågan (inget transkript än). */
+.tp1 .think__header {
+  padding-top: 8vh;
+}
+.think__prompt {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
 }
 .think__live {
   position: relative;
@@ -464,7 +516,7 @@ onUnmounted(() => {
   align-items: flex-start;
 }
 .think__transcript {
-  font-size: clamp(1.3rem, 2.6vw, 1.9rem);
+  font-size: clamp(1.15rem, 2.2vw, 1.55rem);
   line-height: 1.5;
   color: var(--color-ink-strong);
   margin: 0;
@@ -489,6 +541,7 @@ onUnmounted(() => {
 .think__why {
   color: var(--color-ink-muted);
   font-size: 0.85rem;
+  margin: 0;
   flex: 1;
   min-width: 12ch;
 }
