@@ -214,6 +214,9 @@ onUnmounted(() => {
       </div>
 
       <p v-if="!capture.supported" class="frame__nospeech">{{ t('step.no_speech') }}</p>
+      <p v-else-if="capture.error.value" class="frame__nospeech frame__nospeech--err">
+        {{ t(`step.mic_err.${capture.error.value}`) }}
+      </p>
       <textarea
         v-model="manualText"
         class="frame__manual"
@@ -293,6 +296,9 @@ onUnmounted(() => {
   color: var(--color-ink-muted);
   font-size: 0.85rem;
   margin: 0;
+}
+.frame__nospeech--err {
+  color: var(--color-danger, #ff5a5a);
 }
 .frame__manual {
   width: 100%;

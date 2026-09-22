@@ -73,6 +73,14 @@ export const sv: Record<string, string> = {
   'step.no_speech':
     'Taligenkänning stöds inte i denna webbläsare — prata ändå, eller skriv era beslut i fältet.',
   'step.manual_placeholder': 'Skriv ert beslut här …',
+  // Mikrofon-fel (talfångst) — visas i delruta B om något går snett.
+  'step.mic_err.not-allowed':
+    'Mikrofonen är blockerad. Tillåt mikrofon i webbläsaren (klicka på hänglåset i adressfältet → Mikrofon → Tillåt) och försök igen. Ni kan skriva i fältet så länge.',
+  'step.mic_err.no-mic': 'Ingen mikrofon hittades. Skriv era beslut i fältet i stället.',
+  'step.mic_err.no-internet':
+    'Taligenkänningen tappade nätet (den kräver internet). Skriv i fältet så länge.',
+  'step.mic_err.unsupported':
+    'Den här webbläsaren stödjer inte taligenkänning — använd Chrome, eller skriv i fältet.',
 
   // --- Steg 1 (ström) ---
   'strom.steg1.prompt':

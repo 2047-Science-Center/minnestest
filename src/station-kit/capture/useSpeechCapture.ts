@@ -75,6 +75,9 @@ export interface SpeechCapture {
   transcript: Readonly<Ref<string>>
   /** ms kvar av fönstret (om windowMs satt), annars null. */
   remainingMs: Readonly<Ref<number | null>>
+  /** Senaste meningsfulla fel (t.ex. 'not-allowed', 'no-internet',
+   *  'unsupported') — för UI. null = inget fel. */
+  error: Readonly<Ref<string | null>>
   start(): void
   stop(): void
   /** Nollställ transkript inför nästa steg. */
@@ -89,6 +92,7 @@ export function useSpeechCapture(opts: SpeechCaptureOptions = {}): SpeechCapture
   const finalTranscript = ref('')
   const interimTranscript = ref('')
   const remainingMs = ref<number | null>(opts.windowMs ?? null)
+  const error = ref<string | null>(null)
 
   const transcript = computed(() =>
     (finalTranscript.value + ' ' + interimTranscript.value).trim(),
@@ -116,8 +120,13 @@ export function useSpeechCapture(opts: SpeechCaptureOptions = {}): SpeechCapture
       }
       interimTranscript.value = interim
     }
-    r.onerror = () => {
-      // 'no-speech'/'aborted' m.fl. är ofarliga — onend hanterar omstart.
+    r.onerror = (e: unknown) => {
+      // 'no-speech'/'aborted' är ofarliga (onend hanterar omstart). Bara riktiga
+      // fel ytas till UI:t.
+      const code = (e as { error?: string })?.error
+      if (code === 'not-allowed' || code === 'service-not-allowed') error.value = 'not-allowed'
+      else if (code === 'audio-capture') error.value = 'no-mic'
+      else if (code === 'network') error.value = 'no-internet'
     }
     r.onend = () => {
       interimTranscript.value = ''
@@ -135,16 +144,39 @@ export function useSpeechCapture(opts: SpeechCaptureOptions = {}): SpeechCapture
     return r
   }
 
-  function start(): void {
-    if (!supported || isListening.value) return
-    wantOn = true
-    isListening.value = true
+  /** Be uttryckligen om mikrofon först — då prompt:ar Chrome pålitligt och vi
+   *  får ett tydligt fel om det nekas (Web Speech ensamt kan tyst göra inget).
+   *  Vi stänger strömmen direkt; det var bara för att låsa upp tillståndet. */
+  async function primeAndStart(): Promise<void> {
+    try {
+      const md = navigator.mediaDevices
+      if (md && md.getUserMedia) {
+        const stream = await md.getUserMedia({ audio: true })
+        stream.getTracks().forEach((t) => t.stop())
+      }
+    } catch {
+      error.value = 'not-allowed'
+      // Försök ändå starta igenkänningen — vissa uppsättningar funkar utan gUM.
+    }
+    if (!wantOn) return
     rec = buildRec()
     try {
       rec?.start()
     } catch {
-      /* ignore */
+      /* ignore — redan igång/race */
     }
+  }
+
+  function start(): void {
+    if (isListening.value) return
+    error.value = null
+    if (!supported) {
+      error.value = 'unsupported'
+      return
+    }
+    wantOn = true
+    isListening.value = true
+    void primeAndStart()
     if (opts.windowMs != null) {
       windowEndsAt = Date.now() + opts.windowMs
       remainingMs.value = opts.windowMs
@@ -184,6 +216,7 @@ export function useSpeechCapture(opts: SpeechCaptureOptions = {}): SpeechCapture
     finalTranscript.value = ''
     interimTranscript.value = ''
     remainingMs.value = opts.windowMs ?? null
+    error.value = null
   }
 
   onUnmounted(() => {
@@ -204,6 +237,7 @@ export function useSpeechCapture(opts: SpeechCaptureOptions = {}): SpeechCapture
     interimTranscript: readonly(interimTranscript),
     transcript: readonly(transcript),
     remainingMs: readonly(remainingMs),
+    error: readonly(error),
     start,
     stop,
     reset,
