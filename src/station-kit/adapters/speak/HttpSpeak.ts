@@ -14,7 +14,10 @@ export class HttpSpeak implements Speak {
   private el: HTMLAudioElement | null = null
   private lastUrl: string | null = null
 
-  constructor(private readonly baseUrl: string) {}
+  constructor(
+    private readonly baseUrl: string,
+    private readonly configId: string,
+  ) {}
 
   async speak(text: string): Promise<void> {
     if (!text.trim() || typeof window === 'undefined') return
@@ -23,7 +26,7 @@ export class HttpSpeak implements Speak {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ configId: this.configId, text }),
       })
       if (!res.ok) return
       const blob = await res.blob()

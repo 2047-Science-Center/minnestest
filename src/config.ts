@@ -46,9 +46,9 @@ export const config = {
     configId: 'minnestest',
   },
 
-  /** NPC-röst (/speak, ElevenLabs). AV som default i pilot — texten bär allt. */
+  /** NPC-röst (/speak, ElevenLabs). Texten bär alltid; röst är add-on ovanpå. */
   speak: {
-    enabled: false,
+    enabled: true,
   },
 
   /** MQTT/WS-adresser fylls i driftläget (miljövariabler, ej här). */

@@ -184,12 +184,48 @@ app.post('/assess', async (req, res) => {
 })
 
 /**
- * /speak (ElevenLabs) — STUBB i pilot. Röst är en icke-essentiell add-on;
- * fronten sväljer icke-2xx tyst och texten står kvar. Tänds server-side med
- * ELEVENLABS_API_KEY + röst-ID utan att fronten ändras.
+ * /speak (ElevenLabs) — läser upp NPC-svaret. Icke-essentiell add-on: fronten
+ * sväljer icke-2xx tyst och texten står kvar. Nyckel via server/.env
+ * (ELEVENLABS_API_KEY), röst/modell ur configen. Byt nyckel/röst = env/config,
+ * ingen kodändring.
  */
-app.post('/speak', (_req, res) => {
-  res.status(501).json({ error: 'speak ej aktiverad i pilot' })
+app.post('/speak', async (req, res) => {
+  const key = process.env.ELEVENLABS_API_KEY
+  if (!key) return res.status(503).json({ error: 'ELEVENLABS_API_KEY saknas i server/.env' })
+  try {
+    const { configId = 'minnestest', text } = req.body ?? {}
+    if (!text || !String(text).trim()) return res.status(400).json({ error: 'text krävs' })
+    const cfg = loadConfig(configId)
+    const speak = cfg.speak
+    if (!speak || !speak.voiceId) return res.status(500).json({ error: 'ingen röst i config' })
+
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${speak.voiceId}`
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': key,
+        'Content-Type': 'application/json',
+        Accept: 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        text: String(text),
+        model_id: speak.modelId || 'eleven_multilingual_v2',
+        voice_settings: speak.voiceSettings || undefined,
+      }),
+    })
+    if (!r.ok) {
+      const detail = await r.text().catch(() => '')
+      console.warn('[gateway] /speak ElevenLabs-fel', r.status, detail.slice(0, 200))
+      return res.status(502).json({ error: `elevenlabs ${r.status}` })
+    }
+    const buf = Buffer.from(await r.arrayBuffer())
+    res.setHeader('Content-Type', 'audio/mpeg')
+    res.setHeader('Cache-Control', 'no-store')
+    return res.send(buf)
+  } catch (err) {
+    console.error('[gateway] /speak fel:', err)
+    return res.status(500).json({ error: String(err.message || err) })
+  }
 })
 
 app.listen(PORT, () => {

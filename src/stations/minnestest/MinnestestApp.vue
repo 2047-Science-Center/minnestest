@@ -10,6 +10,7 @@ import { useI18n } from '@/station-kit/i18n'
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
 import AttractScreen from '@/station-kit/components/AttractScreen.vue'
 import MuteButton from '@/station-kit/components/MuteButton.vue'
+import MediaSlot from './components/MediaSlot.vue'
 
 import { useMinnestestStore } from './store/minnestestStore'
 import StatusBar from './components/StatusBar.vue'
@@ -41,7 +42,16 @@ onMounted(() => store.init())
   <div class="app">
     <!-- Attract tills första gesten/band-bipp -->
     <div v-if="store.phase === 'attract'" class="app__single">
-      <CrtScreen><AttractScreen @start="store.begin()" /></CrtScreen>
+      <CrtScreen>
+        <div class="attract-wrap">
+          <div class="attract-wrap__bg" aria-hidden="true">
+            <MediaSlot id="attract_loop" :autoplay="false" />
+          </div>
+          <div class="attract-wrap__fg">
+            <AttractScreen @start="store.begin()" />
+          </div>
+        </div>
+      </CrtScreen>
     </div>
 
     <template v-else>
@@ -95,5 +105,22 @@ onMounted(() => store.init())
 .app__single {
   flex: 1;
   min-height: 0;
+}
+.attract-wrap {
+  position: relative;
+  height: 100%;
+}
+.attract-wrap__bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.28;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+}
+.attract-wrap__fg {
+  position: relative;
+  z-index: 1;
+  height: 100%;
 }
 </style>

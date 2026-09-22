@@ -71,7 +71,9 @@ function createAssess(): Assess {
   return new HttpAssess(config.assess.baseUrl, config.assess.configId)
 }
 function createSpeak(): Speak {
-  return config.speak.enabled ? new HttpSpeak(config.assess.baseUrl) : new NullSpeak()
+  return config.speak.enabled
+    ? new HttpSpeak(config.assess.baseUrl, config.assess.configId)
+    : new NullSpeak()
 }
 
 export function createAdapters(): Adapters {

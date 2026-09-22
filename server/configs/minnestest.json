@@ -4,6 +4,16 @@
   "reasoningEffort": "low",
   "maxOutputTokens": 1400,
   "jsonMode": true,
+  "speak": {
+    "voiceId": "Cu8zBLZATMEvxva2xzc3",
+    "modelId": "eleven_multilingual_v2",
+    "voiceSettings": {
+      "stability": 0.5,
+      "similarity_boost": 0.75,
+      "style": 0.0,
+      "use_speaker_boost": true
+    }
+  },
   "instructionsFile": "instructions/minnestest.sv.txt",
   "composeInstructionsFile": "instructions/minnestest.compose.sv.txt",
   "outputSchema": {
