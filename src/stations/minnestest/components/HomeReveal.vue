@@ -1,16 +1,43 @@
 <script setup lang="ts">
 /**
- * Hem- & resurs-reveal (ruta 6): genomskärning av hemmet + pulsande
- * etikett-markörer för resurserna. De etiketterade resurserna = exakt vad AI:n
- * får veta finns (skickas som `resources` till /assess). Markörerna ligger
- * OVANPÅ bilden (utbytbara, inte inbakade).
+ * Hem- & resurs-reveal (ruta 6). Läsordning: bilden → resurs-etiketterna (TÄNDS
+ * EN EFTER EN och leder blicken över resurserna) → kort instruktion → BÖRJA
+ * (tänds först när etiketterna visats). De etiketterade resurserna = exakt vad
+ * AI:n får veta finns. Respekterar prefers-reduced-motion.
  */
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
+import { audio } from '@/station-kit/audio/AudioEngine'
 import { useMinnestestStore } from '../store/minnestestStore'
 import MediaSlot from './MediaSlot.vue'
 
 const { t } = useI18n()
 const store = useMinnestestStore()
+const resources = computed(() => store.scenario.resources)
+
+const reduced =
+  typeof window !== 'undefined' &&
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+const shownCount = ref(reduced ? resources.value.length : 0)
+const ready = computed(() => shownCount.value >= resources.value.length)
+let timer: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  if (reduced) return
+  timer = setInterval(() => {
+    if (shownCount.value < resources.value.length) {
+      shownCount.value += 1
+      audio.play('hatch')
+    } else if (timer) {
+      clearInterval(timer)
+      timer = null
+    }
+  }, 600)
+})
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+})
 </script>
 
 <template>
@@ -18,7 +45,12 @@ const store = useMinnestestStore()
     <div class="home__stage">
       <MediaSlot :id="store.scenario.homeMedia" />
       <ul class="home__markers">
-        <li v-for="r in store.scenario.resources" :key="r" class="home__marker">
+        <li
+          v-for="(r, i) in resources"
+          v-show="i < shownCount"
+          :key="r"
+          class="home__marker"
+        >
           {{ t(`resurs.${r}`) }}
         </li>
       </ul>
@@ -26,7 +58,11 @@ const store = useMinnestestStore()
     <div class="home__foot">
       <p class="home__title ink-strong">{{ t('home.title') }}</p>
       <p class="home__sub">{{ t('home.sub') }}</p>
-      <button class="crt-button crt-button--strong" @click="store.homeRevealDone()">
+      <button
+        class="crt-button crt-button--strong"
+        :disabled="!ready"
+        @click="store.homeRevealDone()"
+      >
         {{ t('home.begin') }} ▸
       </button>
     </div>
@@ -44,7 +80,6 @@ const store = useMinnestestStore()
   position: relative;
   flex: 1;
   min-height: 0;
-  /* Klipp ev. överflöd så scenen aldrig ritar över foten (BÖRJA-knappen). */
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -70,11 +105,17 @@ const store = useMinnestestStore()
   border-radius: 999px;
   padding: 0.15em 0.7em;
   background: rgba(0, 0, 0, 0.55);
-  animation: marker-pulse 2.2s ease-in-out infinite;
+  animation: marker-in 0.4s ease-out both;
 }
-@keyframes marker-pulse {
-  50% {
-    box-shadow: var(--glow-soft, 0 0 10px rgba(255, 176, 0, 0.6));
+@keyframes marker-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    box-shadow: var(--glow-strong, 0 0 16px rgba(255, 176, 0, 0.8));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 .home__foot {

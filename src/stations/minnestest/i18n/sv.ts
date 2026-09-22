@@ -76,6 +76,7 @@ export const sv: Record<string, string> = {
   // --- Steg-cykel (generellt) ---
   'step.think_together': 'Prata högt tillsammans. Enheten lyssnar.',
   'step.mic_active': '🎙 MIK AKTIV',
+  'step.talk_now': '🎙 PRATA NU',
   'step.we_are_done': 'VI ÄR KLARA',
   'step.warn': '10 SEK KVAR',
   'step.time_up': 'TIDEN UTE',

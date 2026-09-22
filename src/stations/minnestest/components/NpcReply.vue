@@ -66,8 +66,8 @@ const { t } = useI18n()
   color: var(--color-primary);
 }
 .npc__text {
-  font-size: 1.15rem;
-  line-height: 1.5;
+  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+  line-height: 1.55;
   color: var(--color-ink-strong);
 }
 .npc__wave {

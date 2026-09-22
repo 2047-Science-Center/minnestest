@@ -36,6 +36,10 @@ const profileLabel = computed(() =>
 
       <transition name="fade">
         <div v-if="landed && store.final" class="verdict__reveal">
+          <div class="verdict__hero">
+            <span class="verdict__poang">{{ store.final.poang }}</span>
+            <span class="verdict__poang-max">/10</span>
+          </div>
           <p class="verdict__profile ink-strong">{{ profileLabel }}</p>
           <Teletype class="verdict__summary" :text="store.final.sammanfattning" :speed="22" />
           <p class="verdict__registered">{{ t('verdict.score_registered') }}</p>
@@ -84,6 +88,23 @@ const profileLabel = computed(() =>
   gap: 0.8rem;
   align-items: flex-start;
   margin-top: 1rem;
+}
+.verdict__hero {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+}
+.verdict__poang {
+  font-family: var(--font-retro);
+  font-size: clamp(3rem, 9vw, 5rem);
+  line-height: 1;
+  color: var(--color-primary);
+  text-shadow: var(--glow-strong, 0 0 20px rgba(255, 176, 0, 0.7));
+}
+.verdict__poang-max {
+  font-family: var(--font-retro);
+  font-size: 1.4rem;
+  color: var(--color-ink-muted);
 }
 .verdict__profile {
   font-family: var(--font-retro);

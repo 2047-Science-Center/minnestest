@@ -1,13 +1,14 @@
 <script setup lang="ts">
 /**
  * En stegcykel A→B→C→D för aktuellt steg; tre varv via StepShell (progress =
- * 3 steg). Latensmask: delruta C går vidare först när BÅDE eskaleringsklippets
- * golv-tid gått OCH /assess-svaret är klart.
+ * 3 steg). UI-hierarki styr läsordningen (viktigast först), rutorna renodlade.
  *
  *  A · Läge        — steg 1: lägesklipp; steg 2–3: banner "LÄGE: …".
- *  B · Tänk-högt   — prompt + talfångst (~60 s) + diegetisk mätare + 10-sek-varning.
- *  C · Analys      — eskaleringsklipp (fast längd) medan /assess körs.
- *  D · AI-svar     — strömmande NPC-svar, valfri röst, NÄSTA ▸.
+ *  B · Tänk-högt   — TVÅFAS: fas 1 frågan hero; fas 2 live-transkriptet hero med
+ *                    frågan dockad överst + referensbilden kvar som sidopanel.
+ *  C · Analys      — eskaleringsbilden dominerar (latensmask); tunn analys-strip
+ *                    nederst. Denna bild blir REFERENSBILD i nästa stegs B.
+ *  D · AI-svar     — svaret hero (stor teletype + ev. röst), NÄSTA ▸.
  */
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
@@ -49,7 +50,18 @@ const meterNote = computed(() => {
   return val === key ? '' : val
 })
 
-// --- B: talfångst + fönster ---
+// --- Referensbild i tänk-högt = föregående stegs eskaleringsbild.
+//     Steg 1: stegets läge-klipp (eller hem-bilden) — "var är jag". ---
+const referenceMedia = computed(() => {
+  const idx = store.stepIndex
+  if (idx === 0) return step.value.lagesMedia ?? store.scenario.homeMedia
+  return store.steps[idx - 1].eskaleringMedia
+})
+
+// --- B: tvåfas + talfångst + fönster ---
+const bPhase = ref<1 | 2>(1)
+const PHASE1_MS = 4500
+let phaseTimer: ReturnType<typeof setTimeout> | null = null
 const warned = ref(false)
 const warn = computed(() => (capture.remainingMs.value ?? WINDOW_MS) <= WARN_MS)
 const timeUp = computed(() => (capture.remainingMs.value ?? WINDOW_MS) <= 0)
@@ -65,6 +77,22 @@ watch(
     if (ms <= 0) finishThink()
   },
 )
+
+// Så fort de börjar tala → gå till fas 2 (transkriptet blir hero).
+watch(
+  () => capture.transcript.value,
+  (v) => {
+    if (sub.value === 'B' && bPhase.value === 1 && v.trim()) toPhase2()
+  },
+)
+
+function toPhase2(): void {
+  bPhase.value = 2
+  if (phaseTimer) {
+    clearTimeout(phaseTimer)
+    phaseTimer = null
+  }
+}
 
 // --- C: latensmask (klipp-golv + assess) ---
 const dwellDone = ref(false)
@@ -86,6 +114,9 @@ function collectedTranscript(): string {
 function startThink(): void {
   warned.value = false
   manualText.value = ''
+  bPhase.value = 1
+  if (phaseTimer) clearTimeout(phaseTimer)
+  phaseTimer = setTimeout(() => toPhase2(), PHASE1_MS)
   capture.reset()
   capture.start()
   sub.value = 'B'
@@ -93,6 +124,10 @@ function startThink(): void {
 
 function finishThink(): void {
   if (sub.value !== 'B') return
+  if (phaseTimer) {
+    clearTimeout(phaseTimer)
+    phaseTimer = null
+  }
   capture.stop()
   enterAnalys()
 }
@@ -169,11 +204,15 @@ watch(
   () => {
     sub.value = 'A'
     warned.value = false
+    bPhase.value = 1
   },
 )
 
+const showManualFallback = computed(() => !capture.supported || Boolean(capture.error.value))
+
 onUnmounted(() => {
   if (dwellTimer) clearTimeout(dwellTimer)
+  if (phaseTimer) clearTimeout(phaseTimer)
   capture.stop()
 })
 </script>
@@ -194,48 +233,78 @@ onUnmounted(() => {
       <div v-else class="frame__banner">{{ t('step.lage_label', { text: bannerText }) }}</div>
     </section>
 
-    <!-- B · Tänk-högt -->
-    <section v-else-if="sub === 'B'" class="frame frame--b">
-      <p class="frame__prompt ink-strong">{{ promptText }}</p>
-      <p class="frame__hint">{{ t('step.think_together') }}</p>
-
-      <DiegeticMeter
-        :labels="meterLabels"
-        :note="meterNote"
-        :remaining-ms="capture.remainingMs.value ?? WINDOW_MS"
-        :total-ms="WINDOW_MS"
-        :warn="warn"
-      />
-
-      <div class="frame__mic">
-        <span class="frame__mic-dot">{{ t('step.mic_active') }}</span>
-        <span v-if="warn && !timeUp" class="frame__warn">{{ t('step.warn') }}</span>
-        <span v-if="timeUp" class="frame__warn">{{ t('step.time_up') }}</span>
+    <!-- B · Tänk-högt (tvåfas) -->
+    <section v-else-if="sub === 'B'" class="frame">
+      <!-- FAS 1: frågan hero -->
+      <div v-if="bPhase === 1" class="bp1">
+        <div class="bp1__ref" aria-hidden="true">
+          <MediaSlot :id="referenceMedia" :autoplay="false" />
+        </div>
+        <p class="bp1__q ink-strong">{{ promptText }}</p>
+        <span class="bp1__mic">{{ t('step.talk_now') }}</span>
+        <div class="bp1__meter">
+          <DiegeticMeter
+            :labels="meterLabels"
+            :note="meterNote"
+            :remaining-ms="capture.remainingMs.value ?? WINDOW_MS"
+            :total-ms="WINDOW_MS"
+            :warn="warn"
+          />
+        </div>
       </div>
 
-      <p v-if="!capture.supported" class="frame__nospeech">{{ t('step.no_speech') }}</p>
-      <p v-else-if="capture.error.value" class="frame__nospeech frame__nospeech--err">
-        {{ t(`step.mic_err.${capture.error.value}`) }}
-      </p>
-      <textarea
-        v-model="manualText"
-        class="frame__manual"
-        :placeholder="t('step.manual_placeholder')"
-        rows="2"
-      />
-      <p v-if="capture.transcript.value" class="frame__transcript">{{ capture.transcript.value }}</p>
+      <!-- FAS 2: live-transkriptet hero, frågan dockad, referensbilden kvar -->
+      <div v-else class="bp2">
+        <p class="bp2__q">{{ promptText }}</p>
+        <div class="bp2__body">
+          <div class="bp2__ref">
+            <MediaSlot :id="referenceMedia" :autoplay="false" />
+          </div>
+          <div class="bp2__live">
+            <p class="bp2__transcript" :class="{ 'bp2__transcript--empty': !capture.transcript.value }">
+              {{ capture.transcript.value || t('step.think_together') }}
+            </p>
+          </div>
+        </div>
+        <div class="bp2__foot">
+          <span class="bp2__mic">{{ t('step.mic_active') }}</span>
+          <DiegeticMeter
+            class="bp2__meter"
+            :labels="meterLabels"
+            :note="meterNote"
+            :remaining-ms="capture.remainingMs.value ?? WINDOW_MS"
+            :total-ms="WINDOW_MS"
+            :warn="warn"
+          />
+          <span v-if="timeUp" class="frame__warn">{{ t('step.time_up') }}</span>
+        </div>
+        <template v-if="showManualFallback">
+          <p v-if="!capture.supported" class="frame__nospeech">{{ t('step.no_speech') }}</p>
+          <p v-else class="frame__nospeech frame__nospeech--err">
+            {{ t(`step.mic_err.${capture.error.value}`) }}
+          </p>
+          <textarea
+            v-model="manualText"
+            class="frame__manual"
+            :placeholder="t('step.manual_placeholder')"
+            rows="2"
+          />
+        </template>
+      </div>
     </section>
 
-    <!-- C · Analys + eskalering -->
+    <!-- C · Analys + eskalering (bilden dominerar, strip nederst) -->
     <section v-else-if="sub === 'C'" class="frame frame--c">
-      <div class="frame__analys">
-        <span>{{ t('step.analyzing') }}</span>
-        <span class="frame__dots"><i /><i /><i /></span>
+      <div class="c-media">
+        <MediaSlot :id="step.eskaleringMedia" />
       </div>
-      <MediaSlot :id="step.eskaleringMedia" />
+      <div class="c-strip">
+        <span>{{ t('step.analyzing') }}</span>
+        <span class="c-dots"><i /><i /><i /></span>
+      </div>
     </section>
 
-    <!-- D · AI-svar -->
+    <!-- D · AI-svar (hero) -->
     <section v-else class="frame frame--d">
       <NpcReply
         v-if="assessResult"
@@ -268,29 +337,120 @@ onUnmounted(() => {
   border-radius: var(--radius, 8px);
   padding: 1.4rem;
 }
-.frame__prompt {
-  font-size: 1.35rem;
-  line-height: 1.45;
-  margin: 0;
+
+/* ---------- B · fas 1: frågan hero ---------- */
+.bp1 {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  text-align: center;
+  padding-bottom: 2rem;
 }
-.frame__hint {
-  color: var(--color-ink-muted);
-  margin: 0;
-}
-.frame__mic {
+.bp1__ref {
+  position: absolute;
+  inset: 0;
+  opacity: 0.14;
+  pointer-events: none;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
 }
-.frame__mic-dot {
+.bp1__q {
+  position: relative;
+  font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+  line-height: 1.35;
+  max-width: 26ch;
+  margin: 0;
+}
+.bp1__mic {
+  position: relative;
   font-family: var(--font-mono);
+  letter-spacing: 0.08em;
   color: var(--color-primary);
   animation: mic-pulse 1.3s ease-in-out infinite;
 }
+.bp1__meter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* ---------- B · fas 2: transkriptet hero ---------- */
+.bp2 {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.bp2__q {
+  font-size: 1.05rem;
+  line-height: 1.35;
+  color: var(--color-primary);
+  margin: 0;
+  flex: 0 0 auto;
+}
+.bp2__body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 40% 60%;
+  gap: 1rem;
+}
+.bp2__ref {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+.bp2__live {
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+}
+.bp2__transcript {
+  font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+  line-height: 1.5;
+  color: var(--color-ink-strong);
+  margin: 0;
+}
+.bp2__transcript--empty {
+  color: var(--color-ink-muted);
+  font-style: italic;
+}
+.bp2__foot {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 0 0 auto;
+}
+.bp2__mic {
+  font-family: var(--font-mono);
+  color: var(--color-primary);
+  white-space: nowrap;
+  animation: mic-pulse 1.3s ease-in-out infinite;
+}
+.bp2__meter {
+  flex: 1;
+}
+@media (max-width: 760px) {
+  .bp2__body {
+    grid-template-columns: 1fr;
+  }
+}
+
 .frame__warn {
   font-family: var(--font-retro);
   letter-spacing: 0.1em;
   color: var(--color-danger, #ff5a5a);
+  white-space: nowrap;
 }
 .frame__nospeech {
   color: var(--color-ink-muted);
@@ -310,45 +470,53 @@ onUnmounted(() => {
   font-family: var(--font-mono);
   resize: vertical;
 }
-.frame__transcript {
-  color: var(--color-ink-muted);
-  font-size: 0.9rem;
-  font-style: italic;
-  margin: 0;
-  max-height: 5rem;
-  overflow: auto;
-}
+
+/* ---------- C · analys ---------- */
 .frame--c {
-  justify-content: center;
+  justify-content: flex-start;
 }
-.frame__analys {
+.c-media {
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
+}
+.c-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 0.6rem;
   color: var(--color-ink-muted);
   font-family: var(--font-mono);
   letter-spacing: 0.06em;
+  flex: 0 0 auto;
 }
-.frame__dots {
+.c-dots {
   display: inline-flex;
   gap: 3px;
 }
-.frame__dots i {
+.c-dots i {
   width: 5px;
   height: 5px;
   border-radius: 50%;
   background: var(--color-primary);
   animation: dot-blink 1s infinite;
 }
-.frame__dots i:nth-child(2) {
+.c-dots i:nth-child(2) {
   animation-delay: 0.2s;
 }
-.frame__dots i:nth-child(3) {
+.c-dots i:nth-child(3) {
   animation-delay: 0.4s;
 }
+
+/* ---------- D · AI-svar ---------- */
+.frame--d {
+  justify-content: center;
+}
+
 @keyframes mic-pulse {
   50% {
-    opacity: 0.45;
+    opacity: 0.4;
   }
 }
 @keyframes dot-blink {
@@ -357,9 +525,14 @@ onUnmounted(() => {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .frame__mic-dot,
-  .frame__dots i {
+  .bp1__mic,
+  .bp2__mic,
+  .c-dots i {
     animation: none;
+  }
+  .bp1__mic,
+  .bp2__mic {
+    opacity: 0.75;
   }
 }
 </style>
