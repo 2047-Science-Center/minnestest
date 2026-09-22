@@ -28,7 +28,7 @@ export interface ResolvedMedia extends MediaEntry {
 
 const MEDIA: Record<string, MediaEntry> = {
   // --- Scenario-neutrala (behålls) ---
-  attract_loop: { typ: 'image', aspect: '16:9', brief: 'Mörk villagata/stad om natten', file: 'attract_loop.png' },
+  attract_loop: { typ: 'image', aspect: '16:9', brief: 'Familj lämnar brinnande stad i solnedgång, andra flyr på vägen', file: 'flykten_frontbild.png' },
   npc_portratt: { typ: 'image', aspect: '1:1', brief: 'AI-ansikte på CRT (mönstringsofficer)', file: 'npc_portratt.png' },
   sorteringshatt_bg: { typ: 'image', aspect: '16:9', brief: 'Emblem/utskrift-bakgrund', file: 'sorteringshatt_bg.png' },
   // Rollklippen (min 3/4) ej klara än — placeholder tills videorna droppas.
