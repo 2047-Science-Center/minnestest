@@ -16,7 +16,7 @@ Enskärms-kiosk: **en** Node-process (gateway) serverar både appen och `/assess
 ## 1. Hämta koden
 ```bash
 cd ~
-git clone <REPO-URL> minnestest      # <REPO-URL> = fyll i (se sista stycket)
+git clone https://github.com/2047-Science-Center/minnestest.git minnestest
 cd minnestest
 ```
 
@@ -87,6 +87,6 @@ bash deploy/nuc/update.sh            # git pull + bygg + starta om
 - **Loggar:** `sudo journalctl -u minnestest-server -f` · `systemctl --user status minnestest-kiosk`
 - **Ingen röst-uppläsning:** `ELEVENLABS_API_KEY` saknas/fel — icke-kritiskt, texten står kvar.
 
-## Repo-URL
-`<REPO-URL>` fylls i när stationen pushats till ett remote som NUC:en når (t.ex.
-`github.com/2047-Science-Center/minnestest`). Byt `<REPO-URL>` i steg 1 mot den.
+## Repo
+Publikt: **https://github.com/2047-Science-Center/minnestest** — NUC:en clone:ar/
+pullar utan inloggning. (Nycklarna ligger bara i `server/.env` på NUC:en, aldrig i git.)
