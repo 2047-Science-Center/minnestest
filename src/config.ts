@@ -31,9 +31,11 @@ export const config = {
   /** Incheckningens auto-vidare (ms). */
   checkinAutoMs: 2000,
 
-  /** /assess-gatewayen. baseUrl byts pilot→drift; configId kommer per exempel. */
+  /** /assess-gatewayen. Kiosk-bygget sätter VITE_ASSESS_URL='' → tomt = SAMMA
+   *  ORIGIN (gatewayn serverar även appen). Osatt (dev) → separat gateway-port.
+   *  `??` (inte `||`) så tom sträng bevaras som "same origin". */
   assess: {
-    baseUrl: import.meta.env.VITE_ASSESS_URL || 'http://localhost:8787',
+    baseUrl: (import.meta.env.VITE_ASSESS_URL ?? 'http://localhost:8787') as string,
   },
 
   /** NPC-röst (/speak, ElevenLabs). Texten bär alltid; röst är add-on ovanpå.

@@ -1,0 +1,20 @@
+# systemd-tjänst: gateway + byggd app (server/index.js serverar dist/ + /assess + /speak).
+# Installeras av install.sh (@...@ ersätts där). System-tjänst → reser sig efter strömavbrott.
+# Nycklarna läses ur server/.env (AI_API_KEY, ELEVENLABS_API_KEY) av gatewayn själv.
+[Unit]
+Description=FLYKTEN (Minnestestet) — gateway + app (X&Y-riggen)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+WorkingDirectory=@REPO@
+Environment=PORT=@PORT@
+Environment=NODE_ENV=production
+ExecStart=@NODE@ @REPO@/server/index.js
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

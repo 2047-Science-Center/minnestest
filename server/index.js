@@ -276,6 +276,8 @@ app.post('/assess', async (req, res) => {
  * (ELEVENLABS_API_KEY), röst/modell ur configen. Byt nyckel/röst = env/config,
  * ingen kodändring.
  */
+app.get('/healthz', (_req, res) => res.type('text/plain').send('ok'))
+
 app.post('/speak', async (req, res) => {
   const key = process.env.ELEVENLABS_API_KEY
   if (!key) return res.status(503).json({ error: 'ELEVENLABS_API_KEY saknas i server/.env' })
@@ -314,6 +316,16 @@ app.post('/speak', async (req, res) => {
     return res.status(500).json({ error: String(err.message || err) })
   }
 })
+
+// --- Servera den byggda appen (kiosk-drift: EN process, samma origin) ---
+// Fronten byggd med VITE_ASSESS_URL='' → /assess + /speak går same-origin hit.
+const DIST = path.join(__dirname, '..', 'dist')
+if (fs.existsSync(path.join(DIST, 'index.html'))) {
+  app.use(express.static(DIST))
+  // SPA-fallback för GET som inte matchat en API-route ovan.
+  app.get('*', (_req, res) => res.sendFile(path.join(DIST, 'index.html')))
+  console.log('[gateway] serverar byggd app från', DIST)
+}
 
 app.listen(PORT, () => {
   console.log(`[gateway] lyssnar på http://localhost:${PORT}  (keyed: ${Boolean(openai)})`)
