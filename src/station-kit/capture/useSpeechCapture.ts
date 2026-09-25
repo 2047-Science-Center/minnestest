@@ -80,6 +80,10 @@ export interface SpeechCapture {
   error: Readonly<Ref<string | null>>
   start(): void
   stop(): void
+  /** Frys fönstret + stoppa igenkänningen (facilitator-paus). Transkriptet behålls. */
+  pause(): void
+  /** Återuppta ett pausat fönster med kvarvarande tid. */
+  resume(): void
   /** Nollställ transkript inför nästa steg. */
   reset(): void
 }
@@ -103,6 +107,8 @@ export function useSpeechCapture(opts: SpeechCaptureOptions = {}): SpeechCapture
   let windowTimer: ReturnType<typeof setTimeout> | null = null
   let tickTimer: ReturnType<typeof setInterval> | null = null
   let windowEndsAt = 0
+  let paused = false
+  let pausedRemaining = 0
 
   function buildRec(): SpeechRecognitionLike | null {
     if (!Ctor) return null
@@ -137,7 +143,7 @@ export function useSpeechCapture(opts: SpeechCaptureOptions = {}): SpeechCapture
         } catch {
           /* redan igång / race — ignorera */
         }
-      } else {
+      } else if (!paused) {
         isListening.value = false
       }
     }
@@ -212,11 +218,53 @@ export function useSpeechCapture(opts: SpeechCaptureOptions = {}): SpeechCapture
     rec = null
   }
 
+  function pause(): void {
+    if (!isListening.value || paused) return
+    paused = true
+    if (windowTimer) {
+      clearTimeout(windowTimer)
+      windowTimer = null
+    }
+    if (tickTimer) {
+      clearInterval(tickTimer)
+      tickTimer = null
+    }
+    if (opts.windowMs != null) pausedRemaining = Math.max(0, windowEndsAt - Date.now())
+    wantOn = false
+    try {
+      rec?.stop()
+    } catch {
+      /* ignore */
+    }
+    rec = null
+  }
+
+  function resume(): void {
+    if (!paused) return
+    paused = false
+    wantOn = true
+    rec = buildRec()
+    try {
+      rec?.start()
+    } catch {
+      /* ignore */
+    }
+    if (opts.windowMs != null) {
+      windowEndsAt = Date.now() + pausedRemaining
+      remainingMs.value = pausedRemaining
+      tickTimer = setInterval(() => {
+        remainingMs.value = Math.max(0, windowEndsAt - Date.now())
+      }, 100)
+      windowTimer = setTimeout(() => stop(), pausedRemaining)
+    }
+  }
+
   function reset(): void {
     finalTranscript.value = ''
     interimTranscript.value = ''
     remainingMs.value = opts.windowMs ?? null
     error.value = null
+    paused = false
   }
 
   onUnmounted(() => {
@@ -240,6 +288,8 @@ export function useSpeechCapture(opts: SpeechCaptureOptions = {}): SpeechCapture
     error: readonly(error),
     start,
     stop,
+    pause,
+    resume,
     reset,
   }
 }

@@ -19,6 +19,8 @@ import RoleSelect from './components/RoleSelect.vue'
 import VaultTransition from './components/VaultTransition.vue'
 import FermiIntro from './components/FermiIntro.vue'
 import StepCycle from './components/StepCycle.vue'
+import FacilitatorControls from './components/FacilitatorControls.vue'
+import PauseOverlay from './components/PauseOverlay.vue'
 import VerdictScreen from './components/VerdictScreen.vue'
 import CheckoutScreen from './components/CheckoutScreen.vue'
 
@@ -80,6 +82,10 @@ onMounted(() => store.init())
         </CrtScreen>
       </div>
     </template>
+
+    <!-- Facilitator-kontroller (paus/starta om/avsluta) + paus-overlay -->
+    <FacilitatorControls v-if="store.phase !== 'attract'" />
+    <PauseOverlay v-if="store.paused" />
   </div>
 </template>
 

@@ -15,6 +15,19 @@ export const sv: Record<string, string> = {
   'common.begin': 'BÖRJA',
   'common.next': 'NÄSTA',
 
+  // --- Facilitator-kontroller (paus / starta om / avsluta) ---
+  'facil.pause': 'Paus',
+  'facil.resume': 'Fortsätt',
+  'facil.reset': 'Starta om',
+  'facil.reset_confirm': 'Starta om hela stationen?',
+  'facil.reset_yes': 'Ja, starta om',
+  'facil.exit': 'Avsluta',
+  'facil.exit_confirm': 'Avsluta stationen och gå till skrivbordet?',
+  'facil.exit_yes': 'Ja, avsluta',
+  'facil.cancel': 'Avbryt',
+  'facil.paused_title': 'PAUSAT',
+  'facil.paused_sub': 'Facilitatorn har pausat. Vänta ett ögonblick.',
+
   // --- Statusrad ---
   'status.station': 'FLYKTEN',
   'status.group': 'GRUPP {grupp}',

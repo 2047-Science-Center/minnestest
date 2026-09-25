@@ -52,6 +52,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   const assessing = ref(false)
   const composing = ref(false)
   const speaking = ref(false)
+  /** Facilitator-paus — fryser tänk-högt-timern och lägger paus-overlay. */
+  const paused = ref(false)
 
   const adapters = shallowRef<Adapters | null>(null)
 
@@ -227,7 +229,22 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     phase.value = 'checkout'
   }
 
+  // --- Facilitator-kontroller (paus / starta om / avsluta) ---
+  function togglePause(): void {
+    paused.value = !paused.value
+  }
+
+  /** Avsluta stationen → stäng kiosk-fönstret (i vanlig flik ofarligt no-op). */
+  function quitStation(): void {
+    try {
+      window.close()
+    } catch {
+      /* i vanlig flik gör webbläsaren inget */
+    }
+  }
+
   function reset(): void {
+    paused.value = false
     phase.value = 'attract'
     roleId.value = null
     stepIndex.value = 0
@@ -273,6 +290,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     assessing,
     composing,
     speaking,
+    paused,
     example,
     exampleType,
     steps,
@@ -290,6 +308,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     nextStep,
     vaultBackDone,
     verdictDone,
+    togglePause,
+    quitStation,
     reset,
   }
 })

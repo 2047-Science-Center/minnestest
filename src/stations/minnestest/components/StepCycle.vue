@@ -76,6 +76,8 @@ const dwellDone = ref(false)
 const assessDone = ref(false)
 const assessResult = ref<StepAssessment | null>(null)
 let dwellTimer: ReturnType<typeof setTimeout> | null = null
+let dwellEndsAt = 0
+let dwellRemaining = 0
 
 // --- reply ---
 const npcDone = ref(false)
@@ -109,11 +111,7 @@ function enterSituation(): void {
   popupTimer = setTimeout(() => (popupShown.value = true), 1500)
 }
 
-function ready(): void {
-  clearTimers()
-  sub.value = 'countdown'
-  countdownN.value = store.example.countdownFrom
-  audio.play('blip')
+function startCountdownTick(): void {
   countdownTimer = setInterval(() => {
     countdownN.value -= 1
     if (countdownN.value > 0) {
@@ -124,6 +122,14 @@ function ready(): void {
       startThink()
     }
   }, 1000)
+}
+
+function ready(): void {
+  clearTimers()
+  sub.value = 'countdown'
+  countdownN.value = store.example.countdownFrom
+  audio.play('blip')
+  startCountdownTick()
 }
 
 function startThink(): void {
@@ -192,6 +198,7 @@ function enterAnalys(): void {
   assessDone.value = false
   assessResult.value = null
   const dwellMs = media(analysMedia.value).durationMs ?? 6000
+  dwellEndsAt = Date.now() + dwellMs
   dwellTimer = setTimeout(() => {
     dwellDone.value = true
     maybeReveal()
@@ -222,6 +229,34 @@ const isPilot = config.mode === 'pilot'
 watch(
   () => store.stepIndex,
   () => enterSituation(),
+)
+
+// Facilitator-paus: frys det aktiva tidsmomentet, återuppta med kvarvarande tid.
+watch(
+  () => store.paused,
+  (p) => {
+    if (p) {
+      if (sub.value === 'think') capture.pause()
+      else if (sub.value === 'countdown' && countdownTimer) {
+        clearInterval(countdownTimer)
+        countdownTimer = null
+      } else if (sub.value === 'analys' && dwellTimer) {
+        dwellRemaining = Math.max(0, dwellEndsAt - Date.now())
+        clearTimeout(dwellTimer)
+        dwellTimer = null
+      }
+    } else {
+      if (sub.value === 'think') capture.resume()
+      else if (sub.value === 'countdown' && !countdownTimer) startCountdownTick()
+      else if (sub.value === 'analys' && !dwellTimer && !dwellDone.value) {
+        dwellEndsAt = Date.now() + dwellRemaining
+        dwellTimer = setTimeout(() => {
+          dwellDone.value = true
+          maybeReveal()
+        }, dwellRemaining)
+      }
+    }
+  },
 )
 
 onMounted(() => enterSituation())
