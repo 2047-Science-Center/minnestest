@@ -1,13 +1,12 @@
 <script setup lang="ts">
 /**
- * Rollval (ruta 3): två LIKVÄRDIGA kort med rollklipp. Valet är det könssiffran
- * mäter → loggas via store.chooseRole (chosen_role/role_presented_as).
+ * Rollval (ruta 3): två LIKVÄRDIGA klickrutor. Valet är det könssiffran mäter →
+ * loggas via store.chooseRole. (Rollklipp/video skippat — bara två val just nu.)
  */
 import { ref } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
 import { ROLES, type RoleId } from '@/config'
 import { useMinnestestStore } from '../store/minnestestStore'
-import MediaSlot from './MediaSlot.vue'
 
 const { t } = useI18n()
 const store = useMinnestestStore()
@@ -16,7 +15,6 @@ const picked = ref<RoleId | null>(null)
 function pick(id: RoleId): void {
   if (picked.value) return
   picked.value = id
-  // Kort dröjning så det valda kortet hinner tändas / andra dämpas innan vidare.
   setTimeout(() => store.chooseRole(id), 650)
 }
 </script>
@@ -29,24 +27,22 @@ function pick(id: RoleId): void {
     </header>
 
     <div class="roles__cards">
-      <article
+      <button
         v-for="r in ROLES"
         :key="r.id"
+        type="button"
         class="role-card"
         :class="{
           'role-card--picked': picked === r.id,
           'role-card--dim': picked && picked !== r.id,
         }"
+        :disabled="!!picked"
+        @click="pick(r.id)"
       >
-        <div class="role-card__media">
-          <MediaSlot :id="r.media" />
-        </div>
         <h3 class="role-card__title">{{ t(`role.${r.id}.title`) }}</h3>
         <p class="role-card__blurb">{{ t(`role.${r.id}.blurb`) }}</p>
-        <button class="crt-button crt-button--strong role-card__pick" :disabled="!!picked" @click="pick(r.id)">
-          {{ t('roleselect.pick') }} ▸
-        </button>
-      </article>
+        <span class="role-card__pick">{{ t('roleselect.pick') }} ▸</span>
+      </button>
     </div>
   </div>
 </template>
@@ -80,44 +76,46 @@ function pick(id: RoleId): void {
 .role-card {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
-  padding: 1rem;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid var(--color-primary-dim);
-  border-radius: var(--radius, 8px);
-  transition: opacity 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-}
-/* Klippbar, höjd-bunden yta för klippet → MediaSlot (max-height:100%) kapas och
- * kan aldrig svämma över och täcka VÄLJ-knappen på breda skärmar. */
-.role-card__media {
-  flex: 1 1 0;
-  min-height: 0;
-  display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  gap: 1rem;
+  text-align: center;
+  padding: 2rem 1.5rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--color-primary-dim);
+  border-radius: var(--radius, 8px);
+  cursor: pointer;
+  transition: opacity 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.15s ease;
+  font-family: inherit;
+}
+.role-card:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
 }
 .role-card--picked {
   border-color: var(--color-primary);
   box-shadow: var(--frame-glow, 0 0 16px rgba(255, 176, 0, 0.4));
 }
 .role-card--dim {
-  opacity: 0.4;
+  opacity: 0.35;
 }
 .role-card__title {
   font-family: var(--font-retro);
-  letter-spacing: 0.12em;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: 0.1em;
   color: var(--color-primary);
   margin: 0;
 }
 .role-card__blurb {
   color: var(--color-ink-strong);
+  font-size: 1.1rem;
   margin: 0;
-  flex: 1;
+  max-width: 26ch;
 }
 .role-card__pick {
-  align-self: flex-start;
+  font-family: var(--font-retro);
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
 }
 @media (max-width: 820px) {
   .roles__cards {
