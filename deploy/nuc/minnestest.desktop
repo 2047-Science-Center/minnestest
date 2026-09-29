@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=FLYKTEN
+Comment=Starta stationen (Minnestestet)
+# @EXEC@ ersätts av install-launcher.sh med rätt sökväg till kiosk.sh.
+Exec=@EXEC@
+Icon=input-tablet
+Terminal=false
+Categories=Education;
+StartupNotify=false

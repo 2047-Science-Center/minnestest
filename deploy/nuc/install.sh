@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Engångsinstallation av FLYKTEN (Minnestestet) som permanent kiosk-station på en
-# Linux-NUC (Ubuntu).
+# Linux-NUC (Linux Mint / Ubuntu).
 #   1) bygger appen same-origin (npm ci + npm run build:kiosk)
 #   2) systemd-tjänst för gateway+app med autostart (läser server/.env)
 #   3) systemd USER-tjänst som startar Chrome-kiosken
@@ -85,7 +85,9 @@ cat <<EOF
 Nästa steg / bra att veta:
   • Autologin till en X11-session krävs för att kiosken ska starta av sig själv
     (se deploy/nuc/NUC-INSTALL.md — eller kör deploy/nuc/setup-xorg.sh för en ren
-    Xorg-kiosk utan skrivbordsmiljö).
+    Xorg-kiosk utan skrivbordsmiljö; slår av LightDM på Mint / GDM på Ubuntu).
+  • Vill facilitatorn ha en klickbar startikon: bash deploy/nuc/install-launcher.sh
+  • Touch som hamnar fel: sätt OUTPUT + TOUCH_PATH i deploy/nuc/kiosk.env (steg 6).
   • Sätt Anker-högtalaren som standard-INljud (mic) och -UTljud (se NUC-INSTALL.md).
   • Uppdatera stationen senare:  bash deploy/nuc/update.sh   (git pull + bygg + omstart)
   • Loggar:  sudo journalctl -u minnestest-server -f

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
-# FLYKTEN — gör NUC:en till en ren Xorg-kiosk (utan GNOME/GDM-krångel).
+# FLYKTEN — gör NUC:en till en ren Xorg-kiosk (utan skrivbords-krångel).
 #
-# Varför: Ubuntus GNOME-session kör Wayland, där appen inte kan placera fönster
-# på rätt skärm och där två oberoende möss (MPX) inte fungerar. Detta skript
-# bootar i stället rakt in i en minimal Xorg-session (openbox) som kör de två
-# kiosk-fönstren. Det är driftsäkert och rätt för en permanent station.
+# Testad på Linux Mint (Cinnamon) och Ubuntu. Varför en egen X-session: en
+# permanent station ska boota rakt in i EN helskärms-Chrome utan skrivbord,
+# skärmsläckare eller inloggningsruta, och touchen ska sitta rätt vid varje
+# boot. Skriptet startar en minimal Xorg-session (openbox) som kör kiosken.
+# (På Ubuntu undviker det dessutom Wayland, där Web Speech-micen kan strula.)
 #
 # Kör på NUC:en, i repo-roten:
 #     cd ~/minnestest && git pull && bash deploy/nuc/setup-xorg.sh
@@ -44,28 +45,34 @@ sudo tee /etc/X11/Xwrapper.config >/dev/null <<'EOF'
 allowed_users=anybody
 needs_root_rights=yes
 EOF
-# Webbläsare: använd den som redan finns, annars installera chromium.
-if ! command -v chromium >/dev/null 2>&1 \
-   && ! command -v chromium-browser >/dev/null 2>&1 \
-   && ! command -v google-chrome >/dev/null 2>&1 \
+# Webbläsare: FLYKTEN kräver OFFICIELL Google Chrome (Web Speech/talfångst
+# fungerar inte i Chromium på Linux). Installera den om den saknas.
+if ! command -v google-chrome >/dev/null 2>&1 \
    && ! command -v google-chrome-stable >/dev/null 2>&1; then
-  sudo apt install -y chromium || sudo apt install -y chromium-browser || true
+  say "Installerar officiell Google Chrome (krävs för talfångsten)"
+  tmp_deb="$(mktemp --suffix=.deb)"
+  if wget -qO "$tmp_deb" https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb; then
+    sudo apt install -y "$tmp_deb" || true
+  fi
+  rm -f "$tmp_deb"
 fi
 
 # Kontrollera att det nödvändiga faktiskt finns innan vi ändrar boot-läget.
 for bin in startx openbox Xorg; do
   command -v "$bin" >/dev/null 2>&1 || { echo "FEL: '$bin' saknas trots install — avbryter." >&2; exit 1; }
 done
-if ! command -v chromium >/dev/null 2>&1 && ! command -v chromium-browser >/dev/null 2>&1 \
-   && ! command -v google-chrome >/dev/null 2>&1 && ! command -v google-chrome-stable >/dev/null 2>&1; then
-  echo "FEL: ingen webbläsare (chromium) hittades — avbryter." >&2
-  exit 1
+if ! command -v google-chrome >/dev/null 2>&1 && ! command -v google-chrome-stable >/dev/null 2>&1; then
+  echo "VARNING: officiell Google Chrome hittades inte — kiosken startar inte förrän" >&2
+  echo "  den är installerad (talfångsten kräver den). Se deploy/nuc/NUC-INSTALL.md." >&2
 fi
 
-# --- 2) Stäng av GDM/grafisk inloggning — vi bootar in i vår egen X-session ---
-say "Stänger av den grafiska inloggningen (GDM)"
+# --- 2) Stäng av den grafiska inloggningen — vi bootar in i vår egen X-session -
+# Mint använder LightDM (äldre: MDM), Ubuntu GDM. Slå av vilken som än är på.
+say "Stänger av den grafiska inloggningen (display manager)"
 sudo systemctl set-default multi-user.target
-sudo systemctl disable gdm3 2>/dev/null || sudo systemctl disable gdm 2>/dev/null || true
+for dm in lightdm mdm gdm3 gdm sddm lxdm; do
+  sudo systemctl disable "$dm" 2>/dev/null || true
+done
 
 # --- 3) Autologin på tty1 för denna användare ---
 say "Autologin på tty1 för $USER_NAME"
@@ -102,14 +109,14 @@ cat >> "$HOME_DIR/.xinitrc" <<'XINITRC'
 # Ingen skärmsläckning / strömsparläge på skärmarna.
 xset s off -dpms
 xset s noblank
-# Arrangera de två skärmarna sida vid sida (vänster = primär, höger till höger om).
-# Sätter också SCREEN_W = vänsterskärmens bredd så höger fönster hamnar rätt.
+# FLYKTEN är en ENSKÄRMS-station: slå på skärmen och gör den primär. (Skulle två
+# skärmar vara inkopplade läggs de sida vid sida — skadar inte enskärms-driften.)
 OUTS=$(xrandr --query 2>/dev/null | awk '/ connected/{print $1}')
 set -- $OUTS
 if [ $# -ge 2 ]; then
   xrandr --output "$1" --auto --pos 0x0 --primary --output "$2" --auto --right-of "$1" || true
-  LW=$(xrandr --query 2>/dev/null | awk -v o="$1" '$1==o{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+x[0-9]+\+0\+0$/){split($i,a,"x"); print a[1]; exit}}')
-  [ -n "$LW" ] && export SCREEN_W="$LW"
+elif [ $# -eq 1 ]; then
+  xrandr --output "$1" --auto --primary || true
 fi
 # Kör kiosken i en egen dbus-session (behövs av webbläsaren).
 exec dbus-run-session -- /bin/sh -c "openbox & exec \"$KIOSK\""
@@ -127,17 +134,17 @@ cat <<EOF
 
 Nästa steg:
   sudo reboot
-NUC:en bootar då rakt in i FLYKTEN på Xorg (vänster = Valv Syd, höger = Valv Nord).
+NUC:en bootar då rakt in i FLYKTEN på Xorg (en helskärms-Chrome).
 
 Bra att veta:
   • Bryta ut ur kiosken:  tryck Ctrl+Alt+F2, logga in ($USER_NAME / lösenordet).
-  • Skärmbredd/andra musen/touch ställs i:  $HERE/kiosk.env
+  • Ljud (Anker) och touch-mappning ställs i:  $HERE/kiosk.env
   • Efter ändring i kiosk.env: starta om (sudo reboot) — eller döda webbläsaren
-    (pkill chrom) så startar sessionen om sig själv.
+    (pkill chrome) så startar sessionen om sig själv.
 
-Återställ till vanligt Ubuntu-skrivbord (om du vill ångra allt):
+Återställ till vanligt skrivbord (Mint/Ubuntu, om du vill ångra allt):
   sudo systemctl set-default graphical.target
-  sudo systemctl enable gdm3
+  sudo systemctl enable lightdm   # Mint  (Ubuntu: enable gdm3)
   sudo rm /etc/systemd/system/getty@tty1.service.d/override.conf
   (ta även bort raderna under FLYKTEN-KIOSK-AUTOSTART i ~/.bash_profile)
   sudo reboot
