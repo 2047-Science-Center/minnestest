@@ -27,13 +27,15 @@ import CheckoutScreen from './components/CheckoutScreen.vue'
 const { t } = useI18n()
 const store = useMinnestestStore()
 
-const vaultOutLines = computed(() => [
-  t('vaultout.l1'),
-  t('vaultout.l2'),
-  t('vaultout.l3'),
-  t('vaultout.l4'),
-])
-const vaultBackLines = computed(() => [t('vaultback.l1'), t('vaultback.l2'), t('vaultback.l3')])
+// Valv-övergången skiljer sig per gren: flykt tar dem "tillbaka i tiden",
+// metodspecialisten får en neutral enhets-uppstart (ingen "vanlig kväll").
+const vaultOutLines = computed(() => {
+  const p = store.exampleType === 'fermi' ? 'fermi.vaultout' : 'vaultout'
+  return [t(`${p}.l1`), t(`${p}.l2`), t(`${p}.l3`)].filter(Boolean)
+})
+const vaultBackLines = computed(() =>
+  [t('vaultback.l1'), t('vaultback.l2'), t('vaultback.l3')].filter(Boolean),
+)
 
 onMounted(() => store.init())
 </script>

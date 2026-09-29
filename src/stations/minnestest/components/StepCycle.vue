@@ -16,6 +16,7 @@ import type { StepAssessment } from '@/station-kit/adapters/assess/Assess'
 import { useMinnestestStore } from '../store/minnestestStore'
 import MediaSlot from './MediaSlot.vue'
 import NpcReply from './NpcReply.vue'
+import ThinkingStream from './ThinkingStream.vue'
 import { media } from '../media/manifest'
 
 const { t } = useI18n()
@@ -81,6 +82,9 @@ let dwellRemaining = 0
 
 // --- reply ---
 const npcDone = ref(false)
+
+// Det transkript vi skickar in — sparas så tänkande-strömmen kan eka det.
+const lastTranscript = ref('')
 
 const showManualFallback = computed(() => !capture.supported || Boolean(capture.error.value))
 
@@ -197,13 +201,15 @@ function enterAnalys(): void {
   dwellDone.value = false
   assessDone.value = false
   assessResult.value = null
+  const transcript = collectedTranscript()
+  lastTranscript.value = transcript
   const dwellMs = media(analysMedia.value).durationMs ?? 6000
   dwellEndsAt = Date.now() + dwellMs
   dwellTimer = setTimeout(() => {
     dwellDone.value = true
     maybeReveal()
   }, dwellMs)
-  void store.assessCurrentStep(collectedTranscript()).then((a) => {
+  void store.assessCurrentStep(transcript).then((a) => {
     assessResult.value = a
     assessDone.value = true
     maybeReveal()
@@ -368,14 +374,15 @@ onUnmounted(() => {
       </div>
     </section>
 
-    <!-- ANALYS -->
+    <!-- ANALYS — ENHETEN "tänker högt" medan bedömningen hämtas -->
     <section v-else-if="sub === 'analys'" class="analys">
-      <div class="analys__media"><MediaSlot :id="analysMedia" :autoplay="false" /></div>
+      <div class="analys__bg" aria-hidden="true"><MediaSlot :id="analysMedia" :autoplay="false" /></div>
       <div class="analys__strip">
         <span>{{ analyzingLine }}</span>
         <span class="analys__dots"><i /><i /><i /></span>
         <button v-if="isPilot" class="analys__skip" @click="skipDwell()">hoppa över</button>
       </div>
+      <ThinkingStream :transcript="lastTranscript" :flavor="isFermi ? 'fermi' : 'flykt'" />
     </section>
 
     <!-- REPLY -->
@@ -704,20 +711,26 @@ onUnmounted(() => {
 
 /* ---------- ANALYS ---------- */
 .analys {
+  position: relative;
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  padding-top: 0.8rem;
 }
-.analys__media {
-  flex: 1;
-  min-height: 0;
+.analys__bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  pointer-events: none;
   display: flex;
   align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 .analys__strip {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
