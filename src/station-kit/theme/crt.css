@@ -29,6 +29,10 @@
   --font-retro: 'VT323', 'Courier New', ui-monospace, monospace;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
 
+  /* Global UI-skala: allt (text, knappar, paddingar i rem/em) växer med denna.
+     1.5 = 50 % större för läsbarhet på håll i montern. Justera vid behov. */
+  --ui-scale: 1.5;
+
   /* --- CRT-chrome-intensitet (0 = av, 1 = full) --- */
   --crt-intensity: 1;
 
@@ -44,6 +48,11 @@
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  /* Bas-rem × global skala → all rem/em-baserad text & knappar växer x1.5. */
+  font-size: calc(16px * var(--ui-scale));
 }
 
 html,

@@ -17,6 +17,7 @@ import { useMinnestestStore } from '../store/minnestestStore'
 import MediaSlot from './MediaSlot.vue'
 import NpcReply from './NpcReply.vue'
 import ThinkingStream from './ThinkingStream.vue'
+import NumberStepper from './NumberStepper.vue'
 import { media } from '../media/manifest'
 
 const { t } = useI18n()
@@ -30,7 +31,7 @@ const WARN_MS = config.warnAtSeconds * 1000
 
 const capture = useSpeechCapture({ windowMs: WINDOW_MS, lang: config.lang })
 const manualText = ref('')
-const guessValue = ref('')
+const guessValue = ref(0)
 
 const isFermi = computed(() => store.exampleType === 'fermi')
 const step = computed(() => store.currentStep)
@@ -45,6 +46,7 @@ const eyebrow = computed(() => (isFermi.value ? t('skatta.title') : t('lage.titl
 const whyLine = computed(() => (isFermi.value ? t('step.how_line') : t('step.why_line')))
 const analyzingLine = computed(() => (isFermi.value ? t('step.weighing') : t('step.analyzing')))
 const unitLabel = computed(() => (step.value.unit ? t(`unit.${step.value.unit}`) : ''))
+const guessScale = computed(() => step.value.guess)
 const popupLines = computed(() =>
   ['popup1', 'popup2', 'popup3']
     .map((k) => t(`${stepKey.value}.${k}`))
@@ -109,7 +111,7 @@ function enterSituation(): void {
   sub.value = 'situation'
   popupShown.value = false
   manualText.value = ''
-  guessValue.value = ''
+  guessValue.value = guessScale.value?.start ?? 0
   bPhase.value = 1
   warned.value = false
   popupTimer = setTimeout(() => (popupShown.value = true), 1500)
@@ -181,14 +183,16 @@ function finishThink(): void {
   }
   capture.stop()
   // Fermi: gissnings-pop-up innan analys. Flykt: rakt in i analys.
-  if (isFermi.value) sub.value = 'guess'
-  else enterAnalys()
+  if (isFermi.value) {
+    guessValue.value = guessScale.value?.start ?? 0
+    sub.value = 'guess'
+  } else {
+    enterAnalys()
+  }
 }
 
 function lockGuess(): void {
-  const raw = String(guessValue.value ?? '').replace(',', '.').replace(/\s/g, '')
-  const n = parseFloat(raw)
-  store.setGuess(Number.isFinite(n) ? n : null)
+  store.setGuess(Number.isFinite(guessValue.value) ? guessValue.value : null)
   enterAnalys()
 }
 function skipGuess(): void {
@@ -289,6 +293,10 @@ onUnmounted(() => {
           <ul class="popup__lines">
             <li v-for="(l, i) in popupLines" :key="i">{{ l }}</li>
           </ul>
+          <div class="popup__rule">
+            <span class="popup__rule-title">{{ t('step.rule_title') }}</span>
+            <span class="popup__rule-body">{{ t('step.rule_body') }}</span>
+          </div>
           <p class="popup__time">{{ timeLine }}</p>
           <button class="crt-button crt-button--strong popup__go" @click="ready()">
             {{ t('lage.ready') }} ▸
@@ -301,6 +309,7 @@ onUnmounted(() => {
     <section v-else-if="sub === 'countdown'" class="countdown">
       <p class="countdown__label">{{ t('countdown.prefix') }} …</p>
       <div class="countdown__num" :key="countdownN">{{ countdownN }}</div>
+      <p class="countdown__cue">{{ t('step.rule_title') }}</p>
     </section>
 
     <!-- THINK — uppgiften stor och tydlig HELA TIDEN -->
@@ -357,16 +366,16 @@ onUnmounted(() => {
         <p class="guess__title ink-strong">{{ t('guess.title') }}</p>
         <p class="guess__sub">{{ t('guess.sub') }}</p>
         <div class="guess__field">
-          <input
+          <NumberStepper
+            v-if="guessScale"
             v-model="guessValue"
-            class="guess__input"
-            type="number"
-            inputmode="decimal"
-            :placeholder="t('guess.placeholder')"
-            @keyup.enter="lockGuess()"
+            :step="guessScale.step"
+            :min="guessScale.min"
+            :max="guessScale.max"
+            :unit="unitLabel"
           />
-          <span class="guess__unit">{{ unitLabel }}</span>
         </div>
+        <p class="guess__hint">{{ t('guess.hold_hint') }}</p>
         <div class="guess__actions">
           <button class="crt-button guess__skip" @click="skipGuess()">{{ t('guess.skip') }} ▸</button>
           <button class="crt-button crt-button--strong" @click="lockGuess()">{{ t('guess.lock') }} ▸</button>
@@ -446,10 +455,12 @@ onUnmounted(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(92%, 48ch);
-  padding: 1.4rem 1.6rem;
+  width: min(94%, 46ch);
+  max-height: 96%;
+  overflow-y: auto;
+  padding: 1.1rem 1.3rem;
   border-radius: var(--radius, 8px);
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.9);
   text-align: center;
 }
 .popup__eyebrow {
@@ -461,28 +472,48 @@ onUnmounted(() => {
 }
 .popup__task {
   font-family: var(--font-retro);
-  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  font-size: clamp(1.4rem, 4vw, 2rem);
   letter-spacing: 0.04em;
   color: var(--color-primary);
-  margin: 0 0 1rem;
+  margin: 0 0 0.6rem;
 }
 .popup__lines {
   list-style: none;
-  margin: 0 0 1rem;
+  margin: 0 0 0.7rem;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 .popup__lines li {
   color: var(--color-ink-strong);
   line-height: 1.4;
 }
+.popup__rule {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0 0 0.7rem;
+  padding: 0.6rem 0.8rem;
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius, 10px);
+  background: rgba(255, 149, 0, 0.1);
+}
+.popup__rule-title {
+  font-family: var(--font-retro);
+  font-size: 1.5rem;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-strong);
+}
+.popup__rule-body {
+  color: var(--color-ink-strong);
+  line-height: 1.35;
+}
 .popup__time {
   color: var(--color-primary);
   font-weight: 600;
-  margin: 0 0 1.2rem;
-  line-height: 1.4;
+  margin: 0 0 0.9rem;
+  line-height: 1.35;
 }
 .pop-enter-active {
   transition: opacity 0.4s ease, transform 0.4s ease;
@@ -505,6 +536,13 @@ onUnmounted(() => {
   font-family: var(--font-mono);
   letter-spacing: 0.08em;
   color: var(--color-ink-muted);
+  margin: 0;
+}
+.countdown__cue {
+  font-family: var(--font-retro);
+  font-size: 1.6rem;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-strong);
   margin: 0;
 }
 .countdown__num {
@@ -680,25 +718,13 @@ onUnmounted(() => {
 .guess__field {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
   justify-content: center;
-  margin-bottom: 1.2rem;
+  margin-bottom: 0.6rem;
 }
-.guess__input {
-  width: 12ch;
-  background: #0a0a0a;
-  color: var(--color-ink-strong);
-  border: 1px solid var(--color-primary-dim);
-  border-radius: var(--radius, 8px);
-  padding: 0.5rem 0.7rem;
-  font-family: var(--font-retro);
-  font-size: 1.6rem;
-  text-align: right;
-}
-.guess__unit {
-  font-family: var(--font-mono);
-  color: var(--color-primary);
-  white-space: nowrap;
+.guess__hint {
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+  margin: 0 0 1.2rem;
 }
 .guess__actions {
   display: flex;

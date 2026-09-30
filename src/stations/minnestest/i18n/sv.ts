@@ -64,6 +64,9 @@ export const sv: Record<string, string> = {
   'countdown.prefix': 'Uppgiften börjar om',
 
   // --- Steg-cykel (generellt) ---
+  // Poäng-regeln: syns i varje stegs pop-up + nedräkning → omöjlig att missa.
+  'step.rule_title': '🎙 TÄNK HÖGT TILLSAMMANS',
+  'step.rule_body': 'Ni bedöms på HUR ni resonerar — inte på om svaret blir rätt.',
   'step.talk_motiv': 'Prata högt — och säg varför ni väljer så.',
   'step.why_line': 'Säg VARFÖR ni väljer som ni gör. Det är motiveringen som räknas.',
   'step.mic_active': '🎙 MIK AKTIV',
@@ -123,7 +126,8 @@ export const sv: Record<string, string> = {
 
   // Gissnings-pop-up
   'guess.title': 'ER GISSNING',
-  'guess.sub': 'Skriv in ert tal. Det viktiga var hur ni tänkte.',
+  'guess.sub': 'Ställ in ert tal. Det viktiga var hur ni tänkte.',
+  'guess.hold_hint': 'Håll in − eller + för att bläddra snabbare.',
   'guess.placeholder': 'Ett tal …',
   'guess.lock': 'LÅS IN',
   'guess.skip': 'HOPPA',

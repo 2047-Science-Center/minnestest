@@ -89,6 +89,18 @@ export interface ExampleStep {
   analysMedia?: string
   /** Fermi: enhet på gissningen ('kg' | 'antal' | 'ton'). */
   unit?: string
+  /** Fermi-gissning: stegets +/- -knappar (touch). Olika skala per steg. */
+  guess?: GuessScale
+}
+
+/** Touch-stepper för Fermi-gissningen: bas-steg, gränser och startvärde. */
+export interface GuessScale {
+  /** Ökning/minskning per tryck (och bas för håll-acceleration). */
+  step: number
+  min: number
+  max: number
+  /** Förifyllt värde (mitt i ett rimligt spann → färre tryck). */
+  start: number
 }
 
 export interface ExampleDef {
@@ -124,9 +136,18 @@ export const EXAMPLES: Record<ExampleId, ExampleDef> = {
     introMedia: 'intro_fermi',
     countdownFrom: 3,
     steps: [
-      { key: 'fermi.steg1', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'kg' },
-      { key: 'fermi.steg2', referenceMedia: 'steg2_trafik', analysMedia: 'esk2_berakning', unit: 'antal' },
-      { key: 'fermi.steg3', referenceMedia: 'steg3_skrot', analysMedia: 'esk3_overgang', unit: 'ton' },
+      {
+        key: 'fermi.steg1', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'kg',
+        guess: { step: 10, min: 100, max: 5000, start: 1000 },
+      },
+      {
+        key: 'fermi.steg2', referenceMedia: 'steg2_trafik', analysMedia: 'esk2_berakning', unit: 'antal',
+        guess: { step: 5000, min: 0, max: 1000000, start: 100000 },
+      },
+      {
+        key: 'fermi.steg3', referenceMedia: 'steg3_skrot', analysMedia: 'esk3_overgang', unit: 'ton',
+        guess: { step: 5000, min: 0, max: 2000000, start: 100000 },
+      },
     ],
   },
 }
