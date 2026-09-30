@@ -1,0 +1,2 @@
+# Per-maskin-konfig — ska aldrig checkas in (varje NUC har sina egna USB-portar).
+touch.env
