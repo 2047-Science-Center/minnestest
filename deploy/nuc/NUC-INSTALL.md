@@ -117,6 +117,14 @@ fungerar).
 bash deploy/nuc/update.sh            # git pull + bygg + starta om
 ```
 
+## 9. Fjärrstyrning (styr NUC:en från din Mac)
+Installera SSH + Tailscale + RustDesk i ett svep:
+```bash
+bash deploy/nuc/setup-remote.sh
+```
+Sen når du NUC:en var den än står — terminal via SSH, skärm via RustDesk. Se
+[REMOTE-ACCESS.md](REMOTE-ACCESS.md) för Mac-sidan.
+
 ## Felsökning
 - **Talet registreras inte:** kör *officiell* Chrome (inte Chromium), kolla internet,
   och att `MIC_SOURCE` pekar på Ankern. `--use-fake-ui-for-media-stream` auto-godkänner
