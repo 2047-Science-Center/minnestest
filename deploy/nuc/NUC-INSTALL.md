@@ -117,13 +117,14 @@ fungerar).
 bash deploy/nuc/update.sh            # git pull + bygg + starta om
 ```
 
-## 9. Fjärrstyrning (styr NUC:en från din Mac)
-Installera SSH + Tailscale + RustDesk i ett svep:
+## 9. Fjärrstyrning (styr NUC:en från din dator)
+Fjärråtkomst (SSH + Tailscale + RustDesk) ligger i ett eget, station-oberoende repo:
+**https://github.com/2047-Science-Center/nuc-fjarratkomst**
 ```bash
-bash deploy/nuc/setup-remote.sh
+git clone https://github.com/2047-Science-Center/nuc-fjarratkomst.git ~/nuc-fjarratkomst
+bash ~/nuc-fjarratkomst/setup-remote.sh
 ```
-Sen når du NUC:en var den än står — terminal via SSH, skärm via RustDesk. Se
-[REMOTE-ACCESS.md](REMOTE-ACCESS.md) för Mac-sidan.
+Sen når du NUC:en var den än står — terminal via SSH, skärm via RustDesk.
 
 ## Felsökning
 - **Talet registreras inte:** kör *officiell* Chrome (inte Chromium), kolla internet,
