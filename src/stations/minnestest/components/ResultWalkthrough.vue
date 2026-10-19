@@ -19,6 +19,7 @@ const { t } = useI18n()
 const store = useMinnestestStore()
 
 const isFermi = computed(() => store.exampleType === 'fermi')
+const isTest = computed(() => props.mode === 'test')
 const accent = computed(() => (props.mode === 'test' ? '#35e0d0' : '#ff9500'))
 
 // Bandpoäng (flykt) — stabila stationskonstanter (speglar configs/flykt.json).
@@ -36,7 +37,11 @@ interface Row {
 const rows = computed<Row[]>(() =>
   store.steps.map((_s, i) => {
     const a = store.assessments[i]
-    const label = isFermi.value ? t(`reveal.fermi.steg${i + 1}`) : t(`reveal.flykt.steg${i + 1}`)
+    const label = isTest.value
+      ? t(isFermi.value ? 'reveal.fermi.ovning' : 'reveal.flykt.ovning')
+      : isFermi.value
+        ? t(`reveal.fermi.steg${i + 1}`)
+        : t(`reveal.flykt.steg${i + 1}`)
     if (isFermi.value) {
       return {
         label,
@@ -76,6 +81,14 @@ const summary = computed(() => {
   }
 })
 
+// Övnings-reveal (test): visa mekaniken för det ENA steget, ingen slutpoäng.
+const testResult = computed(() => {
+  const r = rows.value[0]
+  return isFermi.value
+    ? { big: String(r?.points ?? 0), label: t('reveal.delpoang') }
+    : { big: r?.band ?? '—', label: 'band' }
+})
+
 // --- Beats: ett steg i taget, sedan slutsummering ---
 const beat = ref(0)
 const stepCount = computed(() => store.steps.length)
@@ -100,7 +113,7 @@ function next(): void {
     <div class="rw__rows">
       <template v-for="(r, i) in rows" :key="i">
         <div v-if="beat >= i" class="rw__row rw__in">
-          <span class="rw__step">Steg {{ i + 1 }} · {{ r.label }}</span>
+          <span class="rw__step"><template v-if="!isTest">Steg {{ i + 1 }} · </template>{{ r.label }}</span>
           <template v-if="isFermi">
             <span class="rw__tag">{{ r.traff }}</span>
             <span class="rw__x">×</span>
@@ -116,7 +129,8 @@ function next(): void {
     </div>
 
     <transition name="rw-fade">
-      <div v-if="showSummary" class="rw__summary">
+      <!-- SKARPT: full summering (medel/summa → röd tråd → slutpoäng + profil) -->
+      <div v-if="showSummary && !isTest" class="rw__summary">
         <div class="rw__calc">
           <span class="rw__calc-label">{{ isFermi ? t('reveal.medel') : t('reveal.summa') }}</span>
           <span class="rw__calc-val">{{ isFermi ? summary.mean : summary.base }}</span>
@@ -135,6 +149,17 @@ function next(): void {
           </div>
         </div>
         <p v-if="summary.sammanfattning" class="rw__sum">{{ summary.sammanfattning }}</p>
+      </div>
+
+      <!-- ÖVNING: lär ut mekaniken, ingen slutpoäng -->
+      <div v-else-if="showSummary && isTest" class="rw__summary">
+        <div class="rw__hero">
+          <span class="rw__poang">{{ testResult.big }}</span>
+          <div class="rw__herometa">
+            <span class="rw__mark ink-strong">{{ testResult.label }}</span>
+            <span class="rw__profil">{{ isFermi ? t('reveal.test_note_fermi') : t('reveal.test_note_flykt') }}</span>
+          </div>
+        </div>
       </div>
     </transition>
 

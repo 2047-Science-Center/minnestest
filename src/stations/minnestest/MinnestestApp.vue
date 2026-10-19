@@ -20,6 +20,7 @@ import CoachIntro from './components/CoachIntro.vue'
 import VaultTransition from './components/VaultTransition.vue'
 import FermiIntro from './components/FermiIntro.vue'
 import StepCycle from './components/StepCycle.vue'
+import ResultWalkthrough from './components/ResultWalkthrough.vue'
 import FacilitatorControls from './components/FacilitatorControls.vue'
 import PauseOverlay from './components/PauseOverlay.vue'
 import VerdictScreen from './components/VerdictScreen.vue'
@@ -75,6 +76,11 @@ onMounted(() => store.init())
           />
           <FermiIntro v-else-if="store.phase === 'intro'" />
           <StepCycle v-else-if="store.phase === 'step'" />
+          <ResultWalkthrough
+            v-else-if="store.phase === 'practiceReveal'"
+            mode="test"
+            @finish="store.startLive()"
+          />
           <VaultTransition
             v-else-if="store.phase === 'vaultBack'"
             :lines="vaultBackLines"

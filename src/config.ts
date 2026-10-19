@@ -157,6 +157,39 @@ export function exampleForRole(role: RoleId): ExampleDef {
   return EXAMPLES[r.example]
 }
 
+/**
+ * ÖVNINGSEXEMPEL (testläge) — EN enkel övningsfråga per gren, egen gateway-config
+ * (fermi-ovning/flykt-ovning). Deltagarna svarar, får en riktig bedömning och ser
+ * poäng-genomgången i testläge INNAN det skarpa. Ingen intro (coach-introt gjorde
+ * den biten); countdown kort.
+ */
+export const PRACTICE: Record<ExampleId, ExampleDef> = {
+  flykt: {
+    id: 'flykt',
+    type: 'flykt',
+    configId: 'flykt-ovning',
+    countdownFrom: 3,
+    steps: [{ key: 'flykt.ovning', referenceMedia: 'flykt_1_packa' }],
+  },
+  'fermi-skrotbilar': {
+    id: 'fermi-skrotbilar',
+    type: 'fermi',
+    configId: 'fermi-ovning',
+    countdownFrom: 3,
+    steps: [
+      {
+        key: 'fermi.ovning', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'slag',
+        guess: { step: 5000, min: 0, max: 500000, start: 100000 },
+      },
+    ],
+  },
+}
+
+export function practiceForRole(role: RoleId): ExampleDef {
+  const r = ROLES.find((x) => x.id === role) ?? ROLES[0]
+  return PRACTICE[r.example]
+}
+
 /* ------------------------------------------------------------------ *
  * Stigande slutskala 1–10 — namngivna markeringar (delad av båda exempel).
  * ------------------------------------------------------------------ */

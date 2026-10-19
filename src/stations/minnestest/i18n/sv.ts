@@ -62,8 +62,8 @@ export const sv: Record<string, string> = {
   'coach.title': 'SÅ FUNKAR DET',
   'coach.hint': 'Grund-UI:t syns hela tiden — vi pekar bara ut delarna.',
   'coach.next': 'NÄSTA',
-  'coach.start_fermi': 'BÖRJA',
-  'coach.start_flykt': 'BÖRJA',
+  'coach.start_fermi': 'BÖRJA ÖVA',
+  'coach.start_flykt': 'BÖRJA ÖVA',
   // fermi-zoner + bubblor
   'coach.fermi.z1': 'FRÅGAN',
   'coach.fermi.z1_ex': 'Hur mycket väger en vanlig bil?',
@@ -160,6 +160,7 @@ export const sv: Record<string, string> = {
   'unit.kg': 'kg',
   'unit.antal': 'bilar/år',
   'unit.ton': 'ton/år',
+  'unit.slag': 'slag',
 
   // Steg 1 — snittbilens vikt
   'fermi.steg1.context': 'Börja med en enda bil.',
@@ -184,6 +185,22 @@ export const sv: Record<string, string> = {
   'fermi.steg3.popup1': 'Väg ihop era egna tal från steg 1 och 2.',
   'fermi.steg3.popup2': 'Stämmer storleksordningen?',
   'fermi.steg3.popup3': '',
+
+  // --- ÖVNINGSEXEMPEL (testläge, en fråga per gren) ---
+  // Metodspecialist — snabb Fermi-övning (hjärtslag).
+  'fermi.ovning.context': 'Övning — ni skattar och säger HUR ni tänker.',
+  'fermi.ovning.task': 'Hur många gånger slår ett hjärta på ett dygn?',
+  'fermi.ovning.time': 'Ni har en minut. Säg hur ni räknar.',
+  'fermi.ovning.popup1': 'Det här är en ÖVNING — inga riktiga poäng.',
+  'fermi.ovning.popup2': 'Skatta ett tal och säg HUR ni kommer fram.',
+  'fermi.ovning.popup3': '',
+  // Doktorand — snabb motiverings-övning (brand).
+  'flykt.ovning.context': 'Övning — säg vad OCH varför.',
+  'flykt.ovning.task': 'Det brinner. Ni har 30 sekunder. Vad tar ni med er — och varför?',
+  'flykt.ovning.time': 'Ni har en minut. Säg varför ni väljer så.',
+  'flykt.ovning.popup1': 'Det här är en ÖVNING — inga riktiga poäng.',
+  'flykt.ovning.popup2': 'Säg vad ni tar med er OCH varför.',
+  'flykt.ovning.popup3': '',
 
   // --- NPC-svar ---
   'npc.prefix': 'ENHETEN //',
@@ -229,6 +246,10 @@ export const sv: Record<string, string> = {
   'reveal.flykt.steg1': 'packa',
   'reveal.flykt.steg2': 'färdsätt',
   'reveal.flykt.steg3': 'slå läger',
+  'reveal.fermi.ovning': 'Ert svar',
+  'reveal.flykt.ovning': 'Ert svar',
+  'reveal.test_note_fermi': 'Två axlar: hur nära ni låg + HUR ni tänkte.',
+  'reveal.test_note_flykt': 'Rätt val + rätt varför → starkare band.',
 
   // --- Utcheckning ---
   'checkout.title': 'KLART.',

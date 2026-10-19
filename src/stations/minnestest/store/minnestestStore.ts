@@ -18,7 +18,7 @@ import type {
 import type { ResultPayload, ResultPerson } from '@/station-kit/adapters/result/ResultSink'
 import { audio } from '@/station-kit/audio/AudioEngine'
 
-import { config, exampleForRole, ROLES, PILOT_GROUP, type RoleId } from '@/config'
+import { config, exampleForRole, practiceForRole, ROLES, PILOT_GROUP, type RoleId } from '@/config'
 import { t } from '@/station-kit/i18n'
 
 export type Phase =
@@ -29,9 +29,13 @@ export type Phase =
   | 'vaultOut'
   | 'intro'
   | 'step'
+  | 'practiceReveal'
   | 'vaultBack'
   | 'verdict'
   | 'checkout'
+
+/** Övningsläge (test, blått) vs skarpt (live, gult). */
+export type StationMode = 'test' | 'live'
 
 export interface StationGroup {
   id: string
@@ -40,6 +44,7 @@ export interface StationGroup {
 
 export const useMinnestestStore = defineStore('minnestest', () => {
   const phase = ref<Phase>('attract')
+  const mode = ref<StationMode>('live')
   const group = ref<StationGroup>({ id: PILOT_GROUP.id, members: [...PILOT_GROUP.members] })
   const roleId = ref<RoleId | null>(null)
   const stepIndex = ref(0)
@@ -58,8 +63,12 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   const adapters = shallowRef<Adapters | null>(null)
 
-  // --- Fork: exempel ur rollen ---
-  const example = computed(() => exampleForRole(roleId.value ?? 'doktorand'))
+  // --- Fork: exempel ur rollen (övning i testläge, skarpt i live) ---
+  const example = computed(() =>
+    mode.value === 'test'
+      ? practiceForRole(roleId.value ?? 'doktorand')
+      : exampleForRole(roleId.value ?? 'doktorand'),
+  )
   const exampleType = computed(() => example.value.type)
   const steps = computed(() => example.value.steps)
   const currentStep = computed(() => steps.value[stepIndex.value])
@@ -88,13 +97,33 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   function chooseRole(id: RoleId): void {
     roleId.value = id
+    mode.value = 'test' // övning först
     audio.play('confirm')
     phase.value = 'tutorial'
   }
 
-  /** Coach-intro (tutorial) klar → in i uppgiften. */
+  /** Coach-intro (tutorial) klar → in i ÖVNINGEN (testläge, ett steg). */
   function tutorialDone(): void {
-    phase.value = 'vaultOut'
+    resetRound()
+    phase.value = 'step'
+  }
+
+  /** Övningen klar → växla till SKARPT och kör den riktiga uppgiften. */
+  function startLive(): void {
+    mode.value = 'live'
+    resetRound()
+    // Fermi har en intro-skärm (hela frågan) i skarpt läge; flykt går rakt in.
+    phase.value = example.value.introMedia ? 'intro' : 'step'
+  }
+
+  /** Nollställ steg-state inför en ny omgång (behåll roll/mode/grupp). */
+  function resetRound(): void {
+    stepIndex.value = 0
+    transcripts.value = ['', '', '']
+    guesses.value = [null, null, null]
+    assessments.value = [null, null, null]
+    final.value = null
+    packlista.value = ''
   }
 
   function vaultOutDone(): void {
@@ -197,6 +226,9 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     if (stepIndex.value < steps.value.length - 1) {
       stepIndex.value += 1
       phase.value = 'step'
+    } else if (mode.value === 'test') {
+      // Övningen klar → visa poäng-genomgången i testläge (ingen final-compose).
+      phase.value = 'practiceReveal'
     } else {
       phase.value = 'vaultBack'
       await composeFinal()
@@ -252,6 +284,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   function reset(): void {
     paused.value = false
     phase.value = 'attract'
+    mode.value = 'live'
     roleId.value = null
     stepIndex.value = 0
     transcripts.value = ['', '', '']
@@ -286,6 +319,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   return {
     phase,
+    mode,
     group,
     roleId,
     stepIndex,
@@ -307,6 +341,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     checkinDone,
     chooseRole,
     tutorialDone,
+    startLive,
     vaultOutDone,
     introDone,
     setGuess,
