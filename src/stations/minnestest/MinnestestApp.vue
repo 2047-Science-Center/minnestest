@@ -16,6 +16,7 @@ import { useMinnestestStore } from './store/minnestestStore'
 import StatusBar from './components/StatusBar.vue'
 import CheckinScreen from './components/CheckinScreen.vue'
 import RoleSelect from './components/RoleSelect.vue'
+import CoachIntro from './components/CoachIntro.vue'
 import VaultTransition from './components/VaultTransition.vue'
 import FermiIntro from './components/FermiIntro.vue'
 import StepCycle from './components/StepCycle.vue'
@@ -66,6 +67,7 @@ onMounted(() => store.init())
         <CrtScreen>
           <CheckinScreen v-if="store.phase === 'checkin'" />
           <RoleSelect v-else-if="store.phase === 'roleSelect'" />
+          <CoachIntro v-else-if="store.phase === 'tutorial'" @done="store.tutorialDone()" />
           <VaultTransition
             v-else-if="store.phase === 'vaultOut'"
             :lines="vaultOutLines"

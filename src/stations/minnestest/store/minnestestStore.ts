@@ -25,6 +25,7 @@ export type Phase =
   | 'attract'
   | 'checkin'
   | 'roleSelect'
+  | 'tutorial'
   | 'vaultOut'
   | 'intro'
   | 'step'
@@ -88,6 +89,11 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   function chooseRole(id: RoleId): void {
     roleId.value = id
     audio.play('confirm')
+    phase.value = 'tutorial'
+  }
+
+  /** Coach-intro (tutorial) klar → in i uppgiften. */
+  function tutorialDone(): void {
     phase.value = 'vaultOut'
   }
 
@@ -300,6 +306,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     begin,
     checkinDone,
     chooseRole,
+    tutorialDone,
     vaultOutDone,
     introDone,
     setGuess,

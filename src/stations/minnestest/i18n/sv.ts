@@ -58,6 +58,32 @@ export const sv: Record<string, string> = {
   'fermi.vaultout.l2': 'Nu mäter vi hur ni tänker.',
   'fermi.vaultout.l3': 'Det börjar nu.',
 
+  // --- Coach-intro (tutorial: highlights på grund-UI:t, lär genom att göra) ---
+  'coach.title': 'SÅ FUNKAR DET',
+  'coach.hint': 'Grund-UI:t syns hela tiden — vi pekar bara ut delarna.',
+  'coach.next': 'NÄSTA',
+  'coach.start_fermi': 'BÖRJA',
+  'coach.start_flykt': 'BÖRJA',
+  // fermi-zoner + bubblor
+  'coach.fermi.z1': 'FRÅGAN',
+  'coach.fermi.z1_ex': 'Hur mycket väger en vanlig bil?',
+  'coach.fermi.b1': 'Här står frågan — den syns hela tiden.',
+  'coach.fermi.z2': 'SIFFERVÄLJARE',
+  'coach.fermi.b2': 'Här ställer ni in ert tal med − och +.',
+  'coach.fermi.z3': 'TÄNK HÖGT',
+  'coach.fermi.z3_ex': 'Säg HUR ni kommer fram — inte bara en siffra.',
+  'coach.fermi.b3': 'Viktigast: säg HUR ni tänker. Det ger poängen.',
+  // flykt-zoner + bubblor
+  'coach.flykt.z1': 'LÄGET',
+  'coach.flykt.z1_ex': 'Ett krig har brutit ut och ni måste fly.',
+  'coach.flykt.b1': 'Här står läget — kort, i liten text.',
+  'coach.flykt.z2': 'FRÅGAN',
+  'coach.flykt.z2_ex': 'Vad tar ni med er?',
+  'coach.flykt.b2': 'Här är frågan ni ska svara på — stor, hela tiden.',
+  'coach.flykt.z3': 'TÄNK HÖGT',
+  'coach.flykt.z3_ex': 'Säg VARFÖR ni väljer så.',
+  'coach.flykt.b3': 'Viktigast: säg VARFÖR. Utan motivering blir taket Godkänd.',
+
   // --- Läges-flöde (IDENTISKT för uppgift 1–3) ---
   'lage.title': 'DET HÄR ÄR LÄGET',
   'lage.ready': 'VI ÄR REDO',
