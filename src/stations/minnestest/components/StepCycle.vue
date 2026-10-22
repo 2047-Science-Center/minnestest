@@ -64,10 +64,6 @@ const micLine = computed(() => (isReason.value ? reasonLine.value : t('step.answ
 const micDone = computed(() => (isReason.value ? t('step.we_are_done') : t('step.answer_done')))
 const blockBadge = computed(() => (isReason.value ? t('step.block_reason') : t('step.block_answer')))
 
-// --- situation ---
-const popupShown = ref(false)
-let popupTimer: ReturnType<typeof setTimeout> | null = null
-
 // --- countdown ---
 const countdownN = ref(3)
 let countdownTimer: ReturnType<typeof setInterval> | null = null
@@ -103,10 +99,9 @@ function collectedAnswer(): string {
 }
 
 function clearTimers(): void {
-  if (popupTimer) clearTimeout(popupTimer)
   if (countdownTimer) clearInterval(countdownTimer)
   if (dwellTimer) clearTimeout(dwellTimer)
-  popupTimer = countdownTimer = dwellTimer = null
+  countdownTimer = dwellTimer = null
 }
 
 // --- Beats ---
@@ -114,13 +109,11 @@ function enterSituation(): void {
   clearTimers()
   capture.stop()
   sub.value = 'situation'
-  popupShown.value = false
   manualText.value = ''
   answerText.value = ''
   reasonText.value = ''
   guessValue.value = guessScale.value?.start ?? 0
   warned.value = false
-  popupTimer = setTimeout(() => (popupShown.value = true), 1500)
 }
 
 function startCountdownTick(): void {
@@ -288,38 +281,26 @@ onUnmounted(() => {
 
 <template>
   <div class="cycle">
-    <!-- SITUATION -->
+    <!-- SITUATION — full-skärms komposition, ingen bild, ingen regel-ruta -->
     <section v-if="sub === 'situation'" class="situation">
-      <div class="situation__media"><MediaSlot :id="referenceMedia" :autoplay="false" /></div>
-      <div class="situation__cap">
-        <p class="situation__context">{{ context }}</p>
-        <p class="situation__task ink-strong">{{ task }}</p>
+      <div class="situation__inner">
+        <p class="situation__eyebrow">{{ eyebrow }}</p>
+        <h1 class="situation__task ink-strong">{{ task }}</h1>
+        <ul v-if="popupLines.length" class="situation__lines">
+          <li v-for="(l, i) in popupLines" :key="i" :style="{ '--i': i }">{{ l }}</li>
+        </ul>
+        <p class="situation__time">{{ timeLine }}</p>
+        <button class="crt-button crt-button--strong situation__go" @click="ready()">
+          {{ t('lage.ready') }} ▸
+        </button>
       </div>
-
-      <transition name="pop">
-        <div v-if="popupShown" class="popup amber-frame">
-          <p class="popup__eyebrow">{{ eyebrow }}</p>
-          <h3 class="popup__task ink-strong">{{ task }}</h3>
-          <ul class="popup__lines">
-            <li v-for="(l, i) in popupLines" :key="i">{{ l }}</li>
-          </ul>
-          <div class="popup__rule">
-            <span class="popup__rule-title"><MicIcon /> {{ t('step.rule_title') }}</span>
-            <span class="popup__rule-body">{{ t('step.rule_body') }}</span>
-          </div>
-          <p class="popup__time">{{ timeLine }}</p>
-          <button class="crt-button crt-button--strong popup__go" @click="ready()">
-            {{ t('lage.ready') }} ▸
-          </button>
-        </div>
-      </transition>
     </section>
 
     <!-- COUNTDOWN -->
     <section v-else-if="sub === 'countdown'" class="countdown">
       <p class="countdown__label">{{ t('countdown.prefix') }} …</p>
       <div class="countdown__num" :key="countdownN">{{ countdownN }}</div>
-      <p class="countdown__cue"><MicIcon /> {{ t('step.rule_title') }}</p>
+      <p class="countdown__cue">{{ task }}</p>
     </section>
 
     <!-- ANSWER (fermi) — SVARET FÖRST: sifferväljaren -->
@@ -347,7 +328,9 @@ onUnmounted(() => {
 
     <!-- MIK-BLOCK — flykt-svar (block 1) + motivering (block 2), uppgiften stor hela tiden -->
     <section v-else-if="micPhase" class="think" :class="isReason ? 'is-reason' : 'is-answer'">
-      <div class="think__ref" aria-hidden="true"><MediaSlot :id="referenceMedia" :autoplay="false" /></div>
+      <div v-if="store.mode === 'live'" class="think__ref" aria-hidden="true">
+        <MediaSlot :id="referenceMedia" :autoplay="false" />
+      </div>
 
       <header class="think__header">
         <div class="think__q">
@@ -389,7 +372,9 @@ onUnmounted(() => {
 
     <!-- ANALYS — ENHETEN "tänker högt" medan bedömningen hämtas -->
     <section v-else-if="sub === 'analys'" class="analys">
-      <div class="analys__bg" aria-hidden="true"><MediaSlot :id="analysMedia" :autoplay="false" /></div>
+      <div v-if="store.mode === 'live'" class="analys__bg" aria-hidden="true">
+        <MediaSlot :id="analysMedia" :autoplay="false" />
+      </div>
       <div class="analys__strip">
         <span>{{ analyzingLine }}</span>
         <span class="analys__dots"><i /><i /><i /></span>
@@ -423,110 +408,78 @@ onUnmounted(() => {
   min-height: 0;
 }
 
-/* ---------- SITUATION ---------- */
+/* ---------- SITUATION (full-skärms intro) ---------- */
 .situation {
-  position: relative;
   height: 100%;
   min-height: 0;
   display: flex;
-  flex-direction: column;
-}
-.situation__media {
-  flex: 1;
-  min-height: 0;
-  display: flex;
   align-items: center;
-  overflow: hidden;
+  justify-content: center;
+  overflow-y: auto;
 }
-.situation__cap {
+.situation__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
   text-align: center;
-  margin-top: 0.8rem;
+  max-width: 30ch;
+  padding: 0.8rem;
+  margin: auto;
 }
-.situation__context {
+.situation__eyebrow {
+  font-family: var(--font-mono);
+  letter-spacing: 0.28em;
+  font-size: 0.85rem;
   color: var(--color-ink-muted);
-  margin: 0 0 0.2rem;
-  font-size: 0.95rem;
+  margin: 0;
+  animation: sit-in 0.5s var(--ease-out, ease-out) both;
 }
 .situation__task {
   font-family: var(--font-retro);
-  font-size: clamp(1.4rem, 3vw, 2rem);
-  letter-spacing: 0.04em;
+  font-size: clamp(1.9rem, 5vw, 3.2rem);
+  line-height: 1.1;
+  letter-spacing: 0.03em;
   color: var(--color-primary);
+  text-shadow: var(--glow-soft);
   margin: 0;
+  animation: sit-in 0.55s var(--ease-out, ease-out) 0.05s both;
 }
-.popup {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(94%, 46ch);
-  max-height: 96%;
-  overflow-y: auto;
-  padding: 1.1rem 1.3rem;
-  border-radius: var(--radius, 8px);
-  background: rgba(0, 0, 0, 0.9);
-  text-align: center;
-}
-.popup__eyebrow {
-  font-family: var(--font-mono);
-  letter-spacing: 0.2em;
-  font-size: 0.75rem;
-  color: var(--color-ink-muted);
-  margin: 0 0 0.4rem;
-}
-.popup__task {
-  font-family: var(--font-retro);
-  font-size: clamp(1.4rem, 4vw, 2rem);
-  letter-spacing: 0.04em;
-  color: var(--color-primary);
-  margin: 0 0 0.6rem;
-}
-.popup__lines {
+.situation__lines {
   list-style: none;
-  margin: 0 0 0.7rem;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
-.popup__lines li {
+.situation__lines li {
   color: var(--color-ink-strong);
+  font-size: clamp(1.05rem, 2.4vw, 1.5rem);
   line-height: 1.4;
+  animation: sit-in 0.5s var(--ease-out, ease-out) both;
+  animation-delay: calc(0.15s + var(--i) * 0.07s);
 }
-.popup__rule {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin: 0 0 0.7rem;
-  padding: 0.6rem 0.8rem;
-  border: 2px solid var(--color-primary);
-  border-radius: var(--radius, 10px);
-  background: rgba(255, 149, 0, 0.1);
-}
-.popup__rule-title {
-  font-family: var(--font-retro);
-  font-size: 1.5rem;
-  letter-spacing: 0.05em;
-  color: var(--color-ink-strong);
-}
-.popup__rule-body {
-  color: var(--color-ink-strong);
-  line-height: 1.35;
-}
-.popup__time {
+.situation__time {
   color: var(--color-primary);
-  font-weight: 600;
-  margin: 0 0 0.9rem;
-  line-height: 1.35;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  margin: 0;
+  opacity: 0.9;
+  animation: sit-in 0.5s var(--ease-out, ease-out) 0.35s both;
 }
-.pop-enter-active {
-  transition: opacity 0.4s ease, transform 0.4s ease;
+.situation__go {
+  margin-top: 0.5rem;
+  animation: sit-in 0.5s var(--ease-out, ease-out) 0.45s both;
 }
-.pop-enter-from {
-  opacity: 0;
-  transform: translate(-50%, -46%);
+@keyframes sit-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 }
-
 /* ---------- COUNTDOWN ---------- */
 .countdown {
   height: 100%;
