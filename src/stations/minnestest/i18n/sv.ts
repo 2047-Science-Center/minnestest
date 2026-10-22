@@ -115,6 +115,11 @@ export const sv: Record<string, string> = {
   'step.we_are_done': 'VI ÄR KLARA',
   // Tvåblocks-ordning: svaret först, motiveringen sedan.
   'step.answer_line': 'Säg allt ni tar med er — rabbla upp.',
+  // Per-scen svars-uppmaning (block 1) — anpassad efter vad scenen faktiskt frågar.
+  'flykt.ovning.answer': 'Säg allt ni tar med er — rabbla upp.',
+  'flykt.steg1.answer': 'Säg allt ni tar med er — rabbla upp.',
+  'flykt.steg2.answer': 'Säg vilken väg ni tar — kort.',
+  'flykt.steg3.answer': 'Säg vad ni gör först.',
   'step.answer_done': 'KLART',
   'step.block_answer': 'SVARA',
   'step.block_reason': 'MOTIVERA',

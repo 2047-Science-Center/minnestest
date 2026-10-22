@@ -79,7 +79,8 @@ const isAnswer = computed(() => sub.value === 'answer')
 const isReason = computed(() => sub.value === 'reason')
 // Flykt har ett mik-svarsblock; fermi svarar med sifferväljaren i stället.
 const micPhase = computed(() => isReason.value || (isAnswer.value && !isFermi.value))
-const micLine = computed(() => (isReason.value ? reasonLine.value : t('step.answer_line')))
+// Block 1-raden anpassas per scen (steg 2 frågar "vilken väg", inte "vad tar ni med").
+const micLine = computed(() => (isReason.value ? reasonLine.value : t(`${stepKey.value}.answer`)))
 const micDone = computed(() => (isReason.value ? t('step.we_are_done') : t('step.answer_done')))
 const blockBadge = computed(() => (isReason.value ? t('step.block_reason') : t('step.block_answer')))
 // Block-fråga: block 1 = den rena svars-frågan (task), block 2 = motiverings-frågan.
@@ -337,10 +338,19 @@ onUnmounted(() => {
 
 <template>
   <div class="cycle">
-    <!-- SITUATION — full-skärms komposition, ingen bild, ingen regel-ruta -->
+    <!-- SITUATION — full-skärms scen: bild fyller skärmen, text komponerad ovanpå -->
     <section v-if="sub === 'situation'" class="situation">
+      <div
+        v-if="refSrc"
+        :key="referenceMedia"
+        class="situation__bg"
+        :style="{ backgroundImage: `url(${refSrc})` }"
+        aria-hidden="true"
+      />
+      <div class="situation__scrim" aria-hidden="true" />
       <div class="situation__inner">
         <p class="situation__eyebrow">{{ eyebrow }}</p>
+        <p v-if="context" class="situation__context">{{ context }}</p>
         <h1 class="situation__task ink-strong">{{ task }}</h1>
         <ul v-if="popupLines.length" class="situation__lines">
           <li v-for="(l, i) in popupLines" :key="i" :style="{ '--i': i }">{{ l }}</li>
@@ -471,8 +481,9 @@ onUnmounted(() => {
   min-height: 0;
 }
 
-/* ---------- SITUATION (full-skärms intro) ---------- */
+/* ---------- SITUATION (full-skärms scen) ---------- */
 .situation {
+  position: relative;
   height: 100%;
   min-height: 0;
   display: flex;
@@ -480,32 +491,76 @@ onUnmounted(() => {
   justify-content: center;
   overflow-y: auto;
 }
+/* Scenbilden fyller hela skärmen och syns tydligt (lugn Ken Burns bakom texten). */
+.situation__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  animation: sit-kenburns 24s ease-in-out both;
+}
+@keyframes sit-kenburns {
+  from {
+    transform: scale(1.03);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+/* Lätt scrim — bara så mycket att texten läses; bilden ska synas, inte fejdas bort. */
+.situation__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.28) 0%,
+    rgba(0, 0, 0, 0.32) 45%,
+    rgba(0, 0, 0, 0.72) 100%
+  );
+}
 .situation__inner {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.9rem;
+  gap: 0.8rem;
   text-align: center;
-  max-width: 30ch;
-  padding: 0.8rem;
+  width: min(94%, 48ch);
+  padding: 1.2rem;
   margin: auto;
 }
 .situation__eyebrow {
   font-family: var(--font-mono);
-  letter-spacing: 0.28em;
-  font-size: 0.85rem;
-  color: var(--color-ink-muted);
+  letter-spacing: 0.3em;
+  font-size: 0.9rem;
+  color: var(--color-ink-strong);
+  opacity: 0.85;
   margin: 0;
   animation: sit-in 0.5s var(--ease-out, ease-out) both;
 }
+.situation__context {
+  color: var(--color-ink-strong);
+  font-family: var(--font-mono);
+  font-size: clamp(1.05rem, 2.3vw, 1.45rem);
+  line-height: 1.4;
+  max-width: 34ch;
+  margin: 0;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.8);
+  animation: sit-in 0.5s var(--ease-out, ease-out) 0.03s both;
+}
 .situation__task {
   font-family: var(--font-retro);
-  font-size: clamp(1.9rem, 5vw, 3.2rem);
-  line-height: 1.1;
-  letter-spacing: 0.03em;
+  font-size: clamp(2.2rem, 6.5vw, 4rem);
+  line-height: 1.04;
+  letter-spacing: 0.02em;
   color: var(--color-primary);
-  text-shadow: var(--glow-soft);
+  text-shadow:
+    var(--glow-soft),
+    0 2px 18px rgba(0, 0, 0, 0.85);
   margin: 0;
   animation: sit-in 0.55s var(--ease-out, ease-out) 0.05s both;
 }
@@ -519,28 +574,34 @@ onUnmounted(() => {
 }
 .situation__lines li {
   color: var(--color-ink-strong);
-  font-size: clamp(1.05rem, 2.4vw, 1.5rem);
+  font-size: clamp(1.25rem, 2.8vw, 1.8rem);
   line-height: 1.4;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.8);
   animation: sit-in 0.5s var(--ease-out, ease-out) both;
   animation-delay: calc(0.15s + var(--i) * 0.07s);
 }
 .situation__time {
   color: var(--color-primary);
   font-family: var(--font-mono);
-  font-size: 0.95rem;
+  font-size: 1rem;
   letter-spacing: 0.02em;
   margin: 0;
-  opacity: 0.9;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85);
   animation: sit-in 0.5s var(--ease-out, ease-out) 0.35s both;
 }
 .situation__go {
-  margin-top: 0.5rem;
+  margin-top: 0.6rem;
   animation: sit-in 0.5s var(--ease-out, ease-out) 0.45s both;
 }
 @keyframes sit-in {
   from {
     opacity: 0;
     transform: translateY(10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .situation__bg {
+    animation: none;
   }
 }
 /* ---------- COUNTDOWN ---------- */
@@ -629,7 +690,7 @@ onUnmounted(() => {
 .think__ref {
   position: absolute;
   inset: 0;
-  opacity: 0.16;
+  opacity: 0.32;
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -726,6 +787,7 @@ onUnmounted(() => {
   margin: 0 auto;
   max-width: 24ch;
   text-align: center;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.8);
 }
 .think__transcript--empty {
   color: var(--color-ink-muted);
