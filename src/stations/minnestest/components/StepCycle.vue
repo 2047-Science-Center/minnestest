@@ -52,6 +52,25 @@ const popupLines = computed(() =>
     .map((k) => t(`${stepKey.value}.${k}`))
     .filter((s) => s.trim().length > 0),
 )
+// Visa scenario-bilden när en riktig fil finns (både övning och skarpt — övningen
+// har nu en egen bild). Saknas fil → ingen placeholder-ruta i bakgrunden.
+const refSrc = computed(() => media(referenceMedia.value).src)
+const analysSrc = computed(() => media(analysMedia.value).src)
+
+// Levandegör (flykt): loopande ambiens + kort inlevelse-replik per scen.
+const AMBIENCE: Record<string, string> = {
+  'flykt.ovning': 'ambience/amb-eld.mp3',
+  'flykt.steg1': 'ambience/amb-packa.mp3',
+  'flykt.steg2': 'ambience/amb-vagar.mp3',
+  'flykt.steg3': 'ambience/amb-skog.mp3',
+}
+const VOICE_LINE: Record<string, string> = {
+  'flykt.ovning': 'voice/flykt-ovning.mp3',
+  'flykt.steg1': 'voice/flykt-1.mp3',
+  'flykt.steg2': 'voice/flykt-2.mp3',
+  'flykt.steg3': 'voice/flykt-3.mp3',
+}
+const MEASURE_SFX = ['measure1', 'measure2', 'measure3'] as const
 
 // --- SVAR vs MOTIVERING: två skilda infångningar. Flykt: mik+mik. Fermi: siffra+mik. ---
 const answerText = ref('')
@@ -122,6 +141,13 @@ function enterSituation(): void {
   reasonText.value = ''
   guessValue.value = guessScale.value?.start ?? 0
   warned.value = false
+  // Levandegör flykt-scenen: byt ambiens-loop + spela inlevelse-replik en gång.
+  if (!isFermi.value) {
+    const amb = AMBIENCE[stepKey.value]
+    if (amb) audio.bed(amb, 0.2, 1200)
+    const vo = VOICE_LINE[stepKey.value]
+    if (vo) audio.cue(vo, 0.9)
+  }
 }
 
 function startCountdownTick(): void {
@@ -152,6 +178,7 @@ function startAnswer(): void {
   manualText.value = ''
   if (isFermi.value) {
     guessValue.value = guessScale.value?.start ?? 0
+    audio.play(MEASURE_SFX[Math.min(store.stepIndex, 2)]) // mät-ljud materialiserar momentet
     return // sifferväljaren — ingen mik, ingen timer
   }
   capture.reset()
@@ -304,6 +331,7 @@ onMounted(() => enterSituation())
 onUnmounted(() => {
   clearTimers()
   capture.stop()
+  audio.bedStop(800) // tysta ambiens-loopen när steg-fasen lämnas
 })
 </script>
 
@@ -363,7 +391,7 @@ onUnmounted(() => {
 
     <!-- MIK-BLOCK — flykt-svar (block 1) + motivering (block 2), uppgiften stor hela tiden -->
     <section v-else-if="micPhase" class="think" :class="isReason ? 'is-reason' : 'is-answer'">
-      <div v-if="store.mode === 'live'" class="think__ref" aria-hidden="true">
+      <div v-if="refSrc" :key="referenceMedia" class="think__ref" aria-hidden="true">
         <MediaSlot :id="referenceMedia" :autoplay="false" />
       </div>
 
@@ -407,7 +435,7 @@ onUnmounted(() => {
 
     <!-- ANALYS — ENHETEN "tänker högt" medan bedömningen hämtas -->
     <section v-else-if="sub === 'analys'" class="analys">
-      <div v-if="store.mode === 'live'" class="analys__bg" aria-hidden="true">
+      <div v-if="analysSrc" class="analys__bg" aria-hidden="true">
         <MediaSlot :id="analysMedia" :autoplay="false" />
       </div>
       <div class="analys__strip">
@@ -606,6 +634,25 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  /* Levandegör: bilden sveper in (clip-path) och lever sedan långsamt (Ken Burns). */
+  animation:
+    ref-reveal 0.65s var(--ease-out, ease-out) both,
+    ken-burns 26s ease-in-out 0.65s infinite alternate;
+}
+@keyframes ref-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0;
+  }
+}
+@keyframes ken-burns {
+  from {
+    transform: scale(1) translate(0, 0);
+  }
+  to {
+    transform: scale(1.09) translate(-1.5%, -1%);
+  }
 }
 .think__header {
   position: relative;
@@ -882,7 +929,8 @@ onUnmounted(() => {
   .think__mic,
   .analys__dots i,
   .think__timer--warn,
-  .countdown__num {
+  .countdown__num,
+  .think__ref {
     animation: none;
   }
 }
