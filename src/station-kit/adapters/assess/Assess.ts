@@ -16,6 +16,9 @@ export type Dimensioner = Record<string, boolean>
 /** Ett tidigare stegs bedömning (superset för båda exempel). */
 export interface PriorStep {
   step: number
+  /** Gatad stege: nivåns resonemangspoäng 0–10 + kommentar (kontext till modellen). */
+  poang?: number
+  kommentar?: string
   band?: Band
   motiverat?: boolean
   resonemang_niva?: FermiNiva
@@ -31,15 +34,22 @@ export interface PriorStep {
 }
 
 export interface StepInput {
-  step: 1 | 2 | 3
+  /** Nivå-index 1..5 i den gatade stegen. */
+  step: number
   role: string
   example: string
   transcript: string
   /** Fermi: gruppens numeriska gissning + enhet (null om de hoppade). */
   guess?: number | null
   unit?: string
+  /** Fermi ja/nej-nivå: gruppens val ('Ja'/'Nej'). */
+  val?: string
   /** Flykt: packlistan från steg 1 (skickas i steg 3). */
   packlista?: string
+  /** Gatad stege: nivåns fråga (UI-copy) + gate-rubrik + tröskel (0–10). */
+  fraga?: string
+  rubrik?: string
+  threshold?: number
   prior: PriorStep[]
 }
 
@@ -58,6 +68,12 @@ export interface AssessMeta {
 /** Per-steg-svar (superset). Koden fyller traff/delpoang (fermi) resp. band-cap
  *  (flykt); modellen fyller resten. */
 export interface StepAssessment {
+  /** Gatad stege: modellens resonemangspoäng 0–10 mot nivåns rubrik (koden gatar). */
+  poang?: number
+  /** Kort kommentar om prestationen (positiv om godkänd). */
+  kommentar?: string
+  /** Vad som saknades för att nå tröskeln (bara vid underkänt). */
+  saknades?: string
   band?: Band
   motiverat?: boolean
   resonemang_niva?: FermiNiva

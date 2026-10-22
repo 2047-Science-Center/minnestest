@@ -1,11 +1,8 @@
 /**
- * Lokal /assess-gateway (Node/Express, gptbackend-mönstret) — det generella
- * JSON-drivna GPT-anropet, utökat till per-steg + deterministisk final-compose.
- *
- * Principen: EN ny station = en ny `configs/<id>.json`. Anropskoden här
- * återanvänds. `instructions` (bedömnings-innehållet) är det enda man byter för
- * ett nytt scenario. Slutpoängen räknas i KOD (lib/scoring.js), modellen skriver
- * bara texten. Nyckel via .env (AI_API_KEY) — aldrig i git, aldrig i fronten.
+ * Lokal /assess-gateway (Node/Express, gptbackend-mönstret). Gatad stege:
+ * per NIVÅ poängsätter modellen gruppens RESONEMANG 0–10 mot nivåns rubrik.
+ * KODEN (fronten) gatar mot en stigande tröskel. En ny station = en ny
+ * configs/<id>.json; den generella score-instruktionen delas.
  *
  *   npm run gateway   (kräver server/.env med AI_API_KEY=...)
  */
@@ -17,21 +14,14 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { totalFromKriterier } from './lib/scoring.js'
-import { fermiTraff, fermiDelpoang } from './lib/fermiScoring.js'
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-// Ladda server/.env oavsett från vilken katalog gatewayen startas (default-
-// dotenv läser cwd/.env — vi vill alltid ha nyckeln bredvid denna fil).
 dotenv.config({ path: path.join(__dirname, '.env') })
 
 const PORT = process.env.PORT || 8787
 const API_KEY = process.env.AI_API_KEY || process.env.OPENAI_API_KEY
 
 if (!API_KEY) {
-  console.warn(
-    '[gateway] VARNING: ingen AI_API_KEY i server/.env — /assess kommer svara 500 tills en nyckel läggs in.',
-  )
+  console.warn('[gateway] VARNING: ingen AI_API_KEY i server/.env — /assess svarar 500 tills en nyckel läggs in.')
 }
 
 const openai = API_KEY ? new OpenAI({ apiKey: API_KEY }) : null
@@ -43,13 +33,13 @@ function loadConfig(configId) {
   if (configCache.has(configId)) return configCache.get(configId)
   const file = path.join(__dirname, 'configs', `${configId}.json`)
   const cfg = JSON.parse(fs.readFileSync(file, 'utf8'))
-  cfg._instructions = fs.readFileSync(path.join(__dirname, cfg.instructionsFile), 'utf8').trim()
-  cfg._compose = fs.readFileSync(path.join(__dirname, cfg.composeInstructionsFile), 'utf8').trim()
+  const scoreFile = cfg.scoreInstructionsFile || 'instructions/stege-score.sv.txt'
+  cfg._score = fs.readFileSync(path.join(__dirname, scoreFile), 'utf8').trim()
   configCache.set(configId, cfg)
   return cfg
 }
 
-// --- JSON-parsning med reparation (ingen naken JSON.parse) ---
+// --- JSON-parsning med reparation ---
 function parseJsonLoose(raw) {
   if (raw && typeof raw === 'object') return raw
   let s = String(raw ?? '').trim()
@@ -60,164 +50,65 @@ function parseJsonLoose(raw) {
   return JSON.parse(s)
 }
 
-const BANDS = ['Stark', 'Godkänd', 'Svag']
-const DIMS = ['system', 'framforhallning', 'prioritering', 'resurs', 'anpassning']
+function clampInt(n, min, max) {
+  const v = Math.round(Number(n))
+  if (!Number.isFinite(v)) return min
+  return Math.max(min, Math.min(max, v))
+}
 
-/** Tvinga modellsvaret till kontraktsformen (StepAssessment). */
-function coerceStep(obj) {
+/** Tvinga modellsvaret till kontraktsformen (gatad nivå). */
+function coerceScore(obj) {
   const o = obj ?? {}
-  const dimsIn = o.dimensioner ?? {}
-  const dimensioner = {}
-  for (const d of DIMS) dimensioner[d] = Boolean(dimsIn[d])
-  const motiverat = Boolean(o.motiverat)
-  let band = BANDS.includes(o.band) ? o.band : 'Godkänd'
-  // §5 (hård regel, deterministisk): utan motivering nås aldrig Stark — tak Godkänd.
-  if (!motiverat && band === 'Stark') band = 'Godkänd'
+  const kommentar = String(o.kommentar ?? '')
   return {
-    band,
-    dimensioner,
-    motiverat,
-    kvitterat: String(o.kvitterat ?? ''),
-    miss: String(o.miss ?? ''),
-    ankare: String(o.ankare ?? ''),
-    svar_text: String(o.svar_text ?? ''),
-    osakert: Array.isArray(o.osakert) ? o.osakert.map(String) : [],
+    poang: clampInt(o.poang, 0, 10),
+    kommentar,
+    saknades: String(o.saknades ?? ''),
+    svar_text: String(o.svar_text ?? kommentar),
+    // Bakåtkompatibla fält (oanvända i stege-modellen).
+    dimensioner: {},
+    kvitterat: '',
+    miss: '',
+    ankare: '',
+    osakert: [],
   }
 }
 
-const NIVAER = ['Exceptionell', 'Stark', 'Godkänd', 'Svag']
-const FERMI_DIMS = ['dekomposition', 'antaganden', 'storleksordning', 'sanitycheck', 'osakerhet']
-
-/** Fermi: modellen ger niva + dimensioner + text; koden fyller traff/delpoäng. */
-function coerceFermiStep(obj) {
-  const o = obj ?? {}
-  const dimsIn = o.dimensioner ?? {}
-  const dimensioner = {}
-  for (const d of FERMI_DIMS) dimensioner[d] = Boolean(dimsIn[d])
-  return {
-    resonemang_niva: NIVAER.includes(o.resonemang_niva) ? o.resonemang_niva : 'Godkänd',
-    dimensioner,
-    kvitterat: String(o.kvitterat ?? ''),
-    miss: String(o.miss ?? ''),
-    ankare: String(o.ankare ?? ''),
-    svar_text: String(o.svar_text ?? ''),
-    osakert: Array.isArray(o.osakert) ? o.osakert.map(String) : [],
-  }
-}
-
-/** Tvinga modellens tre kriterie-poäng till kontraktsformen (max 3, poäng 1–10). */
-function coerceKriterier(raw) {
-  const arr = Array.isArray(raw) ? raw : []
-  return arr.slice(0, 3).map((k) => {
-    const o = k ?? {}
-    let poang = Math.round(Number(o.poang))
-    if (!Number.isFinite(poang)) poang = 5
-    poang = Math.max(1, Math.min(10, poang))
-    return {
-      namn: String(o.namn ?? o.kriterium ?? '').trim(),
-      poang,
-      motivering: String(o.motivering ?? '').trim(),
-    }
-  })
-}
-
-// --- Prompt-byggare (injicerar steg/roll/exempel/prior i input) ---
 function priorBlock(prior) {
-  if (!prior || prior.length === 0) return '(inga tidigare steg)'
+  if (!prior || prior.length === 0) return '(inga tidigare nivåer)'
   return prior
-    .map(
-      (p) =>
-        `- steg ${p.step}: band=${p.band}; kvitterat=${p.kvitterat || '—'}; miss=${p.miss || '—'}; dimensioner=${Object.entries(
-          p.dimensioner || {},
-        )
-          .filter(([, v]) => v)
-          .map(([k]) => k)
-          .join(',') || '—'}`,
-    )
+    .map((p) => `- nivå ${p.step}: poäng=${p.poang ?? '—'}${p.kommentar ? ` (${p.kommentar})` : ''}`)
     .join('\n')
 }
 
-function buildStepInput(input) {
-  const lines = [
-    `STEG: ${input.step} (1=packa, 2=färdsätt, 3=slå läger)`,
-    `ROLL: ${input.role}`,
-    `EXEMPEL: ${input.example}`,
-    `TIDIGARE STEG (dina egna bedömningar):`,
+function groupAnswer(input) {
+  if (input.val) return input.val
+  if (input.guess != null) return `${input.guess} ${input.unit || ''}`.trim()
+  return '(se motiveringen)'
+}
+
+function buildScoreInput(input) {
+  return [
+    `NIVÅ: ${input.step}`,
+    `FRÅGA: ${input.fraga || '—'}`,
+    `RUBRIK (godkänt kräver): ${input.rubrik || '—'}`,
+    `TRÖSKEL: ${input.threshold ?? '—'} / 10`,
+    `GRUPPENS SVAR: ${groupAnswer(input)}`,
+    `GRUPPENS MOTIVERING (tänk-högt):`,
+    `"""`,
+    (input.transcript || '').trim() || '(tyst — inget sades)',
+    `"""`,
+    `TIDIGARE NIVÅER:`,
     priorBlock(input.prior),
-  ]
-  // Packlistan från steg 1 skickas i steg 3 → korsreferera (§7 återkoppling).
-  if (input.packlista) {
-    lines.push(`PACKLISTA (vad de sa att de tog med i steg 1):`, `"""`, String(input.packlista).trim() || '—', `"""`)
-  }
-  lines.push(
-    `GRUPPENS TÄNK-HÖGT (transkript):`,
-    `"""`,
-    (input.transcript || '').trim() || '(tyst — inget sades)',
-    `"""`,
-    `Svara med ett enda giltigt JSON-objekt enligt schemat.`,
-  )
-  return lines.join('\n')
-}
-
-/** Gruppens svar + motivering per steg (det modellen poängsätter kriterierna ur). */
-function stegTranscriptBlock(prior) {
-  if (!prior || prior.length === 0) return '(inga steg)'
-  return prior
-    .map((p) => {
-      const g = p.guess == null ? '' : `  [gissning: ${p.guess}]`
-      return `STEG ${p.step}${g}:\n"""\n${(p.transcript || '').trim() || '(tyst — inget sades)'}\n"""`
-    })
-    .join('\n\n')
-}
-
-/** Final-compose-input: modellen poängsätter de tre kriterierna ur transkripten.
- *  Delas av flykt & fermi — kriterie-NAMNEN står i respektive compose-prompt. */
-function buildComposeInput(input) {
-  return [
-    `ROLL: ${input.role}`,
-    `EXEMPEL: ${input.example}`,
-    `GRUPPENS SVAR + MOTIVERING PER STEG:`,
-    stegTranscriptBlock(input.prior),
-    `Poängsätt de TRE kriterierna var för sig 1–10, skriv en kort motivering per kriterium, välj en profil och EN slutmening som rösten läser upp. Svara med ett enda giltigt JSON-objekt enligt schemat.`,
-  ].join('\n')
-}
-
-// --- Fermi-specifika prompt-byggare ---
-function fermiPriorBlock(prior) {
-  if (!prior || prior.length === 0) return '(inga tidigare steg)'
-  return prior
-    .map(
-      (p) =>
-        `- steg ${p.step}: niva=${p.resonemang_niva || '—'}; traff=${p.traff || '—'}; delpoäng=${p.delpoang ?? '—'}; gissning=${p.guess ?? '(hoppade)'}`,
-    )
-    .join('\n')
-}
-
-function buildFermiStepInput(input) {
-  return [
-    `STEG: ${input.step} (1=snittbilens vikt i kg, 2=antal skrotade personbilar/år, 3=total vikt i ton)`,
-    `ROLL: ${input.role}`,
-    `TIDIGARE STEG (dina bedömningar + deras egna gissningar):`,
-    fermiPriorBlock(input.prior),
-    `GRUPPENS GISSNING DETTA STEG: ${
-      input.guess == null ? '(hoppade)' : `${input.guess} ${input.unit || ''}`
-    }`,
-    `GRUPPENS TÄNK-HÖGT (transkript — det är HÄR du klassar resonemangsnivån):`,
-    `"""`,
-    (input.transcript || '').trim() || '(tyst — inget sades)',
-    `"""`,
-    `Svara med ett enda giltigt JSON-objekt enligt schemat.`,
+    `Svara med ETT giltigt JSON-objekt enligt schemat.`,
   ].join('\n')
 }
 
 async function callModelJson(model, instructions, input, cfg) {
   if (!openai) throw new Error('ingen AI_API_KEY konfigurerad i server/.env')
   const req = { model, instructions, input }
-  // gpt-5-familjen: låg reasoning-effort kapar latensen kraftigt (config-styrt).
   if (cfg && cfg.reasoningEffort) req.reasoning = { effort: cfg.reasoningEffort }
   if (cfg && cfg.maxOutputTokens) req.max_output_tokens = cfg.maxOutputTokens
-  // JSON-läge: modellen kan bara emittera giltig JSON (rätt escaping) → inga
-  // trasiga svar. coerceStep normaliserar ändå formen.
   if (cfg && cfg.jsonMode) req.text = { format: { type: 'json_object' } }
   const response = await openai.responses.create(req)
   return parseJsonLoose(response.output_text)
@@ -229,6 +120,7 @@ app.use(express.json({ limit: '256kb' }))
 app.use(cors())
 
 app.get('/health', (_req, res) => res.json({ ok: true, keyed: Boolean(openai) }))
+app.get('/healthz', (_req, res) => res.type('text/plain').send('ok'))
 
 app.post('/assess', async (req, res) => {
   const started = Date.now()
@@ -237,43 +129,9 @@ app.post('/assess', async (req, res) => {
     if (!configId || !input) return res.status(400).json({ error: 'configId och input krävs' })
     const cfg = loadConfig(configId)
     const model = (meta && meta.modelOverride) || cfg.model
-    const type = cfg.type || 'flykt'
-
-    if (input.step === 'final') {
-      // Slut-ceremoni: MODELLEN poängsätter de tre resonemangs-kriterierna (1–10
-      // var) + motivering + profil + slutmening ur transkripten; KODEN räknar
-      // TOTAL = avrundat medel (clamp 1–10) + markering, så UI och siffra aldrig glider.
-      let kriterier = []
-      let profil = '—'
-      let slutmening = ''
-      try {
-        const out = await callModelJson(model, cfg._compose, buildComposeInput(input), cfg)
-        kriterier = coerceKriterier(out.kriterier)
-        profil = String(out.profil ?? '—').trim() || '—'
-        slutmening = String(out.slutmening ?? out.sammanfattning ?? '').trim()
-      } catch (err) {
-        console.warn('[gateway] compose misslyckades, fallback-ceremoni:', err.message)
-      }
-      const { poang, markering } = totalFromKriterier(kriterier, cfg)
-      const final = { poang, profil, markering, kriterier, slutmening }
-      if (type === 'fermi' && cfg.facit) final.facit = cfg.facit
-      return res.json({ final, meta: { model, latencyMs: Date.now() - started } })
-    }
-
-    // Per-steg
-    if (type === 'fermi') {
-      const raw = await callModelJson(model, cfg._instructions, buildFermiStepInput(input), cfg)
-      const base = coerceFermiStep(raw)
-      // Koden räknar träff (gissning vs facit / egna tal) + delpoäng (matris).
-      const traff = fermiTraff(input.step, input.guess ?? null, input.prior || [], cfg)
-      const delpoang = fermiDelpoang(base.resonemang_niva, traff, cfg)
-      const assessment = { ...base, traff, delpoang }
-      return res.json({ assessment, meta: { model, latencyMs: Date.now() - started, traff, delpoang } })
-    }
-
-    const raw = await callModelJson(model, cfg._instructions, buildStepInput(input), cfg)
-    const assessment = coerceStep(raw)
-    return res.json({ assessment, meta: { model, latencyMs: Date.now() - started } })
+    const raw = await callModelJson(model, cfg._score, buildScoreInput(input), cfg)
+    const assessment = coerceScore(raw)
+    return res.json({ assessment, meta: { model, latencyMs: Date.now() - started, poang: assessment.poang } })
   } catch (err) {
     console.error('[gateway] /assess fel:', err)
     return res.status(500).json({ error: String(err.message || err) })
@@ -281,13 +139,8 @@ app.post('/assess', async (req, res) => {
 })
 
 /**
- * /speak (ElevenLabs) — läser upp NPC-svaret. Icke-essentiell add-on: fronten
- * sväljer icke-2xx tyst och texten står kvar. Nyckel via server/.env
- * (ELEVENLABS_API_KEY), röst/modell ur configen. Byt nyckel/röst = env/config,
- * ingen kodändring.
+ * /speak (ElevenLabs) — läser upp ENHETENs kommentar. Icke-essentiell add-on.
  */
-app.get('/healthz', (_req, res) => res.type('text/plain').send('ok'))
-
 app.post('/speak', async (req, res) => {
   const key = process.env.ELEVENLABS_API_KEY
   if (!key) return res.status(503).json({ error: 'ELEVENLABS_API_KEY saknas i server/.env' })
@@ -301,11 +154,7 @@ app.post('/speak', async (req, res) => {
     const url = `https://api.elevenlabs.io/v1/text-to-speech/${speak.voiceId}`
     const r = await fetch(url, {
       method: 'POST',
-      headers: {
-        'xi-api-key': key,
-        'Content-Type': 'application/json',
-        Accept: 'audio/mpeg',
-      },
+      headers: { 'xi-api-key': key, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
       body: JSON.stringify({
         text: String(text),
         model_id: speak.modelId || 'eleven_multilingual_v2',
@@ -328,11 +177,9 @@ app.post('/speak', async (req, res) => {
 })
 
 // --- Servera den byggda appen (kiosk-drift: EN process, samma origin) ---
-// Fronten byggd med VITE_ASSESS_URL='' → /assess + /speak går same-origin hit.
 const DIST = path.join(__dirname, '..', 'dist')
 if (fs.existsSync(path.join(DIST, 'index.html'))) {
   app.use(express.static(DIST))
-  // SPA-fallback för GET som inte matchat en API-route ovan.
   app.get('*', (_req, res) => res.sendFile(path.join(DIST, 'index.html')))
   console.log('[gateway] serverar byggd app från', DIST)
 }

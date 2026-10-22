@@ -18,7 +18,7 @@ const store = useMinnestestStore()
       <MediaSlot id="sorteringshatt_bg" :autoplay="false" />
     </div>
     <div class="verdict__fg">
-      <ResultWalkthrough v-if="store.final" mode="live" @finish="store.verdictDone()" />
+      <ResultWalkthrough v-if="store.levelOutcome" mode="live" @finish="store.verdictDone()" />
     </div>
   </div>
 </template>

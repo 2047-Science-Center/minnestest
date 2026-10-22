@@ -1,25 +1,31 @@
 /**
  * Pinia-store: orkestrering mellan tillståndsmaskinen och adaptrarna. Rollvalet
- * FORKar till ett exempel (metodspecialist→fermi, doktorand→flykt); motorn är
- * gemensam. Siffran räknas deterministiskt i gatewayen; modellen skriver texten.
+ * FORKar till ett exempel (metodspecialist→fermi-stege, doktorand→flykt-stege);
+ * motorn är gemensam. Stationen är en GATAD STEGE: 5 nivåer, allt hårdare krav,
+ * man når så långt resonemanget bär. Modellen poängsätter resonemanget 0–10 mot
+ * nivåns rubrik; KODEN gatar mot en stigande tröskel. Mjukt stopp vid underkänt.
  *
- * Faser: attract → checkin → roleSelect → vaultOut → [intro (fermi)] → step
- *        → vaultBack → verdict → checkout
+ * Faser: attract → checkin → roleSelect → pilotIntro → step (×N, gatad)
+ *        → goLive → step (×N) → verdict → checkout
  */
 import { defineStore } from 'pinia'
 import { ref, computed, shallowRef } from 'vue'
 
 import { createAdapters, type Adapters } from '@/station-kit/adapters'
 import type { IdentityGroup } from '@/station-kit/adapters/identity/Identity'
-import type {
-  FinalResult,
-  PriorStep,
-  StepAssessment,
-} from '@/station-kit/adapters/assess/Assess'
+import type { PriorStep, StepAssessment } from '@/station-kit/adapters/assess/Assess'
 import type { ResultPayload, ResultPerson } from '@/station-kit/adapters/result/ResultSink'
 import { audio } from '@/station-kit/audio/AudioEngine'
 
-import { config, exampleForRole, practiceForRole, ROLES, PILOT_GROUP, type RoleId } from '@/config'
+import {
+  config,
+  exampleForRole,
+  practiceForRole,
+  thresholdForLevel,
+  ROLES,
+  PILOT_GROUP,
+  type RoleId,
+} from '@/config'
 import { t } from '@/station-kit/i18n'
 
 export type Phase =
@@ -27,21 +33,31 @@ export type Phase =
   | 'checkin'
   | 'roleSelect'
   | 'pilotIntro'
-  | 'vaultOut'
   | 'goLive'
-  | 'intro'
   | 'step'
   | 'practiceReveal'
-  | 'vaultBack'
   | 'verdict'
   | 'checkout'
 
-/** Övningsläge (test, blått) vs skarpt (live, gult). */
+/** Övningsläge (test, blått) vs skarpt (live, bärnsten). */
 export type StationMode = 'test' | 'live'
 
 export interface StationGroup {
   id: string
   members: string[]
+}
+
+/** Slutresultat för den gatade stegen. */
+export interface LevelOutcome {
+  nivaReached: number
+  maxNiva: number
+  passedAll: boolean
+  kommentar: string
+  saknades: string
+}
+
+function filled<T>(n: number, v: T): T[] {
+  return Array.from({ length: n }, () => v)
 }
 
 export const useMinnestestStore = defineStore('minnestest', () => {
@@ -51,14 +67,17 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   const roleId = ref<RoleId | null>(null)
   const stepIndex = ref(0)
 
-  const transcripts = ref<string[]>(['', '', ''])
-  const guesses = ref<(number | null)[]>([null, null, null])
-  const assessments = ref<(StepAssessment | null)[]>([null, null, null])
-  const final = ref<FinalResult | null>(null)
+  const transcripts = ref<string[]>(filled(5, ''))
+  const guesses = ref<(number | null)[]>(filled(5, null))
+  const vals = ref<(string | null)[]>(filled(5, null))
+  const assessments = ref<(StepAssessment | null)[]>(filled(5, null))
   const packlista = ref('')
 
+  /** Antal klarade nivåer hittills (= poängen i slutet). */
+  const levelsCleared = ref(0)
+  const levelOutcome = ref<LevelOutcome | null>(null)
+
   const assessing = ref(false)
-  const composing = ref(false)
   const speaking = ref(false)
   /** Facilitator-paus — fryser tänk-högt-timern och lägger paus-overlay. */
   const paused = ref(false)
@@ -76,25 +95,28 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   const currentStep = computed(() => steps.value[stepIndex.value])
   const memberCount = computed(() => group.value.members.length)
 
+  // --- Gate (nivåns tröskel vs modellens poäng) ---
+  const currentThreshold = computed(() => thresholdForLevel(stepIndex.value))
+  const currentAssessment = computed(() => assessments.value[stepIndex.value])
+  const lastPoang = computed(() => currentAssessment.value?.poang ?? 0)
+  const lastPassed = computed(() => lastPoang.value >= currentThreshold.value)
+  const isLastLevel = computed(() => stepIndex.value >= steps.value.length - 1)
+
   function init(): void {
     if (!adapters.value) adapters.value = createAdapters()
   }
 
   // --- Övergångar ---
-  /** Attract → incheckning. Bipp-start-vyn lyssnar sedan på en riktig bipp
-   *  (reader-initierad via regi) eller låter operatören klicka sig vidare. */
   function begin(): void {
     phase.value = 'checkin'
   }
 
-  /** En riktig bipp kom in (station2/identity) → uppdatera gruppen. */
   function applyIdentity(idn: IdentityGroup): void {
     if (idn.medlemmar.length) {
       group.value = { id: idn.grupp, members: idn.medlemmar.map((m) => m.name ?? m.band_id) }
     }
   }
 
-  /** Lyssna på inkommande identiteter (hårdvaru-bipp). No-op i pilot (mock). */
   function listenIdentity(cb: (idn: IdentityGroup) => void): () => void {
     return adapters.value?.identity.listen(cb) ?? (() => {})
   }
@@ -107,56 +129,48 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     roleId.value = id
     mode.value = 'test' // övning först → hela UI:t blått
     audio.play('confirm')
-    // Rollval leder direkt till pilot-introt (blått/orange-signalen), ingen coach-vägg.
     phase.value = 'pilotIntro'
   }
 
-  /** Pilot-intro klar → in i ÖVNINGEN (testläge, ett steg). */
+  /** Pilot-intro klar → in i ÖVNINGEN (testläge, en generös nivå). */
   function pilotIntroDone(): void {
     resetRound()
     phase.value = 'step'
   }
 
-  /** Övningen klar → tydlig "nu på riktigt"-nedräkning innan den skarpa rundan. */
+  /** Övningen klar → tydlig "nu på riktigt"-nedräkning innan skarpa stegen. */
   function startLive(): void {
     mode.value = 'live'
     resetRound()
     phase.value = 'goLive'
   }
 
-  /** Go-live-nedräkningen klar → kör den riktiga uppgiften.
-   *  Fermi har en intro-skärm (hela frågan) i skarpt läge; flykt går rakt in. */
   function goLiveDone(): void {
-    phase.value = example.value.introMedia ? 'intro' : 'step'
+    phase.value = 'step'
   }
 
   /** Nollställ steg-state inför en ny omgång (behåll roll/mode/grupp). */
   function resetRound(): void {
+    const n = Math.max(5, steps.value.length)
     stepIndex.value = 0
-    transcripts.value = ['', '', '']
-    guesses.value = [null, null, null]
-    assessments.value = [null, null, null]
-    final.value = null
+    transcripts.value = filled(n, '')
+    guesses.value = filled(n, null)
+    vals.value = filled(n, null)
+    assessments.value = filled(n, null)
+    levelsCleared.value = 0
+    levelOutcome.value = null
     packlista.value = ''
   }
 
-  function vaultOutDone(): void {
-    stepIndex.value = 0
-    // Fermi har en intro-skärm (hela frågan) före steg 1; flykt går rakt in.
-    phase.value = example.value.introMedia ? 'intro' : 'step'
-  }
-
-  function introDone(): void {
-    stepIndex.value = 0
-    phase.value = 'step'
-  }
-
-  // --- Gissning (fermi) ---
+  // --- Svar (fermi) ---
   function setGuess(value: number | null): void {
     guesses.value[stepIndex.value] = value
   }
+  function setVal(value: string | null): void {
+    vals.value[stepIndex.value] = value
+  }
 
-  // --- Steg-cykel ---
+  // --- Nivå-cykel ---
   function priorSoFar(upTo: number): PriorStep[] {
     const out: PriorStep[] = []
     for (let i = 0; i < upTo; i++) {
@@ -164,16 +178,9 @@ export const useMinnestestStore = defineStore('minnestest', () => {
       if (!a) continue
       out.push({
         step: i + 1,
-        band: a.band,
-        motiverat: a.motiverat,
-        resonemang_niva: a.resonemang_niva,
-        traff: a.traff,
-        delpoang: a.delpoang,
+        poang: a.poang,
+        kommentar: a.kommentar,
         guess: guesses.value[i],
-        dimensioner: a.dimensioner,
-        kvitterat: a.kvitterat,
-        miss: a.miss,
-        // Gruppens svar+motivering — modellen poängsätter kriterierna ur detta i final.
         transcript: transcripts.value[i],
       })
     }
@@ -183,20 +190,23 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   async function assessCurrentStep(transcript: string, answer?: string): Promise<StepAssessment> {
     const idx = stepIndex.value
     transcripts.value[idx] = transcript
-    // Flykt steg 1: SVARS-blocket (vad de tar med) = packlistan, inte motiveringen.
     if (exampleType.value === 'flykt' && idx === 0) packlista.value = (answer ?? transcript).trim()
     assessing.value = true
     try {
       const a = await adapters.value!.assess.assessStep(
         example.value.configId,
         {
-          step: (idx + 1) as 1 | 2 | 3,
+          step: idx + 1,
           role: roleId.value ?? 'metodspecialist',
           example: example.value.id,
           transcript,
           guess: exampleType.value === 'fermi' ? guesses.value[idx] : undefined,
           unit: currentStep.value.unit,
-          packlista: exampleType.value === 'flykt' && idx >= 2 ? packlista.value : undefined,
+          val: vals.value[idx] ?? undefined,
+          packlista: exampleType.value === 'flykt' && idx >= 1 ? packlista.value : undefined,
+          fraga: t(`${currentStep.value.key}.task`),
+          rubrik: currentStep.value.rubrik,
+          threshold: currentThreshold.value,
           prior: priorSoFar(idx),
         },
         { lang: config.lang },
@@ -206,12 +216,14 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn('[minnestest] assessStep misslyckades — fallback', err)
+      // Fallback utan gateway: härled en rimlig poäng ur hur mycket som sades, så
+      // loopen går att spela/testa i dev. Längre, mer genomtänkt svar → högre.
+      const words = transcript.trim().split(/\s+/).filter(Boolean).length
+      const poang = Math.max(1, Math.min(10, Math.round(words / 6) + 2))
       const fallback: StepAssessment = {
-        band: 'Godkänd',
-        motiverat: false,
-        resonemang_niva: 'Godkänd',
-        traff: 'tiopotens',
-        delpoang: 5,
+        poang,
+        kommentar: t('npc.error'),
+        saknades: '',
         dimensioner: {},
         kvitterat: '',
         miss: '',
@@ -228,7 +240,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   async function speakNpc(text: string): Promise<void> {
     const sp = adapters.value?.speak
-    if (!sp || !sp.enabled) return
+    if (!sp || !sp.enabled || !text) return
     speaking.value = true
     try {
       await sp.speak(text)
@@ -237,60 +249,58 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     }
   }
 
-  async function nextStep(): Promise<void> {
+  /** Gaten avgjord (StepCycle har visat mätaren passera/stanna vid tröskeln). */
+  function resolveGate(): void {
     adapters.value?.speak.cancel()
     speaking.value = false
-    if (stepIndex.value < steps.value.length - 1) {
-      stepIndex.value += 1
-      phase.value = 'step'
-    } else if (mode.value === 'test') {
-      // Övningen klar → samma 3-kriterie-ceremoni som skarpt, men utan att sända resultat.
+
+    // Övning: ingen utslagning — visa resultatet och gå vidare till skarpt.
+    if (mode.value === 'test') {
+      if (lastPassed.value) levelsCleared.value = 1
       phase.value = 'practiceReveal'
-      await composeFinal(false)
+      return
+    }
+
+    if (lastPassed.value) {
+      levelsCleared.value = stepIndex.value + 1
+      if (!isLastLevel.value) {
+        stepIndex.value += 1
+        phase.value = 'step'
+        return
+      }
+      finishRound(true)
     } else {
-      phase.value = 'vaultBack'
-      await composeFinal()
+      // Mjukt stopp: stannar på nådd nivå, direkt till ceremonin.
+      finishRound(false)
     }
   }
 
-  // --- Final-compose (3-kriterie-ceremoni; siffran räknas i gatewayen ur kriterierna) ---
-  async function composeFinal(send = true): Promise<void> {
-    composing.value = true
-    try {
-      final.value = await adapters.value!.assess.composeFinal(
-        example.value.configId,
-        {
-          step: 'final',
-          role: roleId.value ?? 'metodspecialist',
-          example: example.value.id,
-          prior: priorSoFar(steps.value.length),
-        },
-        { lang: config.lang },
-      )
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn('[minnestest] composeFinal misslyckades — klient-fallback', err)
-      final.value = fallbackFinal()
-    } finally {
-      composing.value = false
-      if (send) sendResult()
+  function finishRound(passedAll: boolean): void {
+    const a = assessments.value[stepIndex.value]
+    levelOutcome.value = {
+      nivaReached: levelsCleared.value,
+      maxNiva: steps.value.length,
+      passedAll,
+      kommentar: a?.kommentar ?? '',
+      saknades: passedAll ? '' : (a?.saknades ?? ''),
     }
-  }
-
-  function vaultBackDone(): void {
     phase.value = 'verdict'
+    sendResult()
+  }
+
+  function practiceRevealDone(): void {
+    startLive()
   }
 
   function verdictDone(): void {
     phase.value = 'checkout'
   }
 
-  // --- Facilitator-kontroller (paus / starta om / avsluta) ---
+  // --- Facilitator-kontroller ---
   function togglePause(): void {
     paused.value = !paused.value
   }
 
-  /** Avsluta stationen → stäng kiosk-fönstret (i vanlig flik ofarligt no-op). */
   function quitStation(): void {
     try {
       window.close()
@@ -304,18 +314,13 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     phase.value = 'attract'
     mode.value = 'live'
     roleId.value = null
-    stepIndex.value = 0
-    transcripts.value = ['', '', '']
-    guesses.value = [null, null, null]
-    assessments.value = [null, null, null]
-    final.value = null
-    packlista.value = ''
+    resetRound()
     group.value = { id: PILOT_GROUP.id, members: [...PILOT_GROUP.members] }
   }
 
-  // --- Resultat-söm (byte-för-byte-form; AVSTÄNGD i pilot = MockResultSink) ---
+  // --- Resultat-söm (AVSTÄNGD i pilot = MockResultSink) ---
   function sendResult(): void {
-    const poang = final.value?.poang ?? 0
+    const poang = levelOutcome.value?.nivaReached ?? 0
     const chosen = ROLES.find((r) => r.id === roleId.value)
     const resultRole: 'A' | 'B' = chosen?.resultRole ?? 'A'
     const personer: ResultPerson[] = group.value.members.map((name, i) => ({
@@ -331,7 +336,6 @@ export const useMinnestestStore = defineStore('minnestest', () => {
       rollresultat_B: personer.filter((p) => p.chosen_role === 'B').reduce((s, p) => s + p.result_value, 0),
       personer,
     }
-    // TODO(drift): tänd station<N>/result + /done (MockResultSink → MqttResultSink).
     adapters.value?.result.send(payload)
   }
 
@@ -343,16 +347,22 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     stepIndex,
     transcripts,
     guesses,
+    vals,
     assessments,
-    final,
+    levelsCleared,
+    levelOutcome,
     assessing,
-    composing,
     speaking,
     paused,
     example,
     exampleType,
     steps,
     currentStep,
+    currentThreshold,
+    currentAssessment,
+    lastPoang,
+    lastPassed,
+    isLastLevel,
     memberCount,
     init,
     begin,
@@ -363,21 +373,15 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     pilotIntroDone,
     startLive,
     goLiveDone,
-    vaultOutDone,
-    introDone,
     setGuess,
+    setVal,
     assessCurrentStep,
     speakNpc,
-    nextStep,
-    vaultBackDone,
+    resolveGate,
+    practiceRevealDone,
     verdictDone,
     togglePause,
     quitStation,
     reset,
   }
 })
-
-// --- Rena hjälpare ---
-function fallbackFinal(): FinalResult {
-  return { poang: 5, profil: '—', markering: '', kriterier: [], slutmening: t('npc.error') }
-}

@@ -4,7 +4,7 @@
  * skärm, fast bärnstens-CRT-tema från kitet. Store äger faserna; denna komponent
  * mappar fas → vy.
  */
-import { computed, onMounted } from 'vue'
+import { onMounted } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
 
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
@@ -16,8 +16,6 @@ import { useMinnestestStore } from './store/minnestestStore'
 import CheckinScreen from './components/CheckinScreen.vue'
 import RoleSelect from './components/RoleSelect.vue'
 import PilotIntro from './components/PilotIntro.vue'
-import VaultTransition from './components/VaultTransition.vue'
-import FermiIntro from './components/FermiIntro.vue'
 import StepCycle from './components/StepCycle.vue'
 import ResultWalkthrough from './components/ResultWalkthrough.vue'
 import FacilitatorControls from './components/FacilitatorControls.vue'
@@ -27,16 +25,6 @@ import CheckoutScreen from './components/CheckoutScreen.vue'
 
 const { t } = useI18n()
 const store = useMinnestestStore()
-
-// Valv-övergången skiljer sig per gren: flykt tar dem "tillbaka i tiden",
-// metodspecialisten får en neutral enhets-uppstart (ingen "vanlig kväll").
-const vaultOutLines = computed(() => {
-  const p = store.exampleType === 'fermi' ? 'fermi.vaultout' : 'vaultout'
-  return [t(`${p}.l1`), t(`${p}.l2`), t(`${p}.l3`)].filter(Boolean)
-})
-const vaultBackLines = computed(() =>
-  [t('vaultback.l1'), t('vaultback.l2'), t('vaultback.l3')].filter(Boolean),
-)
 
 onMounted(() => store.init())
 </script>
@@ -68,23 +56,11 @@ onMounted(() => store.init())
             :title="t('mode.golive_title')"
             @done="store.goLiveDone()"
           />
-          <VaultTransition
-            v-else-if="store.phase === 'vaultOut'"
-            :lines="vaultOutLines"
-            @done="store.vaultOutDone()"
-          />
-          <FermiIntro v-else-if="store.phase === 'intro'" />
           <StepCycle v-else-if="store.phase === 'step'" />
           <ResultWalkthrough
             v-else-if="store.phase === 'practiceReveal'"
             mode="test"
-            @finish="store.startLive()"
-          />
-          <VaultTransition
-            v-else-if="store.phase === 'vaultBack'"
-            :lines="vaultBackLines"
-            :hold="store.composing"
-            @done="store.vaultBackDone()"
+            @finish="store.practiceRevealDone()"
           />
           <VerdictScreen v-else-if="store.phase === 'verdict'" />
           <CheckoutScreen v-else-if="store.phase === 'checkout'" />

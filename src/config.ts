@@ -25,9 +25,10 @@ export const config = {
   stationN: STATION_N,
   lang: 'sv' as 'sv' | 'no' | 'svorsk',
 
-  /** Tänk-högt-fönster per steg (sekunder) och när 10-sek-varningen tänds. */
-  stepSeconds: 60,
-  warnAtSeconds: 10,
+  /** Tänk-högt-fönster per block (sekunder) och när varningen tänds. Rappare
+   *  tempo i gatade stegen: 30 s per block (svar resp. motivering). */
+  stepSeconds: 30,
+  warnAtSeconds: 7,
 
   /** Incheckningens auto-vidare (ms). */
   checkinAutoMs: 2000,
@@ -85,16 +86,21 @@ export const ROLES: RoleDef[] = [
  * ------------------------------------------------------------------ */
 
 export interface ExampleStep {
-  /** i18n-nyckelrot, t.ex. 'flykt.steg1' / 'fermi.steg1'. */
+  /** i18n-nyckelrot, t.ex. 'flykt.niva1' / 'fermi.niva1'. */
   key: string
   /** Stegets referensbild (media-id) — ligger kvar genom steget. */
   referenceMedia: string
   /** Latensmask-klipp i analys-rutan; utelämnas → referensbilden används. */
   analysMedia?: string
-  /** Fermi: enhet på gissningen ('kg' | 'antal' | 'ton'). */
+  /** Fermi: enhet på gissningen ('kg' | 'antal' | 'ton' | 'lass'). */
   unit?: string
-  /** Fermi-gissning: stegets +/- -knappar (touch). Olika skala per steg. */
+  /** Fermi-gissning: stegets +/- -knappar (touch). Olika skala per nivå. */
   guess?: GuessScale
+  /** Fermi ja/nej-nivå: svars-blocket blir två knappar i stället för sifferväljare. */
+  choice?: string[]
+  /** Gate-rubrik: vad ett godkänt resonemang kräver på DEN HÄR nivån (stigande
+   *  krav). Skickas till /assess så modellen poängsätter mot rätt ribba. */
+  rubrik: string
 }
 
 /** Touch-stepper för Fermi-gissningen: bas-steg, gränser och startvärde. */
@@ -120,37 +126,65 @@ export interface ExampleDef {
 }
 
 export const EXAMPLES: Record<ExampleId, ExampleDef> = {
-  // Doktorand-sidan — flykt undan krig (byggd tidigare).
+  // Doktorand-sidan — flykten som en gatad stege: allt mer pressad & specifik.
   flykt: {
     id: 'flykt',
     type: 'flykt',
     configId: 'flykt',
-    countdownFrom: 10,
+    countdownFrom: 3,
     steps: [
-      { key: 'flykt.steg1', referenceMedia: 'flykt_1_packa' },
-      { key: 'flykt.steg2', referenceMedia: 'flykt_2_vagar' },
-      { key: 'flykt.steg3', referenceMedia: 'flykt_3_skog' },
+      {
+        key: 'flykt.niva1', referenceMedia: 'flykt_1_packa',
+        rubrik: 'GENERÖS nivå: nämn något rimligt att ta med och minsta lilla skäl. Nästan allt rimligt godkänns.',
+      },
+      {
+        key: 'flykt.niva2', referenceMedia: 'flykt_2_vagar',
+        rubrik: 'Väg minst EN avvägning (t.ex. snabbt vs säkert, stor väg vs liten) och motivera vägvalet.',
+      },
+      {
+        key: 'flykt.niva3', referenceMedia: 'flykt_3_skog',
+        rubrik: 'Visa risk-resonemang kring vägspärren/soldaterna OCH en plan B om det går fel.',
+      },
+      {
+        key: 'flykt.niva4', referenceMedia: 'flykt_2_vagar',
+        rubrik: 'Väg konsekvenser åt BÅDA håll (ta med främlingen eller inte) — inte bara en sida.',
+      },
+      {
+        key: 'flykt.niva5', referenceMedia: 'flykt_3_skog',
+        rubrik: 'Fatta ett TYDLIGT beslut under tidspress och osäkerhet och försvara det med framförhållning.',
+      },
     ],
   },
-  // Metodspecialist-sidan — sluten Fermi-skattning (skrotbilar).
+  // Metodspecialist-sidan — skattnings-stegen: eskalerande Fermi-skattningar.
   'fermi-skrotbilar': {
     id: 'fermi-skrotbilar',
     type: 'fermi',
     configId: 'fermi-skrotbilar',
-    introMedia: 'intro_fermi',
     countdownFrom: 3,
     steps: [
       {
-        key: 'fermi.steg1', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'kg',
+        key: 'fermi.niva1', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'kg',
         guess: { step: 10, min: 100, max: 5000, start: 1000 },
+        rubrik: 'GENERÖS nivå: ge en rimlig storleksordning för en bils vikt + minsta skäl.',
       },
       {
-        key: 'fermi.steg2', referenceMedia: 'steg2_trafik', analysMedia: 'esk2_berakning', unit: 'antal',
+        key: 'fermi.niva2', referenceMedia: 'steg2_trafik', analysMedia: 'esk2_berakning', unit: 'antal',
         guess: { step: 5000, min: 0, max: 1000000, start: 100000 },
+        rubrik: 'Bryt ner antalet skrotade bilar/år (t.ex. antal bilar × andel som skrotas) — gissa inte blint.',
       },
       {
-        key: 'fermi.steg3', referenceMedia: 'steg3_skrot', analysMedia: 'esk3_overgang', unit: 'ton',
+        key: 'fermi.niva3', referenceMedia: 'steg3_skrot', analysMedia: 'esk3_overgang', unit: 'ton',
         guess: { step: 5000, min: 0, max: 2000000, start: 100000 },
+        rubrik: 'Kombinera vikt × antal till ton OCH gör en storleksordnings-sanity-check.',
+      },
+      {
+        key: 'fermi.niva4', referenceMedia: 'steg3_skrot', choice: ['Ja', 'Nej'],
+        rubrik: 'Jämför ett års skrotmetall mot Eiffeltornet (~7 300 ton), explicita antaganden, tydlig ja/nej.',
+      },
+      {
+        key: 'fermi.niva5', referenceMedia: 'steg2_trafik', unit: 'lass',
+        guess: { step: 1000, min: 0, max: 500000, start: 50000 },
+        rubrik: 'Dela ton med lastbilskapacitet (~25 ton/lass) och motivera antagandet.',
       },
     ],
   },
@@ -173,7 +207,12 @@ export const PRACTICE: Record<ExampleId, ExampleDef> = {
     type: 'flykt',
     configId: 'flykt-ovning',
     countdownFrom: 3,
-    steps: [{ key: 'flykt.ovning', referenceMedia: 'flykt_ovning_eld' }],
+    steps: [
+      {
+        key: 'flykt.ovning', referenceMedia: 'flykt_ovning_eld',
+        rubrik: 'ÖVNING, generös: nämn något rimligt att ta med + minsta skäl.',
+      },
+    ],
   },
   'fermi-skrotbilar': {
     id: 'fermi-skrotbilar',
@@ -184,9 +223,22 @@ export const PRACTICE: Record<ExampleId, ExampleDef> = {
       {
         key: 'fermi.ovning', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'slag',
         guess: { step: 5000, min: 0, max: 500000, start: 100000 },
+        rubrik: 'ÖVNING, generös: rimlig storleksordning + minsta skäl.',
       },
     ],
   },
+}
+
+/* ------------------------------------------------------------------ *
+ * Gatad stege — stigande tröskel per nivå (0–10). L1–2 generösa, sen snabbt
+ * hårdare. Poängen = högsta klarade nivån. Tunbar här.
+ * ------------------------------------------------------------------ */
+export const MAX_NIVA = 5
+export const LEVEL_THRESHOLDS: readonly number[] = [2, 4, 6, 7, 8]
+
+/** Tröskel för en nivå (0-indexerat steg). Övning (1 nivå) → generös. */
+export function thresholdForLevel(index: number): number {
+  return LEVEL_THRESHOLDS[index] ?? LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]
 }
 
 export function practiceForRole(role: RoleId): ExampleDef {

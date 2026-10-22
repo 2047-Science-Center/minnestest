@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * En uppgifts-cykel för aktuellt steg. Motorn är gemensam för båda exempel
- * (flykt / fermi); typen styr copy + om ett GISSNINGS-moment (fermi) ligger
- * mellan tänk-högt och analys.
- *   situation → countdown → think (tvåfas) → [guess (fermi)] → analys → reply
- * Uppgiften/frågan står STOR och tydlig hela tiden (liten kontext ovanför).
+ * En NIVÅ i den gatade stegen. Samma motor för båda grenar (flykt / fermi).
+ *   situation (nivå + känd tröskel) → countdown → BLOCK 1 svar (30s) → handoff
+ *   → BLOCK 2 motivering (30s) → ENHETEN VÄGER (mätaren laddar, spänning)
+ *   → GATE (poängen landar mot tröskeln → PASS/FAIL).
+ * Modellen poängsätter 0–10; store.resolveGate() avgör nivå-upp / mjukt stopp.
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
@@ -18,12 +18,13 @@ import MediaSlot from './MediaSlot.vue'
 import NpcReply from './NpcReply.vue'
 import NumberStepper from './NumberStepper.vue'
 import MicIcon from './MicIcon.vue'
+import ThresholdMeter from './ThresholdMeter.vue'
 import { media } from '../media/manifest'
 
 const { t } = useI18n()
 const store = useMinnestestStore()
 
-type Sub = 'situation' | 'countdown' | 'answer' | 'handoff' | 'reason' | 'analys' | 'reply'
+type Sub = 'situation' | 'countdown' | 'answer' | 'handoff' | 'reason' | 'vager' | 'gate'
 const sub = ref<Sub>('situation')
 
 const WINDOW_MS = config.stepSeconds * 1000
@@ -37,53 +38,50 @@ const isFermi = computed(() => store.exampleType === 'fermi')
 const step = computed(() => store.currentStep)
 const stepKey = computed(() => step.value.key)
 const referenceMedia = computed(() => step.value.referenceMedia)
-const analysMedia = computed(() => step.value.analysMedia ?? step.value.referenceMedia)
 
 const context = computed(() => t(`${stepKey.value}.context`))
 const task = computed(() => t(`${stepKey.value}.task`))
-const timeLine = computed(() => t(`${stepKey.value}.time`))
 const eyebrow = computed(() => (isFermi.value ? t('skatta.title') : t('lage.title')))
 const reasonLine = computed(() => (isFermi.value ? t('step.how_line') : t('step.why_line')))
-const analyzingLine = computed(() => (isFermi.value ? t('step.weighing') : t('step.analyzing')))
 const unitLabel = computed(() => (step.value.unit ? t(`unit.${step.value.unit}`) : ''))
 const guessScale = computed(() => step.value.guess)
-const popupLines = computed(() =>
-  ['popup1', 'popup2', 'popup3']
-    .map((k) => t(`${stepKey.value}.${k}`))
-    .filter((s) => s.trim().length > 0),
-)
-// Visa scenario-bilden när en riktig fil finns (både övning och skarpt — övningen
-// har nu en egen bild). Saknas fil → ingen placeholder-ruta i bakgrunden.
+const choices = computed(() => step.value.choice ?? null)
 const refSrc = computed(() => media(referenceMedia.value).src)
-const analysSrc = computed(() => media(analysMedia.value).src)
 
-// Levandegör (flykt): loopande ambiens + kort inlevelse-replik per scen.
+// Nivå-info (tröskeln aviseras på förhand).
+const nivaNr = computed(() => store.stepIndex + 1)
+const nivaMax = computed(() => store.steps.length)
+const threshold = computed(() => store.currentThreshold)
+const isPractice = computed(() => store.mode === 'test')
+
+// Levandegör (flykt): ambiens + inlevelse-replik per scen.
 const AMBIENCE: Record<string, string> = {
   'flykt.ovning': 'ambience/amb-eld.mp3',
-  'flykt.steg1': 'ambience/amb-packa.mp3',
-  'flykt.steg2': 'ambience/amb-vagar.mp3',
-  'flykt.steg3': 'ambience/amb-skog.mp3',
+  'flykt.niva1': 'ambience/amb-packa.mp3',
+  'flykt.niva2': 'ambience/amb-vagar.mp3',
+  'flykt.niva3': 'ambience/amb-skog.mp3',
+  'flykt.niva4': 'ambience/amb-vagar.mp3',
+  'flykt.niva5': 'ambience/amb-skog.mp3',
 }
 const VOICE_LINE: Record<string, string> = {
   'flykt.ovning': 'voice/flykt-ovning.mp3',
-  'flykt.steg1': 'voice/flykt-1.mp3',
-  'flykt.steg2': 'voice/flykt-2.mp3',
-  'flykt.steg3': 'voice/flykt-3.mp3',
+  'flykt.niva1': 'voice/flykt-1.mp3',
+  'flykt.niva2': 'voice/flykt-2.mp3',
+  'flykt.niva3': 'voice/flykt-3.mp3',
 }
-const MEASURE_SFX = ['measure1', 'measure2', 'measure3'] as const
+const MEASURE = ['measure1', 'measure2', 'measure3'] as const
 
-// --- SVAR vs MOTIVERING: två skilda infångningar. Flykt: mik+mik. Fermi: siffra+mik. ---
+// --- SVAR vs MOTIVERING ---
 const answerText = ref('')
 const reasonText = ref('')
 const isAnswer = computed(() => sub.value === 'answer')
 const isReason = computed(() => sub.value === 'reason')
-// Flykt har ett mik-svarsblock; fermi svarar med sifferväljaren i stället.
+// Mik-block: flykt-svar (block 1) + motivering (block 2). Fermi svarar med
+// sifferväljare/ja-nej, så fermi-svaret är INTE ett mik-block.
 const micPhase = computed(() => isReason.value || (isAnswer.value && !isFermi.value))
-// Block 1-raden anpassas per scen (steg 2 frågar "vilken väg", inte "vad tar ni med").
 const micLine = computed(() => (isReason.value ? reasonLine.value : t(`${stepKey.value}.answer`)))
 const micDone = computed(() => (isReason.value ? t('step.we_are_done') : t('step.answer_done')))
 const blockBadge = computed(() => (isReason.value ? t('step.block_reason') : t('step.block_answer')))
-// Block-fråga: block 1 = den rena svars-frågan (task), block 2 = motiverings-frågan.
 const reasonQ = computed(() => (isFermi.value ? t('step.reason_q_fermi') : t('step.reason_q')))
 const blockQuestion = computed(() => (isReason.value ? reasonQ.value : task.value))
 
@@ -91,11 +89,11 @@ const blockQuestion = computed(() => (isReason.value ? reasonQ.value : task.valu
 const countdownN = ref(3)
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
-// --- handoff (mellanskärm svar → motivering) ---
+// --- handoff ---
 const handoffN = ref(3)
 let handoffTimer: ReturnType<typeof setTimeout> | null = null
 
-// --- mik-block (answer/reason) tid ---
+// --- mik-tid ---
 const warned = ref(false)
 const remainingMs = computed(() => capture.remainingMs.value ?? WINDOW_MS)
 const warn = computed(() => remainingMs.value <= WARN_MS)
@@ -105,33 +103,26 @@ const timeLabel = computed(() => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 })
 
-// --- analys ---
-const dwellDone = ref(false)
-const assessDone = ref(false)
+// --- väger / gate ---
+const meterState = ref<'idle' | 'charging' | 'pass' | 'fail'>('idle')
+const meterValue = ref(0)
 const assessResult = ref<StepAssessment | null>(null)
-let dwellTimer: ReturnType<typeof setTimeout> | null = null
-let dwellEndsAt = 0
-let dwellRemaining = 0
-
-// --- reply ---
 const npcDone = ref(false)
-
-// Det transkript vi skickar in — sparas för analys-ekot.
-const lastTranscript = ref('')
+let vagerTimer: ReturnType<typeof setTimeout> | null = null
+let gateTimer: ReturnType<typeof setTimeout> | null = null
 
 const showManualFallback = computed(() => !capture.supported || Boolean(capture.error.value))
 
 function collectedAnswer(): string {
-  // transcript = final + interim → fångar även det som ännu inte finaliserats av
-  // Web Speech (annars tappas det sista som sades och /assess får tomt → "tyst").
   return [capture.transcript.value.trim(), manualText.value.trim()].filter(Boolean).join(' ').trim()
 }
 
 function clearTimers(): void {
   if (countdownTimer) clearInterval(countdownTimer)
-  if (dwellTimer) clearTimeout(dwellTimer)
   if (handoffTimer) clearTimeout(handoffTimer)
-  countdownTimer = dwellTimer = handoffTimer = null
+  if (vagerTimer) clearTimeout(vagerTimer)
+  if (gateTimer) clearTimeout(gateTimer)
+  countdownTimer = handoffTimer = vagerTimer = gateTimer = null
 }
 
 // --- Beats ---
@@ -144,7 +135,10 @@ function enterSituation(): void {
   reasonText.value = ''
   guessValue.value = guessScale.value?.start ?? 0
   warned.value = false
-  // Levandegör flykt-scenen: byt ambiens-loop + spela inlevelse-replik en gång.
+  meterState.value = 'idle'
+  meterValue.value = 0
+  assessResult.value = null
+  npcDone.value = false
   if (!isFermi.value) {
     const amb = AMBIENCE[stepKey.value]
     if (amb) audio.bed(amb, 0.2, 1200)
@@ -174,38 +168,45 @@ function ready(): void {
   startCountdownTick()
 }
 
-/** BLOCK 1 — SVARET FÖRST. Fermi: sifferväljare (ingen mik). Flykt: mik. */
+/** BLOCK 1 — SVARET FÖRST. Fermi: sifferväljare / ja-nej. Flykt: mik. */
 function startAnswer(): void {
   sub.value = 'answer'
   warned.value = false
   manualText.value = ''
   if (isFermi.value) {
-    guessValue.value = guessScale.value?.start ?? 0
-    audio.play(MEASURE_SFX[Math.min(store.stepIndex, 2)]) // mät-ljud materialiserar momentet
-    return // sifferväljaren — ingen mik, ingen timer
+    if (guessScale.value) {
+      guessValue.value = guessScale.value.start
+      audio.play(MEASURE[Math.min(store.stepIndex, 2)])
+    }
+    return
   }
   capture.reset()
   capture.start()
 }
 
-/** Lås svaret → mellanskärm → BLOCK 2 (motiveringen). */
-function lockAnswer(): void {
-  if (isFermi.value) {
-    store.setGuess(Number.isFinite(guessValue.value) ? guessValue.value : null)
-  } else {
-    // Stoppa FÖRST (fäller in sista interim i final), läs sedan.
-    capture.stop()
-    answerText.value = collectedAnswer()
-  }
+/** Fermi sifferväljare låst → handoff. */
+function lockGuess(): void {
+  store.setGuess(Number.isFinite(guessValue.value) ? guessValue.value : null)
   startHandoff()
 }
 function skipGuess(): void {
   store.setGuess(null)
   startHandoff()
 }
+/** Fermi ja/nej-val → handoff. */
+function chooseVal(v: string): void {
+  store.setVal(v)
+  audio.play('confirm')
+  startHandoff()
+}
+/** Flykt mik-svar låst → handoff. */
+function lockAnswer(): void {
+  capture.stop()
+  answerText.value = collectedAnswer()
+  startHandoff()
+}
 
-/** Mellanskärm: svaret klart → kort 3-2-1 → motiveringen. Tydlig separation så det
- *  är glasklart att först gör man det ena, sen det andra. */
+/** Mellanskärm: svaret klart → kort 3-2-1 → motiveringen. */
 function startHandoff(): void {
   sub.value = 'handoff'
   handoffN.value = 3
@@ -245,7 +246,6 @@ watch(
   },
 )
 
-/** Done-knapp (eller tiden ut) för aktuellt mik-block. */
 function micDoneAction(): void {
   if (isAnswer.value) lockAnswer()
   else finishReason()
@@ -255,55 +255,66 @@ function finishReason(): void {
   if (sub.value !== 'reason') return
   capture.stop()
   reasonText.value = collectedAnswer()
-  enterAnalys()
+  enterVager()
 }
 
-function enterAnalys(): void {
-  sub.value = 'analys'
-  dwellDone.value = false
-  assessDone.value = false
+/** ENHETEN VÄGER — mätaren laddar medan bedömningen hämtas. Spänning. */
+function enterVager(): void {
+  sub.value = 'vager'
+  meterState.value = 'charging'
+  meterValue.value = 0
   assessResult.value = null
-  // Flykt: svar + motivering (modellen ser beslut + varför). Fermi: motiveringen
-  // (siffran skickas separat som guess). Steg-1-svaret blir packlistan (flykt).
+  audio.play('render') // stigande svep medan enheten väger
   const transcript = isFermi.value
     ? reasonText.value
     : [answerText.value, reasonText.value].filter(Boolean).join('. ').trim()
-  lastTranscript.value = transcript
-  const dwellMs = media(analysMedia.value).durationMs ?? 6000
-  dwellEndsAt = Date.now() + dwellMs
-  dwellTimer = setTimeout(() => {
-    dwellDone.value = true
-    maybeReveal()
-  }, dwellMs)
+
+  let dwellDone = false
+  let gotAssess = false
+  const tryGate = (): void => {
+    if (dwellDone && gotAssess && sub.value === 'vager') enterGate()
+  }
+  vagerTimer = setTimeout(() => {
+    dwellDone = true
+    tryGate()
+  }, 2600)
   void store.assessCurrentStep(transcript, isFermi.value ? undefined : answerText.value).then((a) => {
     assessResult.value = a
-    assessDone.value = true
-    maybeReveal()
+    gotAssess = true
+    tryGate()
   })
 }
 
-function maybeReveal(): void {
-  if (sub.value === 'analys' && dwellDone.value && assessDone.value && assessResult.value) {
-    npcDone.value = false
-    sub.value = 'reply'
-    void store.speakNpc(assessResult.value.svar_text)
-  }
+/** GATE — poängen landar mot tröskeln. PASS / FAIL. */
+function enterGate(): void {
+  sub.value = 'gate'
+  const passed = store.lastPassed
+  meterState.value = passed ? 'pass' : 'fail'
+  // Låt mätaren stå 0 en tick → animera upp mot poängen (width-transition).
+  meterValue.value = 0
+  gateTimer = setTimeout(() => {
+    meterValue.value = store.lastPoang
+  }, 80)
+  // Resolve-ljud när stapeln landat (~1.1s travel).
+  gateTimer = setTimeout(() => {
+    audio.play(passed ? 'win' : 'deny')
+  }, 1200)
+  // NPC läser kommentaren (+ vad som saknades vid fail).
+  const a = assessResult.value
+  const miss = passed ? '' : a?.saknades ? ` ${a.saknades}` : ''
+  void store.speakNpc(`${a?.kommentar ?? ''}${miss}`)
 }
 
-function skipDwell(): void {
-  if (dwellTimer) clearTimeout(dwellTimer)
-  dwellDone.value = true
-  maybeReveal()
+function proceed(): void {
+  store.resolveGate()
 }
-
-const isPilot = config.mode === 'pilot'
 
 watch(
   () => store.stepIndex,
   () => enterSituation(),
 )
 
-// Facilitator-paus: frys det aktiva tidsmomentet, återuppta med kvarvarande tid.
+// Facilitator-paus: frys det aktiva tidsmomentet.
 watch(
   () => store.paused,
   (p) => {
@@ -312,21 +323,10 @@ watch(
       else if (sub.value === 'countdown' && countdownTimer) {
         clearInterval(countdownTimer)
         countdownTimer = null
-      } else if (sub.value === 'analys' && dwellTimer) {
-        dwellRemaining = Math.max(0, dwellEndsAt - Date.now())
-        clearTimeout(dwellTimer)
-        dwellTimer = null
       }
     } else {
       if (micPhase.value) capture.resume()
       else if (sub.value === 'countdown' && !countdownTimer) startCountdownTick()
-      else if (sub.value === 'analys' && !dwellTimer && !dwellDone.value) {
-        dwellEndsAt = Date.now() + dwellRemaining
-        dwellTimer = setTimeout(() => {
-          dwellDone.value = true
-          maybeReveal()
-        }, dwellRemaining)
-      }
     }
   },
 )
@@ -335,13 +335,25 @@ onMounted(() => enterSituation())
 onUnmounted(() => {
   clearTimers()
   capture.stop()
-  audio.bedStop(800) // tysta ambiens-loopen när steg-fasen lämnas
+  audio.bedStop(800)
 })
+
+const gateNpcText = computed(() => {
+  const a = assessResult.value
+  if (!a) return ''
+  const miss = store.lastPassed ? '' : a.saknades ? ` ${a.saknades}` : ''
+  return `${a.kommentar ?? ''}${miss}`.trim()
+})
+const gateCta = computed(() =>
+  store.lastPassed && !store.isLastLevel && !isPractice.value
+    ? t('gate.next_level')
+    : t('gate.see_result'),
+)
 </script>
 
 <template>
   <div class="cycle">
-    <!-- SITUATION — full-skärms scen: bild fyller skärmen, text komponerad ovanpå -->
+    <!-- SITUATION — full-skärms scen + nivå/tröskel aviseras -->
     <section v-if="sub === 'situation'" class="situation">
       <div
         v-if="refSrc"
@@ -352,13 +364,10 @@ onUnmounted(() => {
       />
       <div class="situation__scrim" aria-hidden="true" />
       <div class="situation__inner">
-        <p class="situation__eyebrow">{{ eyebrow }}</p>
+        <p class="situation__eyebrow">{{ eyebrow }} · {{ t('gate.level', { n: nivaNr, max: nivaMax }) }}</p>
         <p v-if="context" class="situation__context">{{ context }}</p>
         <h1 class="situation__task ink-strong">{{ task }}</h1>
-        <ul v-if="popupLines.length" class="situation__lines">
-          <li v-for="(l, i) in popupLines" :key="i" :style="{ '--i': i }">{{ l }}</li>
-        </ul>
-        <p class="situation__time">{{ timeLine }}</p>
+        <p class="situation__gate">{{ t('gate.need', { th: threshold }) }}</p>
         <button class="crt-button crt-button--strong situation__go" @click="ready()">
           {{ t('lage.ready') }} ▸
         </button>
@@ -372,21 +381,20 @@ onUnmounted(() => {
       <p class="countdown__cue">{{ task }}</p>
     </section>
 
-    <!-- HANDOFF — svaret klart, nu motiveringen (tydlig separation + 3-2-1) -->
+    <!-- HANDOFF -->
     <section v-else-if="sub === 'handoff'" class="handoff">
       <p class="handoff__done"><span class="handoff__check">✓</span> {{ t('step.handoff_title') }}</p>
       <p class="handoff__next ink-strong">{{ t('step.handoff_sub') }}</p>
       <div class="handoff__num" :key="handoffN">{{ handoffN }}</div>
     </section>
 
-    <!-- ANSWER (fermi) — SVARET FÖRST: sifferväljaren -->
-    <section v-else-if="sub === 'answer' && isFermi" class="guess">
+    <!-- ANSWER (fermi sifferväljare) -->
+    <section v-else-if="sub === 'answer' && isFermi && guessScale" class="guess">
       <div class="guess__card amber-frame">
         <p class="guess__title ink-strong">{{ t('guess.title') }}</p>
         <p class="guess__sub">{{ task }}</p>
         <div class="guess__field">
           <NumberStepper
-            v-if="guessScale"
             v-model="guessValue"
             :step="guessScale.step"
             :min="guessScale.min"
@@ -397,17 +405,28 @@ onUnmounted(() => {
         <p class="guess__hint">{{ t('guess.hold_hint') }}</p>
         <div class="guess__actions">
           <button class="crt-button guess__skip" @click="skipGuess()">{{ t('guess.skip') }} ▸</button>
-          <button class="crt-button crt-button--strong" @click="lockAnswer()">{{ t('guess.lock') }} ▸</button>
+          <button class="crt-button crt-button--strong" @click="lockGuess()">{{ t('guess.lock') }} ▸</button>
         </div>
       </div>
     </section>
 
-    <!-- MIK-BLOCK — flykt-svar (block 1) + motivering (block 2), uppgiften stor hela tiden -->
-    <section v-else-if="micPhase" class="think" :class="isReason ? 'is-reason' : 'is-answer'">
+    <!-- ANSWER (fermi ja/nej) -->
+    <section v-else-if="sub === 'answer' && isFermi && choices" class="choice">
+      <div class="choice__card amber-frame">
+        <p class="choice__q ink-strong">{{ task }}</p>
+        <div class="choice__btns">
+          <button v-for="c in choices" :key="c" class="crt-button crt-button--strong choice__btn" @click="chooseVal(c)">
+            {{ c }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MIK-BLOCK — flykt-svar (block 1) + motivering (block 2) -->
+    <section v-else-if="micPhase" class="think">
       <div v-if="refSrc" :key="referenceMedia" class="think__ref" aria-hidden="true">
         <MediaSlot :id="referenceMedia" :autoplay="false" />
       </div>
-
       <header class="think__header">
         <div class="think__q">
           <p class="think__context">{{ context }}</p>
@@ -415,7 +434,6 @@ onUnmounted(() => {
         </div>
         <div class="think__timer" :class="{ 'think__timer--warn': warn }">{{ timeLabel }}</div>
       </header>
-
       <div class="think__live">
         <span class="think__block" :class="{ 'think__block--reason': isReason }">{{ blockBadge }}</span>
         <p class="think__transcript" :class="{ 'think__transcript--empty': !capture.transcript.value }">
@@ -431,48 +449,32 @@ onUnmounted(() => {
           {{ micDone }} ▸
         </button>
       </div>
-
       <template v-if="showManualFallback">
         <p v-if="!capture.supported" class="frame__nospeech">{{ t('step.no_speech') }}</p>
-        <p v-else class="frame__nospeech frame__nospeech--err">
-          {{ t(`step.mic_err.${capture.error.value}`) }}
-        </p>
-        <textarea
-          v-model="manualText"
-          class="frame__manual"
-          :placeholder="t('step.manual_placeholder')"
-          rows="2"
-        />
+        <p v-else class="frame__nospeech frame__nospeech--err">{{ t(`step.mic_err.${capture.error.value}`) }}</p>
+        <textarea v-model="manualText" class="frame__manual" :placeholder="t('step.manual_placeholder')" rows="2" />
       </template>
     </section>
 
-    <!-- ANALYS — ENHETEN "tänker högt" medan bedömningen hämtas -->
-    <section v-else-if="sub === 'analys'" class="analys">
-      <div v-if="analysSrc" class="analys__bg" aria-hidden="true">
-        <MediaSlot :id="analysMedia" :autoplay="false" />
-      </div>
-      <div class="analys__strip">
-        <span>{{ analyzingLine }}</span>
-        <span class="analys__dots"><i /><i /><i /></span>
-        <button v-if="isPilot" class="analys__skip" @click="skipDwell()">hoppa över</button>
-      </div>
-      <p v-if="lastTranscript" class="analys__echo">{{ lastTranscript }}</p>
+    <!-- ENHETEN VÄGER -->
+    <section v-else-if="sub === 'vager'" class="vager">
+      <p class="vager__label">{{ t('gate.weighing') }}</p>
+      <ThresholdMeter :value="0" :threshold="threshold" state="charging" />
+      <p class="vager__sub">{{ t('gate.level', { n: nivaNr, max: nivaMax }) }} · {{ t('gate.need', { th: threshold }) }}</p>
+      <span class="vager__dots"><i /><i /><i /></span>
     </section>
 
-    <!-- REPLY -->
-    <section v-else class="reply">
-      <NpcReply
-        v-if="assessResult"
-        :text="assessResult.svar_text"
-        :speaking="store.speaking"
-        @done="npcDone = true"
-      />
-      <button
-        class="crt-button crt-button--strong reply__next"
-        :disabled="!npcDone"
-        @click="store.nextStep()"
-      >
-        {{ t('step.next') }} ▸
+    <!-- GATE -->
+    <section v-else class="gate" :class="store.lastPassed ? 'gate--pass' : 'gate--fail'">
+      <p class="gate__verdict ink-strong">
+        {{ store.lastPassed ? t('gate.cleared', { n: nivaNr }) : t('gate.stopped', { n: nivaNr }) }}
+      </p>
+      <ThresholdMeter :value="meterValue" :threshold="threshold" :state="meterState" />
+      <div class="gate__reply">
+        <NpcReply v-if="gateNpcText" :text="gateNpcText" :speaking="store.speaking" @done="npcDone = true" />
+      </div>
+      <button class="crt-button crt-button--strong gate__next" :disabled="!npcDone" @click="proceed()">
+        {{ gateCta }} ▸
       </button>
     </section>
   </div>
@@ -484,7 +486,7 @@ onUnmounted(() => {
   min-height: 0;
 }
 
-/* ---------- SITUATION (full-skärms scen) ---------- */
+/* ---------- SITUATION ---------- */
 .situation {
   position: relative;
   height: 100%;
@@ -494,7 +496,6 @@ onUnmounted(() => {
   justify-content: center;
   overflow-y: auto;
 }
-/* Scenbilden fyller hela skärmen och syns tydligt (lugn Ken Burns bakom texten). */
 .situation__bg {
   position: absolute;
   inset: 0;
@@ -511,17 +512,11 @@ onUnmounted(() => {
     transform: scale(1.12);
   }
 }
-/* Lätt scrim — bara så mycket att texten läses; bilden ska synas, inte fejdas bort. */
 .situation__scrim {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0.28) 0%,
-    rgba(0, 0, 0, 0.32) 45%,
-    rgba(0, 0, 0, 0.72) 100%
-  );
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.28) 0%, rgba(0, 0, 0, 0.32) 45%, rgba(0, 0, 0, 0.72) 100%);
 }
 .situation__inner {
   position: relative;
@@ -538,12 +533,11 @@ onUnmounted(() => {
 }
 .situation__eyebrow {
   font-family: var(--font-mono);
-  letter-spacing: 0.3em;
+  letter-spacing: 0.28em;
   font-size: 0.9rem;
   color: var(--color-ink-strong);
   opacity: 0.85;
   margin: 0;
-  animation: sit-in 0.5s var(--ease-out, ease-out) both;
 }
 .situation__context {
   color: var(--color-ink-strong);
@@ -553,7 +547,6 @@ onUnmounted(() => {
   max-width: 34ch;
   margin: 0;
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.8);
-  animation: sit-in 0.5s var(--ease-out, ease-out) 0.03s both;
 }
 .situation__task {
   font-family: var(--font-retro);
@@ -561,52 +554,21 @@ onUnmounted(() => {
   line-height: 1.04;
   letter-spacing: 0.02em;
   color: var(--color-primary);
-  text-shadow:
-    var(--glow-soft),
-    0 2px 18px rgba(0, 0, 0, 0.85);
+  text-shadow: var(--glow-soft), 0 2px 18px rgba(0, 0, 0, 0.85);
   margin: 0;
-  animation: sit-in 0.55s var(--ease-out, ease-out) 0.05s both;
 }
-.situation__lines {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.situation__lines li {
-  color: var(--color-ink-strong);
-  font-size: clamp(1.25rem, 2.8vw, 1.8rem);
-  line-height: 1.4;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.8);
-  animation: sit-in 0.5s var(--ease-out, ease-out) both;
-  animation-delay: calc(0.15s + var(--i) * 0.07s);
-}
-.situation__time {
-  color: var(--color-primary);
+.situation__gate {
   font-family: var(--font-mono);
   font-size: 1rem;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  color: var(--mode-accent, var(--color-primary));
   margin: 0;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85);
-  animation: sit-in 0.5s var(--ease-out, ease-out) 0.35s both;
 }
 .situation__go {
-  margin-top: 0.6rem;
-  animation: sit-in 0.5s var(--ease-out, ease-out) 0.45s both;
+  margin-top: 0.4rem;
 }
-@keyframes sit-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .situation__bg {
-    animation: none;
-  }
-}
+
 /* ---------- COUNTDOWN ---------- */
 .countdown {
   height: 100%;
@@ -628,6 +590,7 @@ onUnmounted(() => {
   letter-spacing: 0.06em;
   color: var(--color-ink-strong);
   margin: 0;
+  text-align: center;
 }
 .countdown__num {
   font-family: var(--font-retro);
@@ -644,7 +607,7 @@ onUnmounted(() => {
   }
 }
 
-/* ---------- HANDOFF (svar → motivering) ---------- */
+/* ---------- HANDOFF ---------- */
 .handoff {
   height: 100%;
   display: flex;
@@ -659,7 +622,6 @@ onUnmounted(() => {
   letter-spacing: 0.12em;
   color: var(--color-primary);
   margin: 0;
-  animation: sit-in 0.4s var(--ease-out, ease-out) both;
 }
 .handoff__check {
   color: var(--color-lag2, #7ad14f);
@@ -670,7 +632,6 @@ onUnmounted(() => {
   font-size: clamp(1.8rem, 5vw, 3rem);
   letter-spacing: 0.04em;
   margin: 0;
-  animation: sit-in 0.45s var(--ease-out, ease-out) 0.05s both;
 }
 .handoff__num {
   font-family: var(--font-retro);
@@ -681,7 +642,7 @@ onUnmounted(() => {
   animation: cd-pop 0.7s ease-out;
 }
 
-/* ---------- THINK ---------- */
+/* ---------- THINK (mik) ---------- */
 .think {
   position: relative;
   height: 100%;
@@ -699,10 +660,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  /* Levandegör: bilden sveper in (clip-path) och lever sedan långsamt (Ken Burns). */
-  animation:
-    ref-reveal 0.65s var(--ease-out, ease-out) both,
-    ken-burns 26s ease-in-out 0.65s infinite alternate;
+  animation: ref-reveal 0.65s var(--ease-out, ease-out) both, ken-burns 26s ease-in-out 0.65s infinite alternate;
 }
 @keyframes ref-reveal {
   from {
@@ -754,9 +712,6 @@ onUnmounted(() => {
   border-color: var(--color-danger, #ff5a5a);
   animation: blink 0.5s steps(2, start) infinite;
 }
-.tp1 .think__header {
-  padding-top: 8vh;
-}
 .think__live {
   position: relative;
   flex: 1;
@@ -768,7 +723,6 @@ onUnmounted(() => {
   justify-content: center;
   gap: 0.9rem;
 }
-/* Block-pill: SVARA (block 1) vs MOTIVERA (block 2) — lugn signal om vilket steg. */
 .think__block {
   font-family: var(--font-mono);
   letter-spacing: 0.22em;
@@ -782,7 +736,6 @@ onUnmounted(() => {
 .think__block--reason {
   color: var(--color-primary);
 }
-/* Framväxande tänk-högt-text — stor och centrerad (linjerar med Utmana experten). */
 .think__transcript {
   font-size: clamp(1.8rem, 3.6vw, 2.8rem);
   line-height: 1.4;
@@ -850,13 +803,15 @@ onUnmounted(() => {
 }
 
 /* ---------- GUESS (fermi) ---------- */
-.guess {
+.guess,
+.choice {
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.guess__card {
+.guess__card,
+.choice__card {
   width: min(92%, 40ch);
   padding: 1.6rem 1.8rem;
   border-radius: var(--radius, 8px);
@@ -893,88 +848,99 @@ onUnmounted(() => {
   opacity: 0.7;
 }
 
-/* ---------- ANALYS ---------- */
-.analys {
-  position: relative;
+/* ---------- CHOICE (fermi ja/nej) ---------- */
+.choice__q {
+  font-family: var(--font-retro);
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  color: var(--color-primary);
+  margin: 0 0 1.4rem;
+}
+.choice__btns {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+.choice__btn {
+  min-width: 7ch;
+  font-size: 1.5rem;
+  padding: 0.5em 1.4em;
+}
+
+/* ---------- VÄGER ---------- */
+.vager {
   height: 100%;
-  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
-  padding-top: 0.8rem;
-}
-.analys__bg {
-  position: absolute;
-  inset: 0;
-  opacity: 0.12;
-  pointer-events: none;
-  display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  gap: 1.2rem;
 }
-.analys__strip {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  color: var(--color-ink-muted);
+.vager__label {
+  font-family: var(--font-retro);
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  letter-spacing: 0.1em;
+  color: var(--color-primary);
+  margin: 0;
+  animation: mic-pulse 1.6s ease-in-out infinite;
+}
+.vager__sub {
   font-family: var(--font-mono);
-  letter-spacing: 0.06em;
+  color: var(--color-ink-muted);
+  margin: 0;
 }
-.analys__dots {
+.vager__dots {
   display: inline-flex;
-  gap: 3px;
+  gap: 5px;
 }
-.analys__dots i {
-  width: 5px;
-  height: 5px;
+.vager__dots i {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--color-primary);
   animation: dot-blink 1s infinite;
 }
-.analys__dots i:nth-child(2) {
+.vager__dots i:nth-child(2) {
   animation-delay: 0.2s;
 }
-.analys__dots i:nth-child(3) {
+.vager__dots i:nth-child(3) {
   animation-delay: 0.4s;
 }
-.analys__skip {
-  background: none;
-  border: none;
-  color: var(--color-ink-muted);
-  font-size: 0.75rem;
-  cursor: pointer;
-  opacity: 0.5;
-  margin-left: 1rem;
-}
-/* Svagt eko av det gruppen sa medan enheten väger (ersätter ThinkingStream). */
-.analys__echo {
-  position: relative;
-  margin: 0 auto;
-  max-width: 28ch;
-  text-align: center;
-  color: var(--color-ink-muted);
-  font-family: var(--font-mono);
-  font-size: clamp(1rem, 2vw, 1.3rem);
-  line-height: 1.5;
-  opacity: 0.7;
-}
 
-/* ---------- REPLY ---------- */
-.reply {
+/* ---------- GATE ---------- */
+.gate {
   height: 100%;
-  min-height: 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 1.5rem;
+  gap: 1.3rem;
 }
-.reply__next {
-  align-self: center;
+.gate__verdict {
+  font-family: var(--font-retro);
+  font-size: clamp(2rem, 6vw, 3.4rem);
+  letter-spacing: 0.06em;
+  margin: 0;
+  text-align: center;
+  animation: sit-in 0.45s var(--ease-out, ease-out) both;
 }
-
+.gate--pass .gate__verdict {
+  color: var(--color-lag2, #7ad14f);
+}
+.gate--fail .gate__verdict {
+  color: var(--color-danger, #ff5a3c);
+}
+.gate__reply {
+  max-width: 40ch;
+}
+.gate__next {
+  margin-top: 0.3rem;
+}
+@keyframes sit-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
 @keyframes mic-pulse {
   50% {
     opacity: 0.4;
@@ -992,7 +958,8 @@ onUnmounted(() => {
 }
 @media (prefers-reduced-motion: reduce) {
   .think__mic,
-  .analys__dots i,
+  .vager__dots i,
+  .vager__label,
   .think__timer--warn,
   .countdown__num,
   .think__ref {
