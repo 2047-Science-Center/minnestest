@@ -30,6 +30,9 @@ export type Sfx =
   | 'waitping' // väntar på andra valvet
   | 'headset' // headset-aktivering (gör er redo)
   | 'positive' // positivt kvitto (sparsamt — bra besked)
+  | 'measure1' // fermi steg 1 — mät-ljud (våg landar)
+  | 'measure2' // fermi steg 2 — mät-ljud (räknare tickar)
+  | 'measure3' // fermi steg 3 — mät-ljud (tung press/berg)
 
 /**
  * Valfritt sampel-lager. Filnamn relativt public/Sound/sfx/. Av som standard
@@ -57,6 +60,9 @@ export const SAMPLE_FILES: Partial<Record<Sfx, string>> = {
   waitping: 'sfx-wait-ping.mp3',
   headset: 'sfx-headset.mp3',
   positive: 'sfx-positive.mp3',
+  measure1: 'sfx-measure-1.mp3',
+  measure2: 'sfx-measure-2.mp3',
+  measure3: 'sfx-measure-3.mp3',
 }
 
 class AudioEngine {
@@ -281,6 +287,30 @@ class AudioEngine {
         this.tone(659, now, 0.1, 'triangle', 0.16)
         this.tone(988, now + 0.09, 0.16, 'triangle', 0.16)
         break
+      // Fermi mät-ljud (syntes-fallback om samplet saknas) ---
+      case 'measure1': // våg som landar
+        this.sweep(300, 120, now, 0.18, 'sawtooth', 0.14)
+        this.tone(1320, now + 0.14, 0.04, 'square', 0.08)
+        break
+      case 'measure2': // räknare tickar upp
+        for (let i = 0; i < 6; i++) this.tone(900 + i * 60, now + i * 0.05, 0.03, 'square', 0.08)
+        break
+      case 'measure3': // tung press
+        this.sweep(140, 60, now, 0.3, 'sawtooth', 0.2)
+        this.tone(90, now + 0.26, 0.12, 'sine', 0.16)
+        break
+    }
+  }
+
+  /** Engångs-röstklipp (inspelad replik) — eget HTMLAudio, respekterar mute. */
+  cue(file: string, vol = 0.9): void {
+    if (this._muted) return
+    try {
+      const el = new Audio(import.meta.env.BASE_URL + 'Sound/' + file)
+      el.volume = Math.max(0, Math.min(1, vol))
+      void el.play().catch(() => {})
+    } catch {
+      /* ljud icke-kritiskt */
     }
   }
 

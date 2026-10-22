@@ -37,6 +37,14 @@ const MEDIA: Record<string, MediaEntry> = {
 
   // --- Flykt-referensbilder (§8) — placeholders tills flykt_*.jpg droppas.
   //     durationMs = latensmask-golv i analys-rutan. ---
+  // Övningsscen (testläge) — huset brinner. Genererad levandegör-bild.
+  flykt_ovning_eld: {
+    typ: 'image',
+    aspect: '16:9',
+    brief: 'Hem på natten upplyst orange av eld utanför fönstren, rökdis, halvpackad väska — brådska',
+    durationMs: 6000,
+    file: 'flykt_ovning_eld.png',
+  },
   flykt_1_packa: {
     typ: 'image',
     aspect: '16:9',

@@ -173,7 +173,7 @@ export const PRACTICE: Record<ExampleId, ExampleDef> = {
     type: 'flykt',
     configId: 'flykt-ovning',
     countdownFrom: 3,
-    steps: [{ key: 'flykt.ovning', referenceMedia: 'flykt_1_packa' }],
+    steps: [{ key: 'flykt.ovning', referenceMedia: 'flykt_ovning_eld' }],
   },
   'fermi-skrotbilar': {
     id: 'fermi-skrotbilar',
