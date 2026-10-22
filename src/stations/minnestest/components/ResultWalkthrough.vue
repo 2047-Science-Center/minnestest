@@ -77,7 +77,9 @@ watch(showSummary, (v) => {
           <div v-if="beat >= i" class="rw__row rw__in">
             <span class="rw__knamn ink-strong">{{ k.namn }}</span>
             <span class="rw__kpts">{{ k.poang }}<small>/10</small></span>
-            <p class="rw__kmot">{{ k.motivering }}</p>
+            <!-- Motiveringen visas under uppräkningen; fälls ihop vid totalen så
+                 hela ceremonin (kriterier + total + slutmening) ryms utan scroll. -->
+            <p v-if="!showSummary" class="rw__kmot">{{ k.motivering }}</p>
           </div>
         </template>
       </div>
@@ -117,8 +119,8 @@ watch(showSummary, (v) => {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  overflow: auto;
+  gap: 0.5rem;
+  overflow: hidden;
 }
 .rw__wait {
   flex: 1;
@@ -164,24 +166,24 @@ watch(showSummary, (v) => {
 .rw__rows {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.4rem;
 }
 .rw__row {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: baseline;
-  gap: 0.2rem 0.9rem;
+  gap: 0.1rem 0.9rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  padding-bottom: 0.55rem;
+  padding-bottom: 0.35rem;
 }
 .rw__knamn {
   font-family: var(--font-retro);
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   letter-spacing: 0.04em;
 }
 .rw__kpts {
   font-family: var(--font-retro);
-  font-size: 2rem;
+  font-size: 1.5rem;
   color: var(--acc);
   justify-self: end;
 }
@@ -194,7 +196,8 @@ watch(showSummary, (v) => {
   grid-column: 1 / -1;
   margin: 0;
   color: var(--color-ink-strong);
-  line-height: 1.45;
+  font-size: 0.92rem;
+  line-height: 1.35;
 }
 .rw__in {
   animation: rw-in 0.3s ease-out;
@@ -202,10 +205,10 @@ watch(showSummary, (v) => {
 .rw__summary {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.45rem;
   border-top: 2px solid var(--acc);
-  padding-top: 0.9rem;
-  margin-top: 0.2rem;
+  padding-top: 0.55rem;
+  margin-top: 0.1rem;
 }
 .rw__hero {
   display: flex;
@@ -214,7 +217,7 @@ watch(showSummary, (v) => {
 }
 .rw__poang {
   font-family: var(--font-retro);
-  font-size: clamp(3.4rem, 11vw, 5.6rem);
+  font-size: clamp(2.6rem, 8vw, 4rem);
   line-height: 0.9;
   color: var(--acc);
   text-shadow: 0 0 20px color-mix(in srgb, var(--acc) 55%, transparent);
@@ -226,29 +229,29 @@ watch(showSummary, (v) => {
 }
 .rw__mark {
   font-family: var(--font-retro);
-  font-size: 1.6rem;
+  font-size: 1.3rem;
   letter-spacing: 0.06em;
 }
 .rw__profil {
   color: var(--color-ink-muted);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 .rw__slut {
   color: var(--color-ink-strong);
-  font-size: clamp(1.15rem, 2.4vw, 1.6rem);
-  line-height: 1.5;
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  line-height: 1.4;
   margin: 0;
 }
 .rw__note {
   color: var(--acc);
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   letter-spacing: 0.04em;
   margin: 0;
 }
 .rw__btn {
   align-self: center;
-  margin-top: auto;
+  margin-top: 0.3rem;
 }
 @keyframes rw-in {
   from {
