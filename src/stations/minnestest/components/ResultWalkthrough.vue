@@ -101,7 +101,14 @@ function next(): void {
     return
   }
   beat.value += 1
-  audio.play(beat.value >= stepCount.value ? 'confirm' : 'blip')
+  if (beat.value >= stepCount.value) {
+    // Slutpoängen. Positivt kvitto (l9) bara vid ett verkligt bra skarpt besked
+    // — annars neutral bekräftelse. Hålls sparsamt.
+    const goodNews = !isTest.value && (store.final?.poang ?? 0) >= 7
+    audio.play(goodNews ? 'positive' : 'confirm')
+  } else {
+    audio.play('blip')
+  }
 }
 </script>
 

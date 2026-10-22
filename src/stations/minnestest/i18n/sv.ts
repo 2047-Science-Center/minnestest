@@ -36,6 +36,12 @@ export const sv: Record<string, string> = {
 
   // --- Incheckning ---
   'checkin.read': 'BAND AVLÄST // GRUPP {grupp} // {n} DELTAGARE',
+  // --- Bipp-start (identifiera dig i början) ---
+  'bipp.title': 'BIPPA DITT BAND',
+  'bipp.hint': 'Håll armbandet mot läsaren',
+  'bipp.skip': 'Fortsätt utan bipp ▸',
+  'bipp.identified': 'VÄLKOMMEN {name}',
+  'bipp.ok': 'band avläst',
 
   // --- Rollval ---
   'roleselect.title': 'VÄLJ DIN ROLL',

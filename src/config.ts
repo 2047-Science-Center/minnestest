@@ -17,7 +17,8 @@ export type RoleId = 'metodspecialist' | 'doktorand'
 export type ExampleId = 'flykt' | 'fermi-skrotbilar'
 export type ExampleType = 'flykt' | 'fermi'
 
-export const STATION_N = 0
+/** Minnestestet = station 2 i X&Y-kedjan (incheckning → st1 → st2 → reveal …). */
+export const STATION_N = 2
 
 export const config = {
   mode: 'pilot' as Mode,
@@ -45,9 +46,12 @@ export const config = {
     rate: 1.4,
   },
 
+  /** Drift-adresser. wsUrl tomt → BroadcastChannel (samma-dator-synk).
+   *  mqttUrl = broker för identitet/resultat/ljus (webbläsare → ws-lyssnare).
+   *  Överstyrs vid bygget med VITE_MQTT_URL. Inga hemligheter här. */
   production: {
     wsUrl: '',
-    mqttUrl: '',
+    mqttUrl: 'ws://127.0.0.1:9001',
   },
 } as const
 

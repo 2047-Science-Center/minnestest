@@ -29,6 +29,10 @@
   --font-retro: 'VT323', 'Courier New', ui-monospace, monospace;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
 
+  /* Rörelse: stark ease-out för UI (emil — de inbyggda är för veka). */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
   /* Global UI-skala: allt (text, knappar, paddingar i rem/em) växer med denna.
      1.5 = 50 % större för läsbarhet på håll i montern. Justera vid behov. */
   --ui-scale: 1.5;
@@ -190,11 +194,16 @@ body {
   cursor: pointer;
   box-shadow: var(--glow-soft);
   text-shadow: var(--glow-soft);
-  transition: background 0.12s ease;
+  transition: background 0.12s ease, transform 0.14s var(--ease-out);
 }
 
 .crt-button:hover:not(:disabled) {
   background: rgba(255, 149, 0, 0.12);
+}
+
+/* Tryck-feedback: knappen "lyssnar" (emil). Subtilt, snabbt. */
+.crt-button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .crt-button:disabled {

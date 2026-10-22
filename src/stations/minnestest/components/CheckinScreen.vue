@@ -1,45 +1,41 @@
 <script setup lang="ts">
-/** Incheckning (ruta 2): kort bekräftelse, auto-vidare (~2 s). Pilot: MockIdentity. */
-import { onMounted, onUnmounted } from 'vue'
-import { useI18n } from '@/station-kit/i18n'
-import { config } from '@/config'
+/**
+ * Incheckning / bipp-start (ruta 2). BIPPA DITT BAND — identifierar gruppen via
+ * identitetstjänsten (reader-initierad: läsaren → regi → station2/rfid →
+ * station2/identity). Faller ALLTID tillbaka på klick-igenom (mock-identitet)
+ * så stationen går att testa utan hårdvara. CRT-standard via BippStart.
+ */
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useMinnestestStore } from '../store/minnestestStore'
-import Teletype from '@/station-kit/components/Teletype.vue'
+import BippStart from '@/station-kit/components/BippStart.vue'
+import { audio } from '@/station-kit/audio/AudioEngine'
 
-const { t } = useI18n()
 const store = useMinnestestStore()
-let timer: ReturnType<typeof setTimeout> | null = null
+const identifiedName = ref<string | null>(null)
+let unsub: (() => void) | null = null
+let advanceTimer: ReturnType<typeof setTimeout> | null = null
+
+function proceed() {
+  if (advanceTimer) return
+  advanceTimer = setTimeout(() => store.checkinDone(), 50)
+}
 
 onMounted(() => {
-  timer = setTimeout(() => store.checkinDone(), config.checkinAutoMs)
+  unsub = store.listenIdentity((idn) => {
+    if (identifiedName.value) return // redan identifierad denna omgång
+    store.applyIdentity(idn)
+    identifiedName.value = idn.medlemmar[0]?.name ?? idn.grupp
+    audio.play('bipstart')
+    // Kort bekräftelse, sedan vidare.
+    advanceTimer = setTimeout(() => store.checkinDone(), 1100)
+  })
 })
 onUnmounted(() => {
-  if (timer) clearTimeout(timer)
+  unsub?.()
+  if (advanceTimer) clearTimeout(advanceTimer)
 })
 </script>
 
 <template>
-  <div class="checkin">
-    <Teletype
-      class="checkin__line ink-strong"
-      :text="t('checkin.read', { grupp: store.group.id, n: store.memberCount })"
-      :speed="28"
-    />
-  </div>
+  <BippStart :identified-name="identifiedName" @skip="proceed" />
 </template>
-
-<style scoped>
-.checkin {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-.checkin__line {
-  font-family: var(--font-retro);
-  font-size: 1.3rem;
-  letter-spacing: 0.1em;
-  color: var(--color-primary);
-}
-</style>

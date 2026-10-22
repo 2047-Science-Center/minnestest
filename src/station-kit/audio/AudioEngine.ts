@@ -1,5 +1,10 @@
 /**
- * Ljudmotor — SYNTETISERAD SFX via Web Audio (inga ljudfiler).
+ * Ljudmotor — SYNTETISERAD SFX via Web Audio, med VALFRITT sampel-lager.
+ *
+ * Standard: allt syntetiseras (inga ljudfiler). När de genererade ljudfilerna
+ * i public/Sound/sfx/ (se public/Sound/SFX-MANIFEST.md) finns: sätt
+ * SAMPLES_ENABLED = true — då spelas filen om den laddats, annars faller
+ * motorn tillbaka på samma händelses syntes (ljud är aldrig kritiskt).
  *
  * Kiosk-autoplay: AudioContext skapas låst och låses upp på första
  * användargesten (attract-/"tryck för att börja"-skärmen). Global mute + volym.
@@ -13,6 +18,46 @@ export type Sfx =
   | 'hatch' // lucka-tänd-blip
   | 'win' // vinst-fanfar
   | 'boot' // boot-sekvens
+  | 'lockin' // lås in bud/pris (tyngre än confirm)
+  | 'nobuy' // ingen köper luckan
+  | 'popup' // popup/ruta slår upp
+  | 'tick' // nedräkningstick
+  | 'tickfinal' // sista tick (3-2-1-nu)
+  | 'live' // övergång träning -> skarpt
+  | 'stamp' // stämpel (livsviktig resurs markeras)
+  | 'idlewarn' // "återställs strax"-varning
+  | 'bipstart' // band bippat (bipp-start)
+  | 'waitping' // väntar på andra valvet
+  | 'headset' // headset-aktivering (gör er redo)
+  | 'positive' // positivt kvitto (sparsamt — bra besked)
+
+/**
+ * Valfritt sampel-lager. Filnamn relativt public/Sound/sfx/. Av som standard
+ * (filerna är inte genererade än) — se SFX-MANIFEST.md. 'blip' ligger medvetet
+ * UTANFÖR: den avfyras per tecken i Teletype och ska alltid vara syntes
+ * (noll latens, ingen upprepad sampel-känsla).
+ */
+export const SAMPLES_ENABLED = true
+export const SAMPLE_FILES: Partial<Record<Sfx, string>> = {
+  boot: 'sfx-boot.mp3',
+  hatch: 'sfx-hatch-open.mp3',
+  confirm: 'sfx-confirm.mp3',
+  lockin: 'sfx-lock-in.mp3',
+  deny: 'sfx-deny.mp3',
+  win: 'sfx-win-fanfare.mp3',
+  nobuy: 'sfx-nobuy.mp3',
+  popup: 'sfx-popup.mp3',
+  tick: 'sfx-tick.mp3',
+  tickfinal: 'sfx-tick-final.mp3',
+  live: 'sfx-phase-live.mp3',
+  render: 'sfx-render.mp3',
+  stamp: 'sfx-stamp.mp3',
+  idlewarn: 'sfx-idle-warn.mp3',
+  bipstart: 'sfx-bip-start.mp3',
+  waitping: 'sfx-wait-ping.mp3',
+  headset: 'sfx-headset.mp3',
+  positive: 'sfx-positive.mp3',
+}
 
 class AudioEngine {
   private ctx: AudioContext | null = null
@@ -20,6 +65,7 @@ class AudioEngine {
   private _muted = false
   private _volume = 0.6
   private unlocked = false
+  private buffers = new Map<Sfx, AudioBuffer>()
 
   get muted(): boolean {
     return this._muted
@@ -34,6 +80,8 @@ class AudioEngine {
     if (this.master) {
       this.master.gain.value = muted ? 0 : this._volume
     }
+    // Musikbädden går utanför Web Audio-mastern → mute den separat.
+    if (this.bedEl) this.fadeTo(this.bedEl, muted ? 0 : this.bedTarget, 300)
   }
 
   toggleMuted(): boolean {
@@ -66,6 +114,36 @@ class AudioEngine {
       this.unlocked = false
     }
     void this.ctx?.resume()
+    if (this.unlocked && SAMPLES_ENABLED) void this.loadSamples()
+  }
+
+  /** Förladda sampel; allt som saknas/fallerar ignoreras (syntes tar över). */
+  private async loadSamples(): Promise<void> {
+    const ctx = this.ctx
+    if (!ctx) return
+    const base = import.meta.env.BASE_URL
+    await Promise.all(
+      (Object.entries(SAMPLE_FILES) as [Sfx, string][]).map(async ([sfx, file]) => {
+        try {
+          const res = await fetch(`${base}Sound/sfx/${file}`)
+          if (!res.ok) return
+          const buf = await ctx.decodeAudioData(await res.arrayBuffer())
+          this.buffers.set(sfx, buf)
+        } catch {
+          // saknas/ogiltig fil -> syntes
+        }
+      }),
+    )
+  }
+
+  private playBuffer(sfx: Sfx): boolean {
+    const buf = this.buffers.get(sfx)
+    if (!buf || !this.ctx || !this.master) return false
+    const src = this.ctx.createBufferSource()
+    src.buffer = buf
+    src.connect(this.master)
+    src.start()
+    return true
   }
 
   /** En enkel ton med envelope. */
@@ -122,6 +200,7 @@ class AudioEngine {
 
   play(sfx: Sfx): void {
     if (this._muted || !this.ctx || !this.master) return
+    if (this.playBuffer(sfx)) return
     const now = this.ctx.currentTime
     switch (sfx) {
       case 'blip':
@@ -152,7 +231,114 @@ class AudioEngine {
         this.sweep(80, 520, now, 0.5, 'sawtooth', 0.1)
         this.tone(660, now + 0.55, 0.08, 'square', 0.12)
         break
+      // --- Nya semantiska händelser: samma palett (fyrkant/triangel, kvint +
+      // durtriad, korta bärnstensblippar), bara fler roller. ---
+      case 'lockin': // två tunga fyrkantsslag, kvint upp: "klack-KLACK"
+        this.tone(330, now, 0.07, 'square', 0.16)
+        this.tone(495, now + 0.07, 0.14, 'square', 0.16)
+        this.tone(990, now + 0.07, 0.18, 'triangle', 0.1)
+        break
+      case 'nobuy': // mjuk sjunkande kvint, ingen aggressivitet
+        this.tone(440, now, 0.12, 'triangle', 0.16)
+        this.tone(294, now + 0.11, 0.22, 'triangle', 0.16)
+        break
+      case 'popup': // litet uppåtsvep + blipp
+        this.sweep(500, 900, now, 0.09, 'square', 0.06)
+        this.tone(1320, now + 0.08, 0.05, 'square', 0.08)
+        break
+      case 'tick':
+        this.tone(880, now, 0.04, 'square', 0.1)
+        break
+      case 'tickfinal':
+        this.tone(1320, now, 0.22, 'square', 0.14)
+        this.tone(660, now, 0.22, 'triangle', 0.12)
+        break
+      case 'live': // boot-svepet fast högre + durtriad: "nu är det på riktigt"
+        this.sweep(120, 780, now, 0.45, 'sawtooth', 0.1)
+        this.tone(523, now + 0.5, 0.1, 'triangle', 0.18)
+        this.tone(784, now + 0.58, 0.1, 'triangle', 0.18)
+        this.tone(1047, now + 0.66, 0.3, 'triangle', 0.2)
+        break
+      case 'stamp': // dov stämpel + kort klick
+        this.sweep(160, 70, now, 0.12, 'sawtooth', 0.2)
+        this.tone(1100, now + 0.02, 0.03, 'square', 0.08)
+        break
+      case 'idlewarn': // två milda upprepade blippar
+        this.tone(660, now, 0.1, 'triangle', 0.14)
+        this.tone(660, now + 0.22, 0.1, 'triangle', 0.14)
+        break
+      case 'bipstart': // kort uppåt-kvitt: "bippat"
+        this.tone(740, now, 0.05, 'square', 0.12)
+        this.tone(1110, now + 0.05, 0.1, 'triangle', 0.14)
+        break
+      case 'waitping': // en mild ensam ping
+        this.tone(880, now, 0.12, 'triangle', 0.12)
+        break
+      case 'headset': // mjukt uppåtsvep "gör er redo"
+        this.sweep(420, 760, now, 0.22, 'triangle', 0.1)
+        break
+      case 'positive': // kort durtreklang, varmt kvitto
+        this.tone(659, now, 0.1, 'triangle', 0.16)
+        this.tone(988, now + 0.09, 0.16, 'triangle', 0.16)
+        break
     }
+  }
+
+  // --- Musikbädd (loop, t.ex. tutorial-loopen) — eget HTMLAudio-lager med fade,
+  //     separat från SFX-syntesen. Icke-kritiskt: fallerar tyst. ---
+  private bedEl: HTMLAudioElement | null = null
+  private bedRaf = 0
+  private bedTarget = 0.22
+
+  /** Starta/byt en looppad musikbädd (fil relativt public/Sound/) med in-fade. */
+  bed(file: string, vol = 0.22, fadeMs = 1500): void {
+    this.bedTarget = vol
+    if (this._muted) return
+    try {
+      const url = import.meta.env.BASE_URL + 'Sound/' + file
+      if (this.bedEl && this.bedEl.dataset.file === file) return // redan igång
+      this.bedStop(600)
+      const el = new Audio(url)
+      el.loop = true
+      el.volume = 0
+      el.dataset.file = file
+      void el.play().catch(() => {})
+      this.bedEl = el
+      this.fadeBed(vol, fadeMs)
+    } catch {
+      /* ljud icke-kritiskt */
+    }
+  }
+
+  /** Tona ut och stoppa musikbädden. */
+  bedStop(fadeMs = 1200): void {
+    const el = this.bedEl
+    this.bedEl = null
+    if (!el) return
+    this.fadeTo(el, 0, fadeMs, () => {
+      try {
+        el.pause()
+      } catch {
+        /* noop */
+      }
+    })
+  }
+
+  private fadeBed(to: number, ms: number): void {
+    if (this.bedEl) this.fadeTo(this.bedEl, this._muted ? 0 : to, ms)
+  }
+
+  private fadeTo(el: HTMLAudioElement, to: number, ms: number, done?: () => void): void {
+    cancelAnimationFrame(this.bedRaf)
+    const from = el.volume
+    const t0 = performance.now()
+    const step = (t: number) => {
+      const k = Math.min(1, (t - t0) / ms)
+      el.volume = Math.max(0, Math.min(1, from + (to - from) * k))
+      if (k < 1) this.bedRaf = requestAnimationFrame(step)
+      else done?.()
+    }
+    this.bedRaf = requestAnimationFrame(step)
   }
 }
 

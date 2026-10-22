@@ -10,6 +10,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, shallowRef } from 'vue'
 
 import { createAdapters, type Adapters } from '@/station-kit/adapters'
+import type { IdentityGroup } from '@/station-kit/adapters/identity/Identity'
 import type {
   FinalResult,
   PriorStep,
@@ -79,16 +80,22 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   }
 
   // --- Övergångar ---
-  async function begin(): Promise<void> {
+  /** Attract → incheckning. Bipp-start-vyn lyssnar sedan på en riktig bipp
+   *  (reader-initierad via regi) eller låter operatören klicka sig vidare. */
+  function begin(): void {
     phase.value = 'checkin'
-    try {
-      const idn = await adapters.value?.identity.tag(`band-${group.value.id}`)
-      if (idn && idn.medlemmar.length >= group.value.members.length) {
-        group.value = { id: idn.grupp, members: idn.medlemmar.map((m) => m.name ?? m.band_id) }
-      }
-    } catch {
-      /* pilot: behåll PILOT_GROUP */
+  }
+
+  /** En riktig bipp kom in (station2/identity) → uppdatera gruppen. */
+  function applyIdentity(idn: IdentityGroup): void {
+    if (idn.medlemmar.length) {
+      group.value = { id: idn.grupp, members: idn.medlemmar.map((m) => m.name ?? m.band_id) }
     }
+  }
+
+  /** Lyssna på inkommande identiteter (hårdvaru-bipp). No-op i pilot (mock). */
+  function listenIdentity(cb: (idn: IdentityGroup) => void): () => void {
+    return adapters.value?.identity.listen(cb) ?? (() => {})
   }
 
   function checkinDone(): void {
@@ -338,6 +345,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     memberCount,
     init,
     begin,
+    applyIdentity,
+    listenIdentity,
     checkinDone,
     chooseRole,
     tutorialDone,
