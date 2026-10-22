@@ -122,7 +122,9 @@ const lastTranscript = ref('')
 const showManualFallback = computed(() => !capture.supported || Boolean(capture.error.value))
 
 function collectedAnswer(): string {
-  return [capture.finalTranscript.value.trim(), manualText.value.trim()].filter(Boolean).join(' ').trim()
+  // transcript = final + interim → fångar även det som ännu inte finaliserats av
+  // Web Speech (annars tappas det sista som sades och /assess får tomt → "tyst").
+  return [capture.transcript.value.trim(), manualText.value.trim()].filter(Boolean).join(' ').trim()
 }
 
 function clearTimers(): void {
@@ -191,8 +193,9 @@ function lockAnswer(): void {
   if (isFermi.value) {
     store.setGuess(Number.isFinite(guessValue.value) ? guessValue.value : null)
   } else {
-    answerText.value = collectedAnswer()
+    // Stoppa FÖRST (fäller in sista interim i final), läs sedan.
     capture.stop()
+    answerText.value = collectedAnswer()
   }
   startHandoff()
 }
@@ -250,8 +253,8 @@ function micDoneAction(): void {
 
 function finishReason(): void {
   if (sub.value !== 'reason') return
-  reasonText.value = collectedAnswer()
   capture.stop()
+  reasonText.value = collectedAnswer()
   enterAnalys()
 }
 
