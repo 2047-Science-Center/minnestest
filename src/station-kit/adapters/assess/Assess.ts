@@ -25,6 +25,9 @@ export interface PriorStep {
   dimensioner?: Dimensioner
   kvitterat?: string
   miss?: string
+  /** Gruppens tänk-högt-transkript för steget (svar + motivering) — modellen
+   *  poängsätter de tre kriterierna ur detta i final-compose. */
+  transcript?: string
 }
 
 export interface StepInput {
@@ -68,11 +71,23 @@ export interface StepAssessment {
   osakert: string[]
 }
 
+/** Ett bedömt kriterium i slut-ceremonin (modellen sätter poäng 1–10 + motivering). */
+export interface Kriterium {
+  namn: string
+  poang: number
+  motivering: string
+}
+
 export interface FinalResult {
   poang: number
   profil: string
   markering: string
-  sammanfattning: string
+  /** De tre resonemangs-kriterierna, var för sig 1–10 + kort motivering. */
+  kriterier: Kriterium[]
+  /** EN mening som rösten läser upp (positiv, profilering, lyfter en grupp-egenskap). */
+  slutmening: string
+  /** Bakåtkompatibel — ersatt av slutmening/kriterier. */
+  sammanfattning?: string
   /** Fermi: verklig svensk siffra som payoff efter landningen. */
   facit?: string
 }

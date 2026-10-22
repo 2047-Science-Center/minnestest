@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bandSum, strongestDimension, computeFinal } from './scoring.js'
+import { bandSum, strongestDimension, computeFinal, totalFromKriterier } from './scoring.js'
 
 /** Minimal config-fixtur (samma form som configs/minnestest.json → scoring/profiles/scale). */
 const cfg = {
@@ -97,5 +97,29 @@ describe('strongestDimension', () => {
     // system och resurs lika (1 vardera) → system vinner (tidigare i ordningen)
     const prior = [step('Godkänd', { system: true, resurs: true })]
     expect(strongestDimension(prior)).toBe('system')
+  })
+})
+
+describe('totalFromKriterier', () => {
+  const k = (poang) => ({ namn: 'X', poang, motivering: '' })
+
+  it('total = avrundat medel av kriterie-poängen, markering ur scale', () => {
+    const r = totalFromKriterier([k(8), k(7), k(9)], cfg) // medel 8
+    expect(r.poang).toBe(8)
+    expect(r.markering).toBe('Såg hela systemet')
+  })
+
+  it('avrundar medelvärdet (7,67 → 8)', () => {
+    expect(totalFromKriterier([k(7), k(8), k(8)], cfg).poang).toBe(8)
+  })
+
+  it('klampar varje kriterium och totalen till 1–10', () => {
+    expect(totalFromKriterier([k(0), k(-3), k(20)], cfg).poang).toBe(4) // 1,1,10 → medel 4
+    expect(totalFromKriterier([k(12), k(99), k(50)], cfg).poang).toBe(10)
+  })
+
+  it('tomma/ogiltiga kriterier → neutral 5, ingen krasch', () => {
+    expect(totalFromKriterier([], cfg).poang).toBe(5)
+    expect(totalFromKriterier([{ namn: 'X', poang: 'abc' }], cfg).poang).toBe(5)
   })
 })

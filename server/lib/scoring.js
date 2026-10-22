@@ -15,6 +15,25 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n))
 }
 
+/**
+ * Slutpoäng ur modellens tre kriterie-poäng (1–10 var). TOTAL = avrundat medel,
+ * klampat 1–10. Markering ur cfg.scale. Delas av båda exempel (flykt/fermi) —
+ * modellen sätter kriterie-poängen, KODEN gör totalen så UI och siffra aldrig glider.
+ * @param {Array<{namn?:string, poang:number, motivering?:string}>} kriterier
+ * @param {object} cfg  laddad station-config (scale)
+ * @returns {{poang:number, markering:string}}
+ */
+export function totalFromKriterier(kriterier, cfg) {
+  const poeng = (kriterier || [])
+    .map((k) => Number(k && k.poang))
+    .filter((n) => Number.isFinite(n))
+    .map((n) => clamp(Math.round(n), 1, 10))
+  const mean = poeng.length ? poeng.reduce((a, b) => a + b, 0) / poeng.length : 5
+  const poang = clamp(Math.round(mean), 1, 10)
+  const mark = (cfg && cfg.scale ? cfg.scale : []).find((m) => poang >= m.min && poang <= m.max)
+  return { poang, markering: mark ? mark.label : '' }
+}
+
 /** Summera stegens band → råpoäng (Svag/Godkänd/Stark → bandPoints). */
 export function bandSum(bands, bandPoints) {
   return bands.reduce((s, b) => s + (bandPoints[b] ?? 0), 0)

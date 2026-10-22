@@ -166,6 +166,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
         dimensioner: a.dimensioner,
         kvitterat: a.kvitterat,
         miss: a.miss,
+        // Gruppens svar+motivering — modellen poängsätter kriterierna ur detta i final.
+        transcript: transcripts.value[i],
       })
     }
     return out
@@ -235,16 +237,17 @@ export const useMinnestestStore = defineStore('minnestest', () => {
       stepIndex.value += 1
       phase.value = 'step'
     } else if (mode.value === 'test') {
-      // Övningen klar → visa poäng-genomgången i testläge (ingen final-compose).
+      // Övningen klar → samma 3-kriterie-ceremoni som skarpt, men utan att sända resultat.
       phase.value = 'practiceReveal'
+      await composeFinal(false)
     } else {
       phase.value = 'vaultBack'
       await composeFinal()
     }
   }
 
-  // --- Final-compose ---
-  async function composeFinal(): Promise<void> {
+  // --- Final-compose (3-kriterie-ceremoni; siffran räknas i gatewayen ur kriterierna) ---
+  async function composeFinal(send = true): Promise<void> {
     composing.value = true
     try {
       final.value = await adapters.value!.assess.composeFinal(
@@ -263,7 +266,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
       final.value = fallbackFinal()
     } finally {
       composing.value = false
-      sendResult()
+      if (send) sendResult()
     }
   }
 
@@ -368,10 +371,5 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
 // --- Rena hjälpare ---
 function fallbackFinal(): FinalResult {
-  const store = useMinnestestStore()
-  const ds = store.assessments
-    .map((a) => a?.delpoang)
-    .filter((n): n is number => typeof n === 'number')
-  const poang = ds.length ? Math.max(1, Math.min(10, Math.round(ds.reduce((s, n) => s + n, 0) / ds.length))) : 5
-  return { poang, profil: '—', markering: '', sammanfattning: t('npc.error') }
+  return { poang: 5, profil: '—', markering: '', kriterier: [], slutmening: t('npc.error') }
 }

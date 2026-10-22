@@ -17,8 +17,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { computeFinal } from './lib/scoring.js'
-import { fermiTraff, fermiDelpoang, fermiFinal } from './lib/fermiScoring.js'
+import { totalFromKriterier } from './lib/scoring.js'
+import { fermiTraff, fermiDelpoang } from './lib/fermiScoring.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // Ladda server/.env oavsett från vilken katalog gatewayen startas (default-
@@ -105,6 +105,22 @@ function coerceFermiStep(obj) {
   }
 }
 
+/** Tvinga modellens tre kriterie-poäng till kontraktsformen (max 3, poäng 1–10). */
+function coerceKriterier(raw) {
+  const arr = Array.isArray(raw) ? raw : []
+  return arr.slice(0, 3).map((k) => {
+    const o = k ?? {}
+    let poang = Math.round(Number(o.poang))
+    if (!Number.isFinite(poang)) poang = 5
+    poang = Math.max(1, Math.min(10, poang))
+    return {
+      namn: String(o.namn ?? o.kriterium ?? '').trim(),
+      poang,
+      motivering: String(o.motivering ?? '').trim(),
+    }
+  })
+}
+
 // --- Prompt-byggare (injicerar steg/roll/exempel/prior i input) ---
 function priorBlock(prior) {
   if (!prior || prior.length === 0) return '(inga tidigare steg)'
@@ -143,16 +159,26 @@ function buildStepInput(input) {
   return lines.join('\n')
 }
 
-function buildComposeInput(input, computed) {
+/** Gruppens svar + motivering per steg (det modellen poängsätter kriterierna ur). */
+function stegTranscriptBlock(prior) {
+  if (!prior || prior.length === 0) return '(inga steg)'
+  return prior
+    .map((p) => {
+      const g = p.guess == null ? '' : `  [gissning: ${p.guess}]`
+      return `STEG ${p.step}${g}:\n"""\n${(p.transcript || '').trim() || '(tyst — inget sades)'}\n"""`
+    })
+    .join('\n\n')
+}
+
+/** Final-compose-input: modellen poängsätter de tre kriterierna ur transkripten.
+ *  Delas av flykt & fermi — kriterie-NAMNEN står i respektive compose-prompt. */
+function buildComposeInput(input) {
   return [
     `ROLL: ${input.role}`,
     `EXEMPEL: ${input.example}`,
-    `FASTSTÄLLD POÄNG: ${computed.poang} (skala 1–10)`,
-    `FASTSTÄLLD PROFIL: ${computed.profil}`,
-    `MARKERING: ${computed.markering}`,
-    `STEGENS BEDÖMNINGAR:`,
-    priorBlock(input.prior),
-    `Svara med ett enda giltigt JSON-objekt: { "sammanfattning": "..." }`,
+    `GRUPPENS SVAR + MOTIVERING PER STEG:`,
+    stegTranscriptBlock(input.prior),
+    `Poängsätt de TRE kriterierna var för sig 1–10, skriv en kort motivering per kriterium, välj en profil och EN slutmening som rösten läser upp. Svara med ett enda giltigt JSON-objekt enligt schemat.`,
   ].join('\n')
 }
 
@@ -181,18 +207,6 @@ function buildFermiStepInput(input) {
     (input.transcript || '').trim() || '(tyst — inget sades)',
     `"""`,
     `Svara med ett enda giltigt JSON-objekt enligt schemat.`,
-  ].join('\n')
-}
-
-function buildFermiComposeInput(input, computed) {
-  return [
-    `ROLL: ${input.role}`,
-    `FASTSTÄLLD POÄNG: ${computed.poang} (skala 1–10)`,
-    `FASTSTÄLLD PROFIL: ${computed.profil}`,
-    `MARKERING: ${computed.markering}`,
-    `STEGENS BEDÖMNINGAR:`,
-    fermiPriorBlock(input.prior),
-    `Svara med ett enda giltigt JSON-objekt: { "sammanfattning": "..." }`,
   ].join('\n')
 }
 
@@ -226,28 +240,24 @@ app.post('/assess', async (req, res) => {
     const type = cfg.type || 'flykt'
 
     if (input.step === 'final') {
-      // Slutpoäng deterministiskt i KOD; modellen skriver bara sammanfattning.
-      const computed = type === 'fermi' ? fermiFinal(input.prior || [], cfg) : computeFinal(input.prior || [], cfg)
-      const composeInput =
-        type === 'fermi' ? buildFermiComposeInput(input, computed) : buildComposeInput(input, computed)
-      let sammanfattning = ''
+      // Slut-ceremoni: MODELLEN poängsätter de tre resonemangs-kriterierna (1–10
+      // var) + motivering + profil + slutmening ur transkripten; KODEN räknar
+      // TOTAL = avrundat medel (clamp 1–10) + markering, så UI och siffra aldrig glider.
+      let kriterier = []
+      let profil = '—'
+      let slutmening = ''
       try {
-        const out = await callModelJson(model, cfg._compose, composeInput, cfg)
-        sammanfattning = String(out.sammanfattning ?? '')
+        const out = await callModelJson(model, cfg._compose, buildComposeInput(input), cfg)
+        kriterier = coerceKriterier(out.kriterier)
+        profil = String(out.profil ?? '—').trim() || '—'
+        slutmening = String(out.slutmening ?? out.sammanfattning ?? '').trim()
       } catch (err) {
-        console.warn('[gateway] compose-text misslyckades, tom sammanfattning:', err.message)
+        console.warn('[gateway] compose misslyckades, fallback-ceremoni:', err.message)
       }
-      const final = {
-        poang: computed.poang,
-        profil: computed.profil,
-        markering: computed.markering,
-        sammanfattning,
-      }
+      const { poang, markering } = totalFromKriterier(kriterier, cfg)
+      const final = { poang, profil, markering, kriterier, slutmening }
       if (type === 'fermi' && cfg.facit) final.facit = cfg.facit
-      return res.json({
-        final,
-        meta: { model, latencyMs: Date.now() - started, strongest: computed.strongest },
-      })
+      return res.json({ final, meta: { model, latencyMs: Date.now() - started } })
     }
 
     // Per-steg

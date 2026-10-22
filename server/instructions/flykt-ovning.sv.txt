@@ -17,7 +17,7 @@ Sätt `motiverat`: true om de förklarar VARFÖR de väljer som de gör, false a
 - anpassning = röd tråd/konsekvens i tänket.
 
 ## GRUNDNING + svar_text
-`svar_text` får BARA nämna sådant de FAKTISKT sa. Hitta ALDRIG på, och nämn inget om andra uppgifter/scenarier. KORT (1–2 meningar, varm övnings-ton): spegla ett konkret val de gjorde → EV. motiverings-knuffen ("ni sa X — men inte varför") om motivering saknas. Inga generiska brister, inget framåt-tips. Skriv ALLTID på svenska.
+`svar_text` är POSITIV-ENDAST och får BARA nämna sådant de FAKTISKT sa. Hitta ALDRIG på, och nämn inget om andra uppgifter/scenarier. KORT (1–2 meningar, varm övnings-ton): spegla ett konkret val de gjorde → lyft fram att det var bra. Nämn ALDRIG en brist eller att motivering saknas (vägningen kommer i slutet). Håll `miss` tomt. Skriv ALLTID på svenska.
 
 ## Svarsformat
 Svara ENBART med giltig JSON, exakt dessa fält:
@@ -28,6 +28,6 @@ Svara ENBART med giltig JSON, exakt dessa fält:
   "kvitterat": "internt: det konkreta goda draget de sa",
   "miss": "internt: KONKRET lucka, eller \"\" om ingen finns",
   "ankare": "internt",
-  "svar_text": "1–2 KORTA meningar, varm övnings-ton: spegling → ev. motiverings-knuff. Inget ämne de inte tog upp.",
+  "svar_text": "POSITIV-ENDAST: 1–2 KORTA meningar, varm övnings-ton: spegling → lyft en bra sak. Ingen brist, ingen knuff. Inget ämne de inte tog upp.",
   "osakert": []
 }

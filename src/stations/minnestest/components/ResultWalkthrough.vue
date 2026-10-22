@@ -1,13 +1,12 @@
 <script setup lang="ts">
 /**
- * Resultat-genomgång — stegar EN beat i taget genom hur slutpoängen byggdes:
- * per steg (träff × resonemang → delpoäng, resp. band + motivering), sedan
- * medel/summa → röd tråd → slutpoäng + profil. Poängen visas aldrig naken; den
- * byggs fram. Återanvänds i TVÅ lägen (speglar Förhandlingens ResultWalkthrough):
- *   mode="test" → efter övningen (knappen leder vidare till skarpt)
- *   mode="live" → efter det skarpa spelet (knappen → utcheckning)
+ * Slut-ceremoni — poängen visas ALDRIG naken. Enheten räknar upp de TRE
+ * resonemangs-kriterierna ett i taget (namn + poäng/10 + kort motivering), sedan
+ * TOTALEN på 1–10-skalan (markering + profil), sedan EN uppläst slutmening.
+ * Samma ceremoni efter övningen (mode="test", cyan) och efter skarpt (mode="live",
+ * bärnsten). Kriterie-poängen sätts av modellen; totalen räknas i gatewayen.
  */
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import { useMinnestestStore } from '../store/minnestestStore'
@@ -18,163 +17,97 @@ const emit = defineEmits<{ finish: [] }>()
 const { t } = useI18n()
 const store = useMinnestestStore()
 
-const isFermi = computed(() => store.exampleType === 'fermi')
 const isTest = computed(() => props.mode === 'test')
-const accent = computed(() => (props.mode === 'test' ? '#35e0d0' : '#ff9500'))
+const accent = computed(() => (isTest.value ? '#35e0d0' : '#ff9500'))
 
-// Bandpoäng (flykt) — stabila stationskonstanter (speglar configs/flykt.json).
-const BAND_POINTS: Record<string, number> = { Svag: 1, Godkänd: 2, Stark: 3 }
+const kriterier = computed(() => store.final?.kriterier ?? [])
+const poang = computed(() => store.final?.poang ?? 0)
+const markering = computed(() => store.final?.markering ?? '')
+const profil = computed(() => store.final?.profil ?? '')
+const slutmening = computed(() => store.final?.slutmening ?? '')
 
-interface Row {
-  label: string
-  points: number
-  traff?: string
-  niva?: string
-  band?: string
-  motiverat?: boolean
+// --- Beats: ett kriterium i taget, sedan total + slutmening ---
+const beat = ref(0)
+const nCrit = computed(() => kriterier.value.length)
+const showSummary = computed(() => store.final != null && beat.value >= nCrit.value)
+
+let spoken = false
+function speakOnce(): void {
+  if (spoken) return
+  spoken = true
+  if (slutmening.value) void store.speakNpc(slutmening.value)
 }
 
-const rows = computed<Row[]>(() =>
-  store.steps.map((_s, i) => {
-    const a = store.assessments[i]
-    const label = isTest.value
-      ? t(isFermi.value ? 'reveal.fermi.ovning' : 'reveal.flykt.ovning')
-      : isFermi.value
-        ? t(`reveal.fermi.steg${i + 1}`)
-        : t(`reveal.flykt.steg${i + 1}`)
-    if (isFermi.value) {
-      return {
-        label,
-        points: a?.delpoang ?? 0,
-        traff: a?.traff ? t(`reveal.traff.${a.traff}`) : '—',
-        niva: a?.resonemang_niva ?? '—',
-      }
-    }
-    return {
-      label,
-      points: BAND_POINTS[a?.band ?? 'Godkänd'] ?? 0,
-      band: a?.band ?? '—',
-      motiverat: a?.motiverat ?? false,
-    }
-  }),
-)
-
-const summary = computed(() => {
-  const pts = rows.value.map((r) => r.points)
-  const sum = pts.reduce((s, n) => s + n, 0)
-  const mean = pts.length ? Math.round(sum / pts.length) : 0
-  const bonus = isFermi.value
-    ? store.assessments[2]?.traff === 'prick'
-      ? 1
-      : 0
-    : store.assessments.filter((a) => a?.dimensioner?.anpassning).length >= 2
-      ? 1
-      : 0
-  return {
-    base: sum,
-    mean,
-    bonus,
-    poang: store.final?.poang ?? 0,
-    markering: store.final?.markering ?? '',
-    profil: store.final?.profil ?? '',
-    sammanfattning: store.final?.sammanfattning ?? '',
-  }
-})
-
-// Övnings-reveal (test): visa mekaniken för det ENA steget, ingen slutpoäng.
-const testResult = computed(() => {
-  const r = rows.value[0]
-  return isFermi.value
-    ? { big: String(r?.points ?? 0), label: t('reveal.delpoang') }
-    : { big: r?.band ?? '—', label: 'band' }
-})
-
-// --- Beats: ett steg i taget, sedan slutsummering ---
-const beat = ref(0)
-const stepCount = computed(() => store.steps.length)
-const showSummary = computed(() => beat.value >= stepCount.value)
-const atEnd = showSummary
-
 function next(): void {
+  if (!store.final) return
   if (showSummary.value) {
     emit('finish')
     return
   }
   beat.value += 1
-  if (beat.value >= stepCount.value) {
-    // Slutpoängen. Positivt kvitto (l9) bara vid ett verkligt bra skarpt besked
-    // — annars neutral bekräftelse. Hålls sparsamt.
-    const goodNews = !isTest.value && (store.final?.poang ?? 0) >= 7
-    audio.play(goodNews ? 'positive' : 'confirm')
+  if (beat.value >= nCrit.value) {
+    audio.play(!isTest.value && poang.value >= 7 ? 'positive' : 'confirm')
+    speakOnce()
   } else {
     audio.play('blip')
   }
 }
+
+// Om final kommer in medan vi redan står på "summary-beat" (t.ex. 0 kriterier) → läs ändå.
+watch(showSummary, (v) => {
+  if (v) speakOnce()
+})
 </script>
 
 <template>
   <div class="rw" :style="{ '--acc': accent }">
-    <h2 class="rw__title ink-strong">{{ t('reveal.title') }}</h2>
-    <p class="rw__caption">{{ showSummary ? t('reveal.caption_final') : t('reveal.caption_steps') }}</p>
-
-    <div class="rw__rows">
-      <template v-for="(r, i) in rows" :key="i">
-        <div v-if="beat >= i" class="rw__row rw__in">
-          <span class="rw__step"><template v-if="!isTest">Steg {{ i + 1 }} · </template>{{ r.label }}</span>
-          <template v-if="isFermi">
-            <span class="rw__tag">{{ r.traff }}</span>
-            <span class="rw__x">×</span>
-            <span class="rw__tag">{{ r.niva }}</span>
-          </template>
-          <template v-else>
-            <span class="rw__tag">{{ r.band }}</span>
-            <span class="rw__mot" :class="{ 'rw__mot--no': !r.motiverat }">{{ r.motiverat ? '✓ varför' : '✗ varför' }}</span>
-          </template>
-          <span class="rw__pts">{{ isFermi ? r.points : '+' + r.points }}</span>
-        </div>
-      </template>
+    <!-- Väntar på enhetens vägning (compose pågår) -->
+    <div v-if="!store.final" class="rw__wait">
+      <span class="rw__wait-txt">{{ t('reveal.composing') }}</span>
+      <span class="rw__dots"><i /><i /><i /></span>
     </div>
 
-    <transition name="rw-fade">
-      <!-- SKARPT: full summering (medel/summa → röd tråd → slutpoäng + profil) -->
-      <div v-if="showSummary && !isTest" class="rw__summary">
-        <div class="rw__calc">
-          <span class="rw__calc-label">{{ isFermi ? t('reveal.medel') : t('reveal.summa') }}</span>
-          <span class="rw__calc-val">{{ isFermi ? summary.mean : summary.base }}</span>
-        </div>
-        <div v-if="summary.bonus" class="rw__calc rw__calc--bonus">
-          <span class="rw__calc-label">{{ t('reveal.rodtrad') }}</span>
-          <span class="rw__calc-note">{{ isFermi ? t('reveal.rodtrad_fermi') : t('reveal.rodtrad_flykt') }}</span>
-          <span class="rw__calc-val">+{{ summary.bonus }}</span>
-        </div>
+    <template v-else>
+      <h2 class="rw__title ink-strong">{{ t('reveal.title') }}</h2>
+      <p class="rw__caption">{{ showSummary ? t('reveal.caption_total') : t('reveal.caption_criteria') }}</p>
 
-        <div class="rw__hero">
-          <span class="rw__poang">{{ summary.poang }}</span>
-          <div class="rw__herometa">
-            <span class="rw__mark ink-strong">{{ summary.markering }}</span>
-            <span class="rw__profil">{{ t('verdict.profile_label', { roll: store.roleId ? t(`role.${store.roleId}.upper`) : '', profil: summary.profil }) }}</span>
+      <!-- Kriterierna räknas upp ett i taget -->
+      <div class="rw__rows">
+        <template v-for="(k, i) in kriterier" :key="i">
+          <div v-if="beat >= i" class="rw__row rw__in">
+            <span class="rw__knamn ink-strong">{{ k.namn }}</span>
+            <span class="rw__kpts">{{ k.poang }}<small>/10</small></span>
+            <p class="rw__kmot">{{ k.motivering }}</p>
           </div>
-        </div>
-        <p v-if="summary.sammanfattning" class="rw__sum">{{ summary.sammanfattning }}</p>
+        </template>
       </div>
 
-      <!-- ÖVNING: lär ut mekaniken, ingen slutpoäng -->
-      <div v-else-if="showSummary && isTest" class="rw__summary">
-        <div class="rw__hero">
-          <span class="rw__poang">{{ testResult.big }}</span>
-          <div class="rw__herometa">
-            <span class="rw__mark ink-strong">{{ testResult.label }}</span>
-            <span class="rw__profil">{{ isFermi ? t('reveal.test_note_fermi') : t('reveal.test_note_flykt') }}</span>
+      <!-- Total + profil + slutmening -->
+      <transition name="rw-fade">
+        <div v-if="showSummary" class="rw__summary">
+          <div class="rw__hero">
+            <span class="rw__poang">{{ poang }}<small>/10</small></span>
+            <div class="rw__herometa">
+              <span v-if="markering" class="rw__mark ink-strong">{{ markering }}</span>
+              <span v-if="profil" class="rw__profil">{{
+                t('verdict.profile_label', {
+                  roll: store.roleId ? t(`role.${store.roleId}.upper`) : '',
+                  profil,
+                })
+              }}</span>
+            </div>
           </div>
+          <p v-if="slutmening" class="rw__slut">{{ slutmening }}</p>
+          <p v-if="isTest" class="rw__note">{{ t('reveal.test_note') }}</p>
         </div>
-      </div>
-    </transition>
+      </transition>
 
-    <button class="crt-button crt-button--strong rw__btn" @click="next">
-      <template v-if="!atEnd">{{ t('reveal.next') }} ▸</template>
-      <template v-else-if="props.mode === 'test'">{{ t('reveal.to_live') }} ▸</template>
-      <template v-else>{{ t('reveal.to_checkout') }} ▸</template>
-    </button>
+      <button class="crt-button crt-button--strong rw__btn" @click="next">
+        <template v-if="!showSummary">{{ t('reveal.next') }} ▸</template>
+        <template v-else-if="isTest">{{ t('reveal.to_live') }} ▸</template>
+        <template v-else>{{ t('reveal.to_checkout') }} ▸</template>
+      </button>
+    </template>
   </div>
 </template>
 
@@ -186,6 +119,36 @@ function next(): void {
   flex-direction: column;
   gap: 0.9rem;
   overflow: auto;
+}
+.rw__wait {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+}
+.rw__wait-txt {
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  color: var(--color-ink-muted);
+}
+.rw__dots {
+  display: inline-flex;
+  gap: 4px;
+}
+.rw__dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--acc);
+  animation: rw-blink 1s infinite;
+}
+.rw__dots i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.rw__dots i:nth-child(3) {
+  animation-delay: 0.4s;
 }
 .rw__title {
   font-family: var(--font-retro);
@@ -201,39 +164,37 @@ function next(): void {
 .rw__rows {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.7rem;
 }
 .rw__row {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  flex-wrap: wrap;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  padding-bottom: 0.5rem;
-  font-size: 1.05rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 0.2rem 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding-bottom: 0.55rem;
 }
-.rw__step {
-  min-width: 15ch;
-  color: var(--color-ink-muted);
-}
-.rw__tag {
-  color: var(--color-ink-strong);
-}
-.rw__x {
-  color: var(--color-ink-muted);
-}
-.rw__mot {
-  color: var(--acc);
-  font-size: 0.9rem;
-}
-.rw__mot--no {
-  color: var(--color-danger, #ff5a3c);
-}
-.rw__pts {
-  margin-left: auto;
+.rw__knamn {
   font-family: var(--font-retro);
-  font-size: 1.9rem;
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+}
+.rw__kpts {
+  font-family: var(--font-retro);
+  font-size: 2rem;
   color: var(--acc);
+  justify-self: end;
+}
+.rw__kpts small,
+.rw__poang small {
+  font-size: 0.5em;
+  color: var(--color-ink-muted);
+}
+.rw__kmot {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-ink-strong);
+  line-height: 1.45;
 }
 .rw__in {
   animation: rw-in 0.3s ease-out;
@@ -241,40 +202,19 @@ function next(): void {
 .rw__summary {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.7rem;
   border-top: 2px solid var(--acc);
-  padding-top: 0.8rem;
-}
-.rw__calc {
-  display: flex;
-  align-items: baseline;
-  gap: 0.8rem;
-}
-.rw__calc-label {
-  color: var(--color-ink-muted);
-}
-.rw__calc-note {
-  color: var(--color-ink-muted);
-  font-size: 0.9rem;
-}
-.rw__calc-val {
-  margin-left: auto;
-  font-family: var(--font-retro);
-  font-size: 1.6rem;
-  color: var(--color-ink-strong);
-}
-.rw__calc--bonus .rw__calc-label {
-  color: var(--acc);
+  padding-top: 0.9rem;
+  margin-top: 0.2rem;
 }
 .rw__hero {
   display: flex;
   align-items: center;
   gap: 1.2rem;
-  margin-top: 0.3rem;
 }
 .rw__poang {
   font-family: var(--font-retro);
-  font-size: clamp(3.4rem, 10vw, 5.4rem);
+  font-size: clamp(3.4rem, 11vw, 5.6rem);
   line-height: 0.9;
   color: var(--acc);
   text-shadow: 0 0 20px color-mix(in srgb, var(--acc) 55%, transparent);
@@ -286,17 +226,24 @@ function next(): void {
 }
 .rw__mark {
   font-family: var(--font-retro);
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   letter-spacing: 0.06em;
-  color: var(--color-ink-strong);
 }
 .rw__profil {
   color: var(--color-ink-muted);
   font-size: 0.95rem;
 }
-.rw__sum {
+.rw__slut {
   color: var(--color-ink-strong);
+  font-size: clamp(1.15rem, 2.4vw, 1.6rem);
   line-height: 1.5;
+  margin: 0;
+}
+.rw__note {
+  color: var(--acc);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
   margin: 0;
 }
 .rw__btn {
@@ -309,6 +256,11 @@ function next(): void {
     transform: translateY(6px);
   }
 }
+@keyframes rw-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
 .rw-fade-enter-active {
   transition: opacity 0.4s ease;
 }
@@ -317,6 +269,7 @@ function next(): void {
 }
 @media (prefers-reduced-motion: reduce) {
   .rw__in,
+  .rw__dots i,
   .rw-fade-enter-active {
     animation: none;
     transition: none;

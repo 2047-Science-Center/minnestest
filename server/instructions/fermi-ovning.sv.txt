@@ -16,7 +16,7 @@ DIN UPPGIFT: klassa RESONEMANGSNIVÅN ur transkriptet och sätt de fem dimension
 - osakerhet = hanterar osäkerhet ärligt (spann, "ungefär").
 
 ## GRUNDNING + svar_text
-`svar_text` får BARA nämna sådant de FAKTISKT sa om HUR de tänkte. Hitta ALDRIG på. Nämn INGET om just den här frågans "rätta" facit, om bilar/vikt, eller om andra uppgifter. KORT (1–2 meningar, varm övnings-ton): kvittera ett konkret drag i deras resonemang → peka EV. på en konkret lucka kopplad till en dimension (t.ex. "ni stämde aldrig av om det var rimligt"). Finns ingen konkret lucka → ren uppmuntran. Inga generiska brister, inget framåt-tips. Skriv ALLTID på svenska.
+`svar_text` är POSITIV-ENDAST och får BARA nämna sådant de FAKTISKT sa om HUR de tänkte. Hitta ALDRIG på. Nämn INGET om just den här frågans "rätta" facit, om bilar/vikt, eller om andra uppgifter. KORT (1–2 meningar, varm övnings-ton): kvittera ett konkret drag i deras resonemang → lyft fram att det var bra. Nämn ALDRIG en lucka eller ett led de hoppade över (vägningen kommer i slutet). Håll `miss` tomt. Skriv ALLTID på svenska.
 
 ## Svarsformat
 Svara ENBART med giltig JSON, exakt dessa fält:
@@ -26,6 +26,6 @@ Svara ENBART med giltig JSON, exakt dessa fält:
   "kvitterat": "internt: det konkreta goda draget i deras resonemang",
   "miss": "internt: KONKRET lucka kopplad till en dimension, eller \"\" om ingen finns",
   "ankare": "internt",
-  "svar_text": "1–2 KORTA meningar, varm övnings-ton: kvittera HUR de tänkte → ev. en konkret lucka. Inga generiska brister, inget ämne de inte tog upp.",
+  "svar_text": "POSITIV-ENDAST: 1–2 KORTA meningar, varm övnings-ton: kvittera HUR de tänkte → lyft en bra sak. Ingen lucka, ingen knuff. Inget ämne de inte tog upp.",
   "osakert": []
 }
