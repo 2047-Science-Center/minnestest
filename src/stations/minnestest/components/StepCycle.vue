@@ -23,7 +23,7 @@ import { media } from '../media/manifest'
 const { t } = useI18n()
 const store = useMinnestestStore()
 
-type Sub = 'situation' | 'countdown' | 'answer' | 'reason' | 'analys' | 'reply'
+type Sub = 'situation' | 'countdown' | 'answer' | 'handoff' | 'reason' | 'analys' | 'reply'
 const sub = ref<Sub>('situation')
 
 const WINDOW_MS = config.stepSeconds * 1000
@@ -63,10 +63,17 @@ const micPhase = computed(() => isReason.value || (isAnswer.value && !isFermi.va
 const micLine = computed(() => (isReason.value ? reasonLine.value : t('step.answer_line')))
 const micDone = computed(() => (isReason.value ? t('step.we_are_done') : t('step.answer_done')))
 const blockBadge = computed(() => (isReason.value ? t('step.block_reason') : t('step.block_answer')))
+// Block-fråga: block 1 = den rena svars-frågan (task), block 2 = motiverings-frågan.
+const reasonQ = computed(() => (isFermi.value ? t('step.reason_q_fermi') : t('step.reason_q')))
+const blockQuestion = computed(() => (isReason.value ? reasonQ.value : task.value))
 
 // --- countdown ---
 const countdownN = ref(3)
 let countdownTimer: ReturnType<typeof setInterval> | null = null
+
+// --- handoff (mellanskärm svar → motivering) ---
+const handoffN = ref(3)
+let handoffTimer: ReturnType<typeof setTimeout> | null = null
 
 // --- mik-block (answer/reason) tid ---
 const warned = ref(false)
@@ -101,7 +108,8 @@ function collectedAnswer(): string {
 function clearTimers(): void {
   if (countdownTimer) clearInterval(countdownTimer)
   if (dwellTimer) clearTimeout(dwellTimer)
-  countdownTimer = dwellTimer = null
+  if (handoffTimer) clearTimeout(handoffTimer)
+  countdownTimer = dwellTimer = handoffTimer = null
 }
 
 // --- Beats ---
@@ -150,7 +158,7 @@ function startAnswer(): void {
   capture.start()
 }
 
-/** Lås svaret → BLOCK 2 (motiveringen). */
+/** Lås svaret → mellanskärm → BLOCK 2 (motiveringen). */
 function lockAnswer(): void {
   if (isFermi.value) {
     store.setGuess(Number.isFinite(guessValue.value) ? guessValue.value : null)
@@ -158,11 +166,31 @@ function lockAnswer(): void {
     answerText.value = collectedAnswer()
     capture.stop()
   }
-  startReason()
+  startHandoff()
 }
 function skipGuess(): void {
   store.setGuess(null)
-  startReason()
+  startHandoff()
+}
+
+/** Mellanskärm: svaret klart → kort 3-2-1 → motiveringen. Tydlig separation så det
+ *  är glasklart att först gör man det ena, sen det andra. */
+function startHandoff(): void {
+  sub.value = 'handoff'
+  handoffN.value = 3
+  audio.play('confirm')
+  const tick = (): void => {
+    if (sub.value !== 'handoff') return
+    handoffN.value -= 1
+    if (handoffN.value > 0) {
+      audio.play('blip')
+      handoffTimer = setTimeout(tick, 800)
+    } else {
+      handoffTimer = null
+      startReason()
+    }
+  }
+  handoffTimer = setTimeout(tick, 800)
 }
 
 /** BLOCK 2 — MOTIVERINGEN (det som vägs). Alltid mik. */
@@ -303,6 +331,13 @@ onUnmounted(() => {
       <p class="countdown__cue">{{ task }}</p>
     </section>
 
+    <!-- HANDOFF — svaret klart, nu motiveringen (tydlig separation + 3-2-1) -->
+    <section v-else-if="sub === 'handoff'" class="handoff">
+      <p class="handoff__done"><span class="handoff__check">✓</span> {{ t('step.handoff_title') }}</p>
+      <p class="handoff__next ink-strong">{{ t('step.handoff_sub') }}</p>
+      <div class="handoff__num" :key="handoffN">{{ handoffN }}</div>
+    </section>
+
     <!-- ANSWER (fermi) — SVARET FÖRST: sifferväljaren -->
     <section v-else-if="sub === 'answer' && isFermi" class="guess">
       <div class="guess__card amber-frame">
@@ -335,7 +370,7 @@ onUnmounted(() => {
       <header class="think__header">
         <div class="think__q">
           <p class="think__context">{{ context }}</p>
-          <h2 class="think__task ink-strong">{{ task }}</h2>
+          <h2 class="think__task ink-strong">{{ blockQuestion }}</h2>
         </div>
         <div class="think__timer" :class="{ 'think__timer--warn': warn }">{{ timeLabel }}</div>
       </header>
@@ -515,6 +550,43 @@ onUnmounted(() => {
     transform: scale(1.35);
     opacity: 0.4;
   }
+}
+
+/* ---------- HANDOFF (svar → motivering) ---------- */
+.handoff {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  text-align: center;
+}
+.handoff__done {
+  font-family: var(--font-mono);
+  letter-spacing: 0.12em;
+  color: var(--color-primary);
+  margin: 0;
+  animation: sit-in 0.4s var(--ease-out, ease-out) both;
+}
+.handoff__check {
+  color: var(--color-lag2, #7ad14f);
+  font-weight: 700;
+}
+.handoff__next {
+  font-family: var(--font-retro);
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  letter-spacing: 0.04em;
+  margin: 0;
+  animation: sit-in 0.45s var(--ease-out, ease-out) 0.05s both;
+}
+.handoff__num {
+  font-family: var(--font-retro);
+  font-size: clamp(4rem, 14vw, 8rem);
+  line-height: 1;
+  color: var(--color-primary);
+  text-shadow: var(--glow-strong);
+  animation: cd-pop 0.7s ease-out;
 }
 
 /* ---------- THINK ---------- */

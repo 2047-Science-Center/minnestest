@@ -114,10 +114,15 @@ export const sv: Record<string, string> = {
   'step.talk_now': 'PRATA NU',
   'step.we_are_done': 'VI ÄR KLARA',
   // Tvåblocks-ordning: svaret först, motiveringen sedan.
-  'step.answer_line': 'Säg kort vad ni väljer — beslutet.',
+  'step.answer_line': 'Säg allt ni tar med er — rabbla upp.',
   'step.answer_done': 'KLART',
   'step.block_answer': 'SVARA',
   'step.block_reason': 'MOTIVERA',
+  // Block 2-fråga (motivering) + mellanskärmen mellan svar och motivering.
+  'step.reason_q': 'Varför valde ni så?',
+  'step.reason_q_fermi': 'Hur kom ni fram till det?',
+  'step.handoff_title': 'Svaret klart',
+  'step.handoff_sub': 'Nu: motivera varför',
   'step.warn': '10 SEK KVAR',
   'step.time_up': 'TIDEN UTE',
   'step.analyzing': 'Enheten väger ert svar …',
@@ -216,10 +221,10 @@ export const sv: Record<string, string> = {
   'fermi.ovning.popup3': '',
   // Doktorand — snabb motiverings-övning (brand).
   'flykt.ovning.context': 'Övning — säg vad OCH varför.',
-  'flykt.ovning.task': 'Det brinner. Ni har 30 sekunder. Vad tar ni med er — och varför?',
+  'flykt.ovning.task': 'Det brinner. Ni har 30 sekunder. Vad tar ni med er?',
   'flykt.ovning.time': 'Ni har en minut. Säg varför ni väljer så.',
   'flykt.ovning.popup1': 'Det här är en ÖVNING — inga riktiga poäng.',
-  'flykt.ovning.popup2': 'Säg vad ni tar med er OCH varför.',
+  'flykt.ovning.popup2': 'Först säger ni VAD ni tar med er — sen VARFÖR.',
   'flykt.ovning.popup3': '',
 
   // --- NPC-svar ---
