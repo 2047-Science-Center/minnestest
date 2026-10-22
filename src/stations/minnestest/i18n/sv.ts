@@ -97,12 +97,12 @@ export const sv: Record<string, string> = {
 
   // --- Steg-cykel (generellt) ---
   // Poäng-regeln: syns i varje stegs pop-up + nedräkning → omöjlig att missa.
-  'step.rule_title': '🎙 TÄNK HÖGT TILLSAMMANS',
+  'step.rule_title': 'TÄNK HÖGT TILLSAMMANS',
   'step.rule_body': 'Ni bedöms på HUR ni resonerar — inte på om svaret blir rätt.',
   'step.talk_motiv': 'Prata högt — och säg varför ni väljer så.',
   'step.why_line': 'Säg VARFÖR ni väljer som ni gör. Det är motiveringen som räknas.',
-  'step.mic_active': '🎙 MIK AKTIV',
-  'step.talk_now': '🎙 PRATA NU',
+  'step.mic_active': 'MIK AKTIV',
+  'step.talk_now': 'PRATA NU',
   'step.we_are_done': 'VI ÄR KLARA',
   'step.warn': '10 SEK KVAR',
   'step.time_up': 'TIDEN UTE',

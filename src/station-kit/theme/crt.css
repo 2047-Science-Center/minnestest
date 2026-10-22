@@ -68,9 +68,12 @@ body {
 body {
   background: var(--color-background);
   color: var(--color-primary);
-  font-family: var(--font-retro);
+  /* Läsbarhet (linjerar med Utmana experten): brödtext i läsbar mono, inte VT323.
+     Retro-rubriker/siffror sätter själva var(--font-retro) där det ska vara kvar. */
+  font-family: var(--font-mono);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  text-shadow: var(--glow-soft);
+  /* Ingen glöd på brödtext — glöden bärs av retro-rubriker och .ink-strong. */
 }
 
 /* Nyckelrader / betoning i vitt (som referensen). */

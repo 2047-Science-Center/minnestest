@@ -57,18 +57,22 @@ const { t } = useI18n()
 .npc__head {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.7rem;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.6rem;
 }
 .npc__prefix {
   font-family: var(--font-retro);
   letter-spacing: 0.15em;
   color: var(--color-primary);
 }
+/* Svaret centrerat och i läsbar mono (läsbarhetslinjering). */
 .npc__text {
-  font-size: clamp(1.25rem, 2.4vw, 1.7rem);
+  font-family: var(--font-mono);
+  font-size: clamp(1.35rem, 2.8vw, 2rem);
   line-height: 1.55;
   color: var(--color-ink-strong);
+  text-align: center;
 }
 .npc__wave {
   display: inline-flex;

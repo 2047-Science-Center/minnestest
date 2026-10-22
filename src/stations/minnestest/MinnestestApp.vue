@@ -43,7 +43,7 @@ onMounted(() => store.init())
 </script>
 
 <template>
-  <div class="app">
+  <div class="app" :data-mode="store.mode">
     <!-- Attract tills första gesten/band-bipp -->
     <div v-if="store.phase === 'attract'" class="app__single">
       <CrtScreen>
@@ -106,6 +106,26 @@ onMounted(() => store.init())
   flex-direction: column;
   padding: 0.6rem;
   gap: 0.5rem;
+  /* Lägesaccent: skarpt = bärnsten, övning = cyan. Hela skärmen kan hänga på den. */
+  --mode-accent: var(--color-primary);
+}
+.app[data-mode='test'] {
+  --mode-accent: var(--color-lag1);
+}
+.app__single {
+  position: relative;
+}
+/* Tunn lägesremsa högst upp — lugn signal om övning vs skarpt. */
+.app__single::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--mode-accent);
+  opacity: 0.5;
+  border-radius: 3px;
+  z-index: 5;
+  pointer-events: none;
 }
 .app__chrome {
   display: flex;

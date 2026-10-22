@@ -18,6 +18,7 @@ import MediaSlot from './MediaSlot.vue'
 import NpcReply from './NpcReply.vue'
 import ThinkingStream from './ThinkingStream.vue'
 import NumberStepper from './NumberStepper.vue'
+import MicIcon from './MicIcon.vue'
 import { media } from '../media/manifest'
 
 const { t } = useI18n()
@@ -294,7 +295,7 @@ onUnmounted(() => {
             <li v-for="(l, i) in popupLines" :key="i">{{ l }}</li>
           </ul>
           <div class="popup__rule">
-            <span class="popup__rule-title">{{ t('step.rule_title') }}</span>
+            <span class="popup__rule-title"><MicIcon /> {{ t('step.rule_title') }}</span>
             <span class="popup__rule-body">{{ t('step.rule_body') }}</span>
           </div>
           <p class="popup__time">{{ timeLine }}</p>
@@ -309,7 +310,7 @@ onUnmounted(() => {
     <section v-else-if="sub === 'countdown'" class="countdown">
       <p class="countdown__label">{{ t('countdown.prefix') }} …</p>
       <div class="countdown__num" :key="countdownN">{{ countdownN }}</div>
-      <p class="countdown__cue">{{ t('step.rule_title') }}</p>
+      <p class="countdown__cue"><MicIcon /> {{ t('step.rule_title') }}</p>
     </section>
 
     <!-- THINK — uppgiften stor och tydlig HELA TIDEN -->
@@ -325,8 +326,8 @@ onUnmounted(() => {
       </header>
 
       <div v-if="bPhase === 1" class="think__prompt">
-        <span class="think__mic">{{ t('step.talk_now') }}</span>
-        <p class="think__why">{{ whyLine }}</p>
+        <span class="think__cta ink-strong"><MicIcon /> {{ t('step.talk_now') }}</span>
+        <p class="think__why-big">{{ whyLine }}</p>
       </div>
 
       <template v-else>
@@ -336,7 +337,7 @@ onUnmounted(() => {
           </p>
         </div>
         <div class="think__foot">
-          <span class="think__mic">{{ t('step.mic_active') }}</span>
+          <span class="think__mic"><MicIcon /> {{ t('step.mic_active') }}</span>
           <span class="think__why">{{ whyLine }}</span>
           <span v-if="warn && !timeUp" class="think__warn">{{ t('step.warn') }}</span>
           <span v-if="timeUp" class="think__warn">{{ t('step.time_up') }}</span>
@@ -619,10 +620,31 @@ onUnmounted(() => {
 }
 .think__prompt {
   position: relative;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  align-items: flex-start;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.think__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--font-retro);
+  font-size: clamp(2.4rem, 7vw, 4rem);
+  letter-spacing: 0.06em;
+  color: var(--color-primary);
+  animation: mic-pulse 1.3s ease-in-out infinite;
+}
+.think__why-big {
+  margin: 0;
+  max-width: 26ch;
+  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+  line-height: 1.4;
+  color: var(--color-ink-strong);
 }
 .think__live {
   position: relative;
@@ -630,17 +652,22 @@ onUnmounted(() => {
   min-height: 0;
   overflow: auto;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
 }
+/* Framväxande tänk-högt-text — stor och centrerad (linjerar med Utmana experten). */
 .think__transcript {
-  font-size: clamp(1.15rem, 2.2vw, 1.55rem);
-  line-height: 1.5;
+  font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+  line-height: 1.4;
   color: var(--color-ink-strong);
-  margin: 0;
+  margin: 0 auto;
+  max-width: 24ch;
+  text-align: center;
 }
 .think__transcript--empty {
   color: var(--color-ink-muted);
   font-style: italic;
+  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
 }
 .think__foot {
   position: relative;
@@ -650,6 +677,9 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 .think__mic {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
   font-family: var(--font-mono);
   color: var(--color-primary);
   white-space: nowrap;
