@@ -26,8 +26,9 @@ export type Phase =
   | 'attract'
   | 'checkin'
   | 'roleSelect'
-  | 'tutorial'
+  | 'pilotIntro'
   | 'vaultOut'
+  | 'goLive'
   | 'intro'
   | 'step'
   | 'practiceReveal'
@@ -104,22 +105,28 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   function chooseRole(id: RoleId): void {
     roleId.value = id
-    mode.value = 'test' // övning först
+    mode.value = 'test' // övning först → hela UI:t blått
     audio.play('confirm')
-    phase.value = 'tutorial'
+    // Rollval leder direkt till pilot-introt (blått/orange-signalen), ingen coach-vägg.
+    phase.value = 'pilotIntro'
   }
 
-  /** Coach-intro (tutorial) klar → in i ÖVNINGEN (testläge, ett steg). */
-  function tutorialDone(): void {
+  /** Pilot-intro klar → in i ÖVNINGEN (testläge, ett steg). */
+  function pilotIntroDone(): void {
     resetRound()
     phase.value = 'step'
   }
 
-  /** Övningen klar → växla till SKARPT och kör den riktiga uppgiften. */
+  /** Övningen klar → tydlig "nu på riktigt"-nedräkning innan den skarpa rundan. */
   function startLive(): void {
     mode.value = 'live'
     resetRound()
-    // Fermi har en intro-skärm (hela frågan) i skarpt läge; flykt går rakt in.
+    phase.value = 'goLive'
+  }
+
+  /** Go-live-nedräkningen klar → kör den riktiga uppgiften.
+   *  Fermi har en intro-skärm (hela frågan) i skarpt läge; flykt går rakt in. */
+  function goLiveDone(): void {
     phase.value = example.value.introMedia ? 'intro' : 'step'
   }
 
@@ -353,8 +360,9 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     listenIdentity,
     checkinDone,
     chooseRole,
-    tutorialDone,
+    pilotIntroDone,
     startLive,
+    goLiveDone,
     vaultOutDone,
     introDone,
     setGuess,

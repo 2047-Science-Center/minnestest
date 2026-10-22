@@ -9,14 +9,13 @@ import { useI18n } from '@/station-kit/i18n'
 
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
 import AttractScreen from '@/station-kit/components/AttractScreen.vue'
-import MuteButton from '@/station-kit/components/MuteButton.vue'
+import ModeCountdown from '@/station-kit/components/ModeCountdown.vue'
 import MediaSlot from './components/MediaSlot.vue'
 
 import { useMinnestestStore } from './store/minnestestStore'
-import StatusBar from './components/StatusBar.vue'
 import CheckinScreen from './components/CheckinScreen.vue'
 import RoleSelect from './components/RoleSelect.vue'
-import CoachIntro from './components/CoachIntro.vue'
+import PilotIntro from './components/PilotIntro.vue'
 import VaultTransition from './components/VaultTransition.vue'
 import FermiIntro from './components/FermiIntro.vue'
 import StepCycle from './components/StepCycle.vue'
@@ -59,16 +58,16 @@ onMounted(() => store.init())
     </div>
 
     <template v-else>
-      <div class="app__chrome">
-        <StatusBar />
-        <MuteButton />
-      </div>
-
       <div class="app__single">
         <CrtScreen>
           <CheckinScreen v-if="store.phase === 'checkin'" />
           <RoleSelect v-else-if="store.phase === 'roleSelect'" />
-          <CoachIntro v-else-if="store.phase === 'tutorial'" @done="store.tutorialDone()" />
+          <PilotIntro v-else-if="store.phase === 'pilotIntro'" @done="store.pilotIntroDone()" />
+          <ModeCountdown
+            v-else-if="store.phase === 'goLive'"
+            :title="t('mode.golive_title')"
+            @done="store.goLiveDone()"
+          />
           <VaultTransition
             v-else-if="store.phase === 'vaultOut'"
             :lines="vaultOutLines"
@@ -106,35 +105,9 @@ onMounted(() => store.init())
   flex-direction: column;
   padding: 0.6rem;
   gap: 0.5rem;
-  /* Lägesaccent: skarpt = bärnsten, övning = cyan. Hela skärmen kan hänga på den. */
-  --mode-accent: var(--color-primary);
-}
-.app[data-mode='test'] {
-  --mode-accent: var(--color-lag1);
 }
 .app__single {
   position: relative;
-}
-/* Tunn lägesremsa högst upp — lugn signal om övning vs skarpt. */
-.app__single::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
-  background: var(--mode-accent);
-  opacity: 0.5;
-  border-radius: 3px;
-  z-index: 5;
-  pointer-events: none;
-}
-.app__chrome {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0 0.2rem;
-}
-.app__single {
   flex: 1;
   min-height: 0;
 }

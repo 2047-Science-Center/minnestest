@@ -95,6 +95,15 @@ export const sv: Record<string, string> = {
   'lage.ready': 'VI ÄR REDO',
   'countdown.prefix': 'Uppgiften börjar om',
 
+  // --- Läge: övning (blått) vs skarpt (orange) — speglar Förhandlingen ---
+  'mode.legend_tutorial': 'När skärmen är BLÅ övar vi',
+  'mode.legend_live': 'När den blir ORANGE kör vi på riktigt',
+  'mode.testomgang': 'ÖVNING',
+  'mode.practice_title': 'Nu övar vi först',
+  'mode.practice_sub': 'Vi tränar — inga poäng räknas än.',
+  'mode.practice_go': 'BÖRJA ÖVA',
+  'mode.golive_title': 'NU PÅ RIKTIGT',
+
   // --- Steg-cykel (generellt) ---
   // Poäng-regeln: syns i varje stegs pop-up + nedräkning → omöjlig att missa.
   'step.rule_title': 'TÄNK HÖGT TILLSAMMANS',
