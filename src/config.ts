@@ -44,7 +44,7 @@ export const config = {
    *  `rate` = uppspelningshastighet i klienten (pitch bevaras). */
   speak: {
     enabled: true,
-    rate: 0.7,
+    rate: 1.0,
   },
 
   /** Drift-adresser. wsUrl tomt → BroadcastChannel (samma-dator-synk).

@@ -285,24 +285,26 @@ function enterVager(): void {
   })
 }
 
-/** GATE — poängen landar mot tröskeln. PASS / FAIL. */
+/** GATE — spänningsriser bygger upp, poängen landar mot tröskeln. PASS / FAIL. */
 function enterGate(): void {
   sub.value = 'gate'
   const passed = store.lastPassed
   meterState.value = passed ? 'pass' : 'fail'
-  // Låt mätaren stå 0 en tick → animera upp mot poängen (width-transition).
   meterValue.value = 0
+  // Spännings-riser som bygger upp mot avgörandet (klassiskt "svaret är …").
+  audio.cue('sfx/sfx-riser.mp3', 0.9)
+  // Håll stapeln på 0 ett ögonblick (risern bygger) → klättra sedan mot poängen.
   gateTimer = setTimeout(() => {
     meterValue.value = store.lastPoang
-  }, 80)
-  // Resolve-ljud när stapeln landat (~1.1s travel).
+  }, 900)
+  // Avgörande-stinger när stapeln landat och risern toppar; NPC-kommentaren
+  // (+ vad som saknades vid fail) kommer EFTER avgörandet, inte över risern.
   gateTimer = setTimeout(() => {
     audio.play(passed ? 'win' : 'deny')
-  }, 1200)
-  // NPC läser kommentaren (+ vad som saknades vid fail).
-  const a = assessResult.value
-  const miss = passed ? '' : a?.saknades ? ` ${a.saknades}` : ''
-  void store.speakNpc(`${a?.kommentar ?? ''}${miss}`)
+    const a = assessResult.value
+    const miss = passed ? '' : a?.saknades ? ` ${a.saknades}` : ''
+    void store.speakNpc(`${a?.kommentar ?? ''}${miss}`)
+  }, 2200)
 }
 
 function proceed(): void {
