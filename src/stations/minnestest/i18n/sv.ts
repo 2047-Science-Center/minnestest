@@ -104,6 +104,11 @@ export const sv: Record<string, string> = {
   'step.mic_active': 'MIK AKTIV',
   'step.talk_now': 'PRATA NU',
   'step.we_are_done': 'VI ÄR KLARA',
+  // Tvåblocks-ordning: svaret först, motiveringen sedan.
+  'step.answer_line': 'Säg kort vad ni väljer — beslutet.',
+  'step.answer_done': 'KLART',
+  'step.block_answer': 'SVARA',
+  'step.block_reason': 'MOTIVERA',
   'step.warn': '10 SEK KVAR',
   'step.time_up': 'TIDEN UTE',
   'step.analyzing': 'Enheten väger ert svar …',

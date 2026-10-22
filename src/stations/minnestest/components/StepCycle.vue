@@ -16,7 +16,6 @@ import type { StepAssessment } from '@/station-kit/adapters/assess/Assess'
 import { useMinnestestStore } from '../store/minnestestStore'
 import MediaSlot from './MediaSlot.vue'
 import NpcReply from './NpcReply.vue'
-import ThinkingStream from './ThinkingStream.vue'
 import NumberStepper from './NumberStepper.vue'
 import MicIcon from './MicIcon.vue'
 import { media } from '../media/manifest'
@@ -24,7 +23,7 @@ import { media } from '../media/manifest'
 const { t } = useI18n()
 const store = useMinnestestStore()
 
-type Sub = 'situation' | 'countdown' | 'think' | 'guess' | 'analys' | 'reply'
+type Sub = 'situation' | 'countdown' | 'answer' | 'reason' | 'analys' | 'reply'
 const sub = ref<Sub>('situation')
 
 const WINDOW_MS = config.stepSeconds * 1000
@@ -44,7 +43,7 @@ const context = computed(() => t(`${stepKey.value}.context`))
 const task = computed(() => t(`${stepKey.value}.task`))
 const timeLine = computed(() => t(`${stepKey.value}.time`))
 const eyebrow = computed(() => (isFermi.value ? t('skatta.title') : t('lage.title')))
-const whyLine = computed(() => (isFermi.value ? t('step.how_line') : t('step.why_line')))
+const reasonLine = computed(() => (isFermi.value ? t('step.how_line') : t('step.why_line')))
 const analyzingLine = computed(() => (isFermi.value ? t('step.weighing') : t('step.analyzing')))
 const unitLabel = computed(() => (step.value.unit ? t(`unit.${step.value.unit}`) : ''))
 const guessScale = computed(() => step.value.guess)
@@ -54,6 +53,17 @@ const popupLines = computed(() =>
     .filter((s) => s.trim().length > 0),
 )
 
+// --- SVAR vs MOTIVERING: två skilda infångningar. Flykt: mik+mik. Fermi: siffra+mik. ---
+const answerText = ref('')
+const reasonText = ref('')
+const isAnswer = computed(() => sub.value === 'answer')
+const isReason = computed(() => sub.value === 'reason')
+// Flykt har ett mik-svarsblock; fermi svarar med sifferväljaren i stället.
+const micPhase = computed(() => isReason.value || (isAnswer.value && !isFermi.value))
+const micLine = computed(() => (isReason.value ? reasonLine.value : t('step.answer_line')))
+const micDone = computed(() => (isReason.value ? t('step.we_are_done') : t('step.answer_done')))
+const blockBadge = computed(() => (isReason.value ? t('step.block_reason') : t('step.block_answer')))
+
 // --- situation ---
 const popupShown = ref(false)
 let popupTimer: ReturnType<typeof setTimeout> | null = null
@@ -62,10 +72,7 @@ let popupTimer: ReturnType<typeof setTimeout> | null = null
 const countdownN = ref(3)
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
-// --- think (tvåfas) ---
-const bPhase = ref<1 | 2>(1)
-const PHASE1_MS = 4500
-let phaseTimer: ReturnType<typeof setTimeout> | null = null
+// --- mik-block (answer/reason) tid ---
 const warned = ref(false)
 const remainingMs = computed(() => capture.remainingMs.value ?? WINDOW_MS)
 const warn = computed(() => remainingMs.value <= WARN_MS)
@@ -86,34 +93,32 @@ let dwellRemaining = 0
 // --- reply ---
 const npcDone = ref(false)
 
-// Det transkript vi skickar in — sparas så tänkande-strömmen kan eka det.
+// Det transkript vi skickar in — sparas för analys-ekot.
 const lastTranscript = ref('')
 
 const showManualFallback = computed(() => !capture.supported || Boolean(capture.error.value))
 
-function collectedTranscript(): string {
-  return [capture.finalTranscript.value.trim(), manualText.value.trim()]
-    .filter(Boolean)
-    .join(' ')
-    .trim()
+function collectedAnswer(): string {
+  return [capture.finalTranscript.value.trim(), manualText.value.trim()].filter(Boolean).join(' ').trim()
 }
 
 function clearTimers(): void {
   if (popupTimer) clearTimeout(popupTimer)
   if (countdownTimer) clearInterval(countdownTimer)
-  if (phaseTimer) clearTimeout(phaseTimer)
   if (dwellTimer) clearTimeout(dwellTimer)
-  popupTimer = countdownTimer = phaseTimer = dwellTimer = null
+  popupTimer = countdownTimer = dwellTimer = null
 }
 
 // --- Beats ---
 function enterSituation(): void {
   clearTimers()
+  capture.stop()
   sub.value = 'situation'
   popupShown.value = false
   manualText.value = ''
+  answerText.value = ''
+  reasonText.value = ''
   guessValue.value = guessScale.value?.start ?? 0
-  bPhase.value = 1
   warned.value = false
   popupTimer = setTimeout(() => (popupShown.value = true), 1500)
 }
@@ -126,7 +131,7 @@ function startCountdownTick(): void {
     } else {
       if (countdownTimer) clearInterval(countdownTimer)
       countdownTimer = null
-      startThink()
+      startAnswer()
     }
   }, 1000)
 }
@@ -139,65 +144,65 @@ function ready(): void {
   startCountdownTick()
 }
 
-function startThink(): void {
-  sub.value = 'think'
-  bPhase.value = 1
+/** BLOCK 1 — SVARET FÖRST. Fermi: sifferväljare (ingen mik). Flykt: mik. */
+function startAnswer(): void {
+  sub.value = 'answer'
   warned.value = false
-  if (phaseTimer) clearTimeout(phaseTimer)
-  phaseTimer = setTimeout(() => toPhase2(), PHASE1_MS)
+  manualText.value = ''
+  if (isFermi.value) {
+    guessValue.value = guessScale.value?.start ?? 0
+    return // sifferväljaren — ingen mik, ingen timer
+  }
   capture.reset()
   capture.start()
 }
 
-function toPhase2(): void {
-  bPhase.value = 2
-  if (phaseTimer) {
-    clearTimeout(phaseTimer)
-    phaseTimer = null
+/** Lås svaret → BLOCK 2 (motiveringen). */
+function lockAnswer(): void {
+  if (isFermi.value) {
+    store.setGuess(Number.isFinite(guessValue.value) ? guessValue.value : null)
+  } else {
+    answerText.value = collectedAnswer()
+    capture.stop()
   }
+  startReason()
+}
+function skipGuess(): void {
+  store.setGuess(null)
+  startReason()
 }
 
-watch(
-  () => capture.transcript.value,
-  (v) => {
-    if (sub.value === 'think' && bPhase.value === 1 && v.trim()) toPhase2()
-  },
-)
+/** BLOCK 2 — MOTIVERINGEN (det som vägs). Alltid mik. */
+function startReason(): void {
+  sub.value = 'reason'
+  warned.value = false
+  manualText.value = ''
+  capture.reset()
+  capture.start()
+}
 
 watch(
   () => capture.remainingMs.value,
   (ms) => {
-    if (sub.value !== 'think' || ms == null) return
+    if (!micPhase.value || ms == null) return
     if (!warned.value && ms <= WARN_MS) {
       warned.value = true
       audio.play('deny')
     }
-    if (ms <= 0) finishThink()
+    if (ms <= 0) micDoneAction()
   },
 )
 
-function finishThink(): void {
-  if (sub.value !== 'think') return
-  if (phaseTimer) {
-    clearTimeout(phaseTimer)
-    phaseTimer = null
-  }
-  capture.stop()
-  // Fermi: gissnings-pop-up innan analys. Flykt: rakt in i analys.
-  if (isFermi.value) {
-    guessValue.value = guessScale.value?.start ?? 0
-    sub.value = 'guess'
-  } else {
-    enterAnalys()
-  }
+/** Done-knapp (eller tiden ut) för aktuellt mik-block. */
+function micDoneAction(): void {
+  if (isAnswer.value) lockAnswer()
+  else finishReason()
 }
 
-function lockGuess(): void {
-  store.setGuess(Number.isFinite(guessValue.value) ? guessValue.value : null)
-  enterAnalys()
-}
-function skipGuess(): void {
-  store.setGuess(null)
+function finishReason(): void {
+  if (sub.value !== 'reason') return
+  reasonText.value = collectedAnswer()
+  capture.stop()
   enterAnalys()
 }
 
@@ -206,7 +211,11 @@ function enterAnalys(): void {
   dwellDone.value = false
   assessDone.value = false
   assessResult.value = null
-  const transcript = collectedTranscript()
+  // Flykt: svar + motivering (modellen ser beslut + varför). Fermi: motiveringen
+  // (siffran skickas separat som guess). Steg-1-svaret blir packlistan (flykt).
+  const transcript = isFermi.value
+    ? reasonText.value
+    : [answerText.value, reasonText.value].filter(Boolean).join('. ').trim()
   lastTranscript.value = transcript
   const dwellMs = media(analysMedia.value).durationMs ?? 6000
   dwellEndsAt = Date.now() + dwellMs
@@ -214,7 +223,7 @@ function enterAnalys(): void {
     dwellDone.value = true
     maybeReveal()
   }, dwellMs)
-  void store.assessCurrentStep(transcript).then((a) => {
+  void store.assessCurrentStep(transcript, isFermi.value ? undefined : answerText.value).then((a) => {
     assessResult.value = a
     assessDone.value = true
     maybeReveal()
@@ -247,7 +256,7 @@ watch(
   () => store.paused,
   (p) => {
     if (p) {
-      if (sub.value === 'think') capture.pause()
+      if (micPhase.value) capture.pause()
       else if (sub.value === 'countdown' && countdownTimer) {
         clearInterval(countdownTimer)
         countdownTimer = null
@@ -257,7 +266,7 @@ watch(
         dwellTimer = null
       }
     } else {
-      if (sub.value === 'think') capture.resume()
+      if (micPhase.value) capture.resume()
       else if (sub.value === 'countdown' && !countdownTimer) startCountdownTick()
       else if (sub.value === 'analys' && !dwellTimer && !dwellDone.value) {
         dwellEndsAt = Date.now() + dwellRemaining
@@ -313,8 +322,31 @@ onUnmounted(() => {
       <p class="countdown__cue"><MicIcon /> {{ t('step.rule_title') }}</p>
     </section>
 
-    <!-- THINK — uppgiften stor och tydlig HELA TIDEN -->
-    <section v-else-if="sub === 'think'" class="think" :class="bPhase === 1 ? 'tp1' : 'tp2'">
+    <!-- ANSWER (fermi) — SVARET FÖRST: sifferväljaren -->
+    <section v-else-if="sub === 'answer' && isFermi" class="guess">
+      <div class="guess__card amber-frame">
+        <p class="guess__title ink-strong">{{ t('guess.title') }}</p>
+        <p class="guess__sub">{{ task }}</p>
+        <div class="guess__field">
+          <NumberStepper
+            v-if="guessScale"
+            v-model="guessValue"
+            :step="guessScale.step"
+            :min="guessScale.min"
+            :max="guessScale.max"
+            :unit="unitLabel"
+          />
+        </div>
+        <p class="guess__hint">{{ t('guess.hold_hint') }}</p>
+        <div class="guess__actions">
+          <button class="crt-button guess__skip" @click="skipGuess()">{{ t('guess.skip') }} ▸</button>
+          <button class="crt-button crt-button--strong" @click="lockAnswer()">{{ t('guess.lock') }} ▸</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MIK-BLOCK — flykt-svar (block 1) + motivering (block 2), uppgiften stor hela tiden -->
+    <section v-else-if="micPhase" class="think" :class="isReason ? 'is-reason' : 'is-answer'">
       <div class="think__ref" aria-hidden="true"><MediaSlot :id="referenceMedia" :autoplay="false" /></div>
 
       <header class="think__header">
@@ -325,27 +357,21 @@ onUnmounted(() => {
         <div class="think__timer" :class="{ 'think__timer--warn': warn }">{{ timeLabel }}</div>
       </header>
 
-      <div v-if="bPhase === 1" class="think__prompt">
-        <span class="think__cta ink-strong"><MicIcon /> {{ t('step.talk_now') }}</span>
-        <p class="think__why-big">{{ whyLine }}</p>
+      <div class="think__live">
+        <span class="think__block" :class="{ 'think__block--reason': isReason }">{{ blockBadge }}</span>
+        <p class="think__transcript" :class="{ 'think__transcript--empty': !capture.transcript.value }">
+          {{ capture.transcript.value || micLine }}
+        </p>
       </div>
-
-      <template v-else>
-        <div class="think__live">
-          <p class="think__transcript" :class="{ 'think__transcript--empty': !capture.transcript.value }">
-            {{ capture.transcript.value || whyLine }}
-          </p>
-        </div>
-        <div class="think__foot">
-          <span class="think__mic"><MicIcon /> {{ t('step.mic_active') }}</span>
-          <span class="think__why">{{ whyLine }}</span>
-          <span v-if="warn && !timeUp" class="think__warn">{{ t('step.warn') }}</span>
-          <span v-if="timeUp" class="think__warn">{{ t('step.time_up') }}</span>
-          <button class="crt-button crt-button--strong think__done" @click="finishThink()">
-            {{ t('step.we_are_done') }} ▸
-          </button>
-        </div>
-      </template>
+      <div class="think__foot">
+        <span class="think__mic"><MicIcon /> {{ isReason ? t('step.mic_active') : t('step.talk_now') }}</span>
+        <span class="think__why">{{ micLine }}</span>
+        <span v-if="warn && !timeUp" class="think__warn">{{ t('step.warn') }}</span>
+        <span v-if="timeUp" class="think__warn">{{ t('step.time_up') }}</span>
+        <button class="crt-button crt-button--strong think__done" @click="micDoneAction()">
+          {{ micDone }} ▸
+        </button>
+      </div>
 
       <template v-if="showManualFallback">
         <p v-if="!capture.supported" class="frame__nospeech">{{ t('step.no_speech') }}</p>
@@ -361,29 +387,6 @@ onUnmounted(() => {
       </template>
     </section>
 
-    <!-- GUESS (fermi) -->
-    <section v-else-if="sub === 'guess'" class="guess">
-      <div class="guess__card amber-frame">
-        <p class="guess__title ink-strong">{{ t('guess.title') }}</p>
-        <p class="guess__sub">{{ t('guess.sub') }}</p>
-        <div class="guess__field">
-          <NumberStepper
-            v-if="guessScale"
-            v-model="guessValue"
-            :step="guessScale.step"
-            :min="guessScale.min"
-            :max="guessScale.max"
-            :unit="unitLabel"
-          />
-        </div>
-        <p class="guess__hint">{{ t('guess.hold_hint') }}</p>
-        <div class="guess__actions">
-          <button class="crt-button guess__skip" @click="skipGuess()">{{ t('guess.skip') }} ▸</button>
-          <button class="crt-button crt-button--strong" @click="lockGuess()">{{ t('guess.lock') }} ▸</button>
-        </div>
-      </div>
-    </section>
-
     <!-- ANALYS — ENHETEN "tänker högt" medan bedömningen hämtas -->
     <section v-else-if="sub === 'analys'" class="analys">
       <div class="analys__bg" aria-hidden="true"><MediaSlot :id="analysMedia" :autoplay="false" /></div>
@@ -392,7 +395,7 @@ onUnmounted(() => {
         <span class="analys__dots"><i /><i /><i /></span>
         <button v-if="isPilot" class="analys__skip" @click="skipDwell()">hoppa över</button>
       </div>
-      <ThinkingStream :transcript="lastTranscript" :flavor="isFermi ? 'fermi' : 'flykt'" />
+      <p v-if="lastTranscript" class="analys__echo">{{ lastTranscript }}</p>
     </section>
 
     <!-- REPLY -->
@@ -618,42 +621,30 @@ onUnmounted(() => {
 .tp1 .think__header {
   padding-top: 8vh;
 }
-.think__prompt {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-.think__cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
-  font-family: var(--font-retro);
-  font-size: clamp(2.4rem, 7vw, 4rem);
-  letter-spacing: 0.06em;
-  color: var(--color-primary);
-  animation: mic-pulse 1.3s ease-in-out infinite;
-}
-.think__why-big {
-  margin: 0;
-  max-width: 26ch;
-  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
-  line-height: 1.4;
-  color: var(--color-ink-strong);
-}
 .think__live {
   position: relative;
   flex: 1;
   min-height: 0;
   overflow: auto;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.9rem;
+}
+/* Block-pill: SVARA (block 1) vs MOTIVERA (block 2) — lugn signal om vilket steg. */
+.think__block {
+  font-family: var(--font-mono);
+  letter-spacing: 0.22em;
+  font-size: 0.72rem;
+  color: var(--mode-accent, var(--color-primary));
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.18em 0.9em;
+  opacity: 0.85;
+}
+.think__block--reason {
+  color: var(--color-primary);
 }
 /* Framväxande tänk-högt-text — stor och centrerad (linjerar med Utmana experten). */
 .think__transcript {
@@ -820,6 +811,18 @@ onUnmounted(() => {
   cursor: pointer;
   opacity: 0.5;
   margin-left: 1rem;
+}
+/* Svagt eko av det gruppen sa medan enheten väger (ersätter ThinkingStream). */
+.analys__echo {
+  position: relative;
+  margin: 0 auto;
+  max-width: 28ch;
+  text-align: center;
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  line-height: 1.5;
+  opacity: 0.7;
 }
 
 /* ---------- REPLY ---------- */

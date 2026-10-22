@@ -171,10 +171,11 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     return out
   }
 
-  async function assessCurrentStep(transcript: string): Promise<StepAssessment> {
+  async function assessCurrentStep(transcript: string, answer?: string): Promise<StepAssessment> {
     const idx = stepIndex.value
     transcripts.value[idx] = transcript
-    if (exampleType.value === 'flykt' && idx === 0) packlista.value = transcript
+    // Flykt steg 1: SVARS-blocket (vad de tar med) = packlistan, inte motiveringen.
+    if (exampleType.value === 'flykt' && idx === 0) packlista.value = (answer ?? transcript).trim()
     assessing.value = true
     try {
       const a = await adapters.value!.assess.assessStep(
