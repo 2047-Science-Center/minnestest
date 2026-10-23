@@ -32,6 +32,7 @@ export type Phase =
   | 'attract'
   | 'checkin'
   | 'roleSelect'
+  | 'branchIntro'
   | 'pilotIntro'
   | 'goLive'
   | 'step'
@@ -127,8 +128,14 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   function chooseRole(id: RoleId): void {
     roleId.value = id
-    mode.value = 'test' // övning först → hela UI:t blått
     audio.play('confirm')
+    // Gren-titel (FLYKTEN / TANKETESTET) + STARTA + loopande attract-video.
+    phase.value = 'branchIntro'
+  }
+
+  /** Gren-intro klar (STARTA) → övningsläge (blått) + pilot-intro. */
+  function startBranch(): void {
+    mode.value = 'test'
     phase.value = 'pilotIntro'
   }
 
@@ -370,6 +377,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     listenIdentity,
     checkinDone,
     chooseRole,
+    startBranch,
     pilotIntroDone,
     startLive,
     goLiveDone,

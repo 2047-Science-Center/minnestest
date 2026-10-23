@@ -15,6 +15,7 @@ import MediaSlot from './components/MediaSlot.vue'
 import { useMinnestestStore } from './store/minnestestStore'
 import CheckinScreen from './components/CheckinScreen.vue'
 import RoleSelect from './components/RoleSelect.vue'
+import BranchIntro from './components/BranchIntro.vue'
 import PilotIntro from './components/PilotIntro.vue'
 import StepCycle from './components/StepCycle.vue'
 import ResultWalkthrough from './components/ResultWalkthrough.vue'
@@ -50,6 +51,7 @@ onMounted(() => store.init())
         <CrtScreen>
           <CheckinScreen v-if="store.phase === 'checkin'" />
           <RoleSelect v-else-if="store.phase === 'roleSelect'" />
+          <BranchIntro v-else-if="store.phase === 'branchIntro'" @start="store.startBranch()" />
           <PilotIntro v-else-if="store.phase === 'pilotIntro'" @done="store.pilotIntroDone()" />
           <ModeCountdown
             v-else-if="store.phase === 'goLive'"

@@ -4,9 +4,13 @@
  */
 export const sv: Record<string, string> = {
   // --- Kit-överskrivningar ---
-  'app.title': 'FLYKTEN',
-  'app.subtitle': 'X&Y-riggen · 2047',
-  'attract.tagline': 'Bippa ditt band för att börja.',
+  'app.title': 'STATION 2',
+  'app.subtitle': 'X&Y',
+  'attract.tagline': '',
+  // Gren-intro (efter rollvalet): titel + STARTA + loopande attract-video.
+  'branch.flykt.title': 'FLYKTEN',
+  'branch.fermi.title': 'TANKETESTET',
+  'branch.start': 'STARTA',
   'attract.boot': 'STARTAR …',
   'common.press_to_start': 'TRYCK FÖR ATT BÖRJA',
 
