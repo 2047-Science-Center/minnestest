@@ -8,7 +8,7 @@
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
-import { config } from '@/config'
+import { config, asset } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import { useSpeechCapture } from '@/station-kit/capture/useSpeechCapture'
 import type { StepAssessment } from '@/station-kit/adapters/assess/Assess'
@@ -54,15 +54,28 @@ const nivaMax = computed(() => store.steps.length)
 const threshold = computed(() => store.currentThreshold)
 const isPractice = computed(() => store.mode === 'test')
 
-// Levandegör (flykt): ambiens + inlevelse-replik per scen.
-const AMBIENCE: Record<string, string> = {
-  'flykt.ovning': 'ambience/amb-eld.mp3',
-  'flykt.niva1': 'ambience/amb-packa.mp3',
-  'flykt.niva2': 'ambience/amb-vagar.mp3',
-  'flykt.niva3': 'ambience/amb-skog.mp3',
-  'flykt.niva4': 'ambience/amb-vagar.mp3',
-  'flykt.niva5': 'ambience/amb-skog.mp3',
+// Scen-assets v3: loop-klipp + poster + ljudbild per nivå (BÅDA grenar).
+const SCENE: Record<string, string> = {
+  'flykt.ovning': 'dok_tutorial',
+  'flykt.niva1': 'dok_1_packa',
+  'flykt.niva2': 'dok_2_vagar',
+  'flykt.niva3': 'dok_3_sparr',
+  'flykt.niva4': 'dok_4_framling',
+  'flykt.niva5': 'dok_5_gransen',
+  'fermi.ovning': 'met_tutorial',
+  'fermi.niva1': 'met_1_bil',
+  'fermi.niva2': 'met_2_antal',
+  'fermi.niva3': 'met_3_ton',
+  'fermi.niva4': 'met_4_eiffel',
+  'fermi.niva5': 'met_5_lastbil',
 }
+// Skrot-scenerna spelas extra lågt som bädd.
+const QUIET_SCENES = new Set(['met_2_antal', 'met_3_ton', 'met_5_lastbil'])
+const sceneBase = computed(() => SCENE[stepKey.value] ?? '')
+const clipSrc = computed(() => (sceneBase.value ? asset(`video/${sceneBase.value}.mp4`) : ''))
+const posterSrc = computed(() => (sceneBase.value ? asset(`video/${sceneBase.value}.jpg`) : ''))
+
+// Inlevelse-replik (flykt) per scen — där inspelad röst finns.
 const VOICE_LINE: Record<string, string> = {
   'flykt.ovning': 'voice/flykt-ovning.mp3',
   'flykt.niva1': 'voice/flykt-1.mp3',
@@ -139,9 +152,10 @@ function enterSituation(): void {
   meterValue.value = 0
   assessResult.value = null
   npcDone.value = false
+  // Ljudbädd per scen (båda grenar); skrot-scenerna extra lågt.
+  const base = sceneBase.value
+  if (base) audio.bed(`ambience/${base}.mp3`, QUIET_SCENES.has(base) ? 0.1 : 0.18, 1200)
   if (!isFermi.value) {
-    const amb = AMBIENCE[stepKey.value]
-    if (amb) audio.bed(amb, 0.2, 1200)
     const vo = VOICE_LINE[stepKey.value]
     if (vo) audio.cue(vo, 0.9)
   }
@@ -357,8 +371,20 @@ const gateCta = computed(() =>
   <div class="cycle">
     <!-- SITUATION — full-skärms scen + nivå/tröskel aviseras -->
     <section v-if="sub === 'situation'" class="situation">
+      <video
+        v-if="clipSrc"
+        :key="clipSrc"
+        class="situation__bg situation__bg--video"
+        :src="clipSrc"
+        :poster="posterSrc"
+        autoplay
+        loop
+        muted
+        playsinline
+        aria-hidden="true"
+      />
       <div
-        v-if="refSrc"
+        v-else-if="refSrc"
         :key="referenceMedia"
         class="situation__bg"
         :style="{ backgroundImage: `url(${refSrc})` }"
@@ -426,8 +452,9 @@ const gateCta = computed(() =>
 
     <!-- MIK-BLOCK — flykt-svar (block 1) + motivering (block 2) -->
     <section v-else-if="micPhase" class="think">
-      <div v-if="refSrc" :key="referenceMedia" class="think__ref" aria-hidden="true">
-        <MediaSlot :id="referenceMedia" :autoplay="false" />
+      <div v-if="clipSrc || refSrc" :key="sceneBase || referenceMedia" class="think__ref" aria-hidden="true">
+        <video v-if="clipSrc" class="think__ref-media" :src="clipSrc" :poster="posterSrc" autoplay loop muted playsinline />
+        <MediaSlot v-else :id="referenceMedia" :autoplay="false" />
       </div>
       <header class="think__header">
         <div class="think__q">
@@ -513,6 +540,18 @@ const gateCta = computed(() =>
   to {
     transform: scale(1.12);
   }
+}
+/* Scen-loopvideo som bakgrund (rörelsen sköts av klippet, ingen ken-burns). */
+.situation__bg--video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: none;
+}
+.think__ref-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .situation__scrim {
   position: absolute;
