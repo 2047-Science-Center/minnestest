@@ -131,7 +131,7 @@ export const EXAMPLES: Record<ExampleId, ExampleDef> = {
     id: 'flykt',
     type: 'flykt',
     configId: 'flykt',
-    countdownFrom: 3,
+    countdownFrom: 5,
     steps: [
       {
         key: 'flykt.niva1', referenceMedia: 'flykt_1_packa',
@@ -160,7 +160,7 @@ export const EXAMPLES: Record<ExampleId, ExampleDef> = {
     id: 'fermi-skrotbilar',
     type: 'fermi',
     configId: 'fermi-skrotbilar',
-    countdownFrom: 3,
+    countdownFrom: 5,
     steps: [
       {
         key: 'fermi.niva1', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'kg',
@@ -206,7 +206,7 @@ export const PRACTICE: Record<ExampleId, ExampleDef> = {
     id: 'flykt',
     type: 'flykt',
     configId: 'flykt-ovning',
-    countdownFrom: 3,
+    countdownFrom: 5,
     steps: [
       {
         key: 'flykt.ovning', referenceMedia: 'flykt_ovning_eld',
@@ -218,7 +218,7 @@ export const PRACTICE: Record<ExampleId, ExampleDef> = {
     id: 'fermi-skrotbilar',
     type: 'fermi',
     configId: 'fermi-ovning',
-    countdownFrom: 3,
+    countdownFrom: 5,
     steps: [
       {
         key: 'fermi.ovning', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'slag',

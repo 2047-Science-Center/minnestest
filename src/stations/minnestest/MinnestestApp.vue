@@ -55,6 +55,7 @@ onMounted(() => store.init())
           <PilotIntro v-else-if="store.phase === 'pilotIntro'" @done="store.pilotIntroDone()" />
           <ModeCountdown
             v-else-if="store.phase === 'goLive'"
+            :from="5"
             :title="t('mode.golive_title')"
             @done="store.goLiveDone()"
           />

@@ -62,7 +62,7 @@ const SCENE: Record<string, string> = {
   'flykt.niva3': 'dok_3_sparr',
   'flykt.niva4': 'dok_4_framling',
   'flykt.niva5': 'dok_5_gransen',
-  'fermi.ovning': 'met_tutorial',
+  'fermi.ovning': 'met_ovning_hjarta',
   'fermi.niva1': 'met_1_bil',
   'fermi.niva2': 'met_2_antal',
   'fermi.niva3': 'met_3_ton',
@@ -75,13 +75,6 @@ const sceneBase = computed(() => SCENE[stepKey.value] ?? '')
 const clipSrc = computed(() => (sceneBase.value ? asset(`video/${sceneBase.value}.mp4`) : ''))
 const posterSrc = computed(() => (sceneBase.value ? asset(`video/${sceneBase.value}.jpg`) : ''))
 
-// Inlevelse-replik (flykt) per scen — där inspelad röst finns.
-const VOICE_LINE: Record<string, string> = {
-  'flykt.ovning': 'voice/flykt-ovning.mp3',
-  'flykt.niva1': 'voice/flykt-1.mp3',
-  'flykt.niva2': 'voice/flykt-2.mp3',
-  'flykt.niva3': 'voice/flykt-3.mp3',
-}
 const MEASURE = ['measure1', 'measure2', 'measure3'] as const
 
 // --- SVAR vs MOTIVERING ---
@@ -155,10 +148,6 @@ function enterSituation(): void {
   // Ljudbädd per scen (båda grenar); skrot-scenerna extra lågt.
   const base = sceneBase.value
   if (base) audio.bed(`ambience/${base}.mp3`, QUIET_SCENES.has(base) ? 0.1 : 0.18, 1200)
-  if (!isFermi.value) {
-    const vo = VOICE_LINE[stepKey.value]
-    if (vo) audio.cue(vo, 0.9)
-  }
 }
 
 function startCountdownTick(): void {
@@ -413,6 +402,7 @@ const gateCta = computed(() =>
     <section v-else-if="sub === 'handoff'" class="handoff">
       <p class="handoff__done"><span class="handoff__check">✓</span> {{ t('step.handoff_title') }}</p>
       <p class="handoff__next ink-strong">{{ t('step.handoff_sub') }}</p>
+      <p class="handoff__cue">{{ t('step.handoff_cue') }}</p>
       <div class="handoff__num" :key="handoffN">{{ handoffN }}</div>
     </section>
 
@@ -687,6 +677,12 @@ const gateCta = computed(() =>
   font-family: var(--font-retro);
   font-size: clamp(1.8rem, 5vw, 3rem);
   letter-spacing: 0.04em;
+  margin: 0;
+}
+.handoff__cue {
+  font-family: var(--font-mono);
+  letter-spacing: 0.1em;
+  color: var(--color-ink-muted);
   margin: 0;
 }
 .handoff__num {
