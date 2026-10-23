@@ -83,6 +83,18 @@ html,
 body {
   margin: 0;
   height: 100%;
+  /* Touch-kiosk: snabb tap utan dubbeltryck-zoom, inget håll-tryck-callout och
+     ingen text-markering vid långt tryck (= inget "högerklick"-beteende). */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* Inmatningsfält (manuell fallback) får fortfarande markera/skriva text. */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 body {
