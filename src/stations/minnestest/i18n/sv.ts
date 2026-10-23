@@ -187,7 +187,7 @@ export const sv: Record<string, string> = {
   // Gissnings-pop-up
   'guess.title': 'ER GISSNING',
   'guess.sub': 'Ställ in ert tal. Det viktiga var hur ni tänkte.',
-  'guess.hold_hint': 'Håll in − eller + för att bläddra snabbare.',
+  'guess.hold_hint': 'Dra reglaget till er gissning.',
   'guess.placeholder': 'Ett tal …',
   'guess.lock': 'LÅS IN',
   'guess.skip': 'HOPPA',
@@ -274,7 +274,7 @@ export const sv: Record<string, string> = {
 
   // Fermi — skattnings-stegen, 5 nivåer (sifferväljare/ja-nej)
   'fermi.niva1.context': 'Börja med en enda bil.',
-  'fermi.niva1.task': 'Hur mycket väger en helt vanlig bil?',
+  'fermi.niva1.task': 'Hur mycket väger en genomsnittlig bil?',
   'fermi.niva2.context': 'Nu hela Sverige, ett helt år.',
   'fermi.niva2.task': 'Hur många bilar skrotas i Sverige på ett år?',
   'fermi.niva3.context': 'Väg ihop allt.',

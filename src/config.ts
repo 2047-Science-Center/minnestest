@@ -164,17 +164,17 @@ export const EXAMPLES: Record<ExampleId, ExampleDef> = {
     steps: [
       {
         key: 'fermi.niva1', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'kg',
-        guess: { step: 10, min: 100, max: 5000, start: 1000 },
+        guess: { step: 50, min: 0, max: 4000, start: 0 },
         rubrik: 'GENERÖS nivå: ge en rimlig storleksordning för en bils vikt + minsta skäl.',
       },
       {
         key: 'fermi.niva2', referenceMedia: 'steg2_trafik', analysMedia: 'esk2_berakning', unit: 'antal',
-        guess: { step: 5000, min: 0, max: 1000000, start: 100000 },
+        guess: { step: 5000, min: 0, max: 1000000, start: 0 },
         rubrik: 'Bryt ner antalet skrotade bilar/år (t.ex. antal bilar × andel som skrotas) — gissa inte blint.',
       },
       {
         key: 'fermi.niva3', referenceMedia: 'steg3_skrot', analysMedia: 'esk3_overgang', unit: 'ton',
-        guess: { step: 5000, min: 0, max: 2000000, start: 100000 },
+        guess: { step: 5000, min: 0, max: 2000000, start: 0 },
         rubrik: 'Kombinera vikt × antal till ton OCH gör en storleksordnings-sanity-check.',
       },
       {
@@ -183,7 +183,7 @@ export const EXAMPLES: Record<ExampleId, ExampleDef> = {
       },
       {
         key: 'fermi.niva5', referenceMedia: 'steg2_trafik', unit: 'lass',
-        guess: { step: 1000, min: 0, max: 500000, start: 50000 },
+        guess: { step: 1000, min: 0, max: 500000, start: 0 },
         rubrik: 'Dela ton med lastbilskapacitet (~25 ton/lass) och motivera antagandet.',
       },
     ],
@@ -222,7 +222,7 @@ export const PRACTICE: Record<ExampleId, ExampleDef> = {
     steps: [
       {
         key: 'fermi.ovning', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'slag',
-        guess: { step: 5000, min: 0, max: 500000, start: 100000 },
+        guess: { step: 5000, min: 0, max: 500000, start: 0 },
         rubrik: 'ÖVNING, generös: rimlig storleksordning + minsta skäl.',
       },
     ],

@@ -16,7 +16,7 @@ import type { StepAssessment } from '@/station-kit/adapters/assess/Assess'
 import { useMinnestestStore } from '../store/minnestestStore'
 import MediaSlot from './MediaSlot.vue'
 import NpcReply from './NpcReply.vue'
-import NumberStepper from './NumberStepper.vue'
+import Slider from './Slider.vue'
 import MicIcon from './MicIcon.vue'
 import ThresholdMeter from './ThresholdMeter.vue'
 import { media } from '../media/manifest'
@@ -422,7 +422,7 @@ const gateCta = computed(() =>
         <p class="guess__title ink-strong">{{ t('guess.title') }}</p>
         <p class="guess__sub">{{ task }}</p>
         <div class="guess__field">
-          <NumberStepper
+          <Slider
             v-model="guessValue"
             :step="guessScale.step"
             :min="guessScale.min"
@@ -568,10 +568,11 @@ const gateCta = computed(() =>
   justify-content: center;
   gap: 0.8rem;
   text-align: center;
-  width: min(94%, 48ch);
+  width: min(94%, 62ch);
   padding: 1.2rem;
   margin: auto;
 }
+/* Textblocken dyker upp ETT I TAGET medan klippet loopar bakom. */
 .situation__eyebrow {
   font-family: var(--font-mono);
   letter-spacing: 0.28em;
@@ -579,15 +580,17 @@ const gateCta = computed(() =>
   color: var(--color-ink-strong);
   opacity: 0.85;
   margin: 0;
+  animation: sit-in 0.5s var(--ease-out, ease-out) 0.1s both;
 }
 .situation__context {
   color: var(--color-ink-strong);
   font-family: var(--font-mono);
   font-size: clamp(1.05rem, 2.3vw, 1.45rem);
   line-height: 1.4;
-  max-width: 34ch;
+  max-width: 46ch;
   margin: 0;
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.8);
+  animation: sit-in 0.5s var(--ease-out, ease-out) 0.5s both;
 }
 .situation__task {
   font-family: var(--font-retro);
@@ -597,6 +600,7 @@ const gateCta = computed(() =>
   color: var(--color-primary);
   text-shadow: var(--glow-soft), 0 2px 18px rgba(0, 0, 0, 0.85);
   margin: 0;
+  animation: sit-in 0.55s var(--ease-out, ease-out) 0.9s both;
 }
 .situation__gate {
   font-family: var(--font-mono);
@@ -605,9 +609,20 @@ const gateCta = computed(() =>
   color: var(--mode-accent, var(--color-primary));
   margin: 0;
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85);
+  animation: sit-in 0.5s var(--ease-out, ease-out) 1.35s both;
 }
 .situation__go {
   margin-top: 0.4rem;
+  animation: sit-in 0.5s var(--ease-out, ease-out) 1.7s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .situation__eyebrow,
+  .situation__context,
+  .situation__task,
+  .situation__gate,
+  .situation__go {
+    animation: none;
+  }
 }
 
 /* ---------- COUNTDOWN ---------- */
