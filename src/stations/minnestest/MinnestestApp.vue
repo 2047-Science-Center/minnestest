@@ -1,8 +1,11 @@
 <script setup lang="ts">
 /**
- * Toppnivå för stationen Minnestestet. Attract → tillståndsmaskin. Kiosk = en
- * skärm, fast bärnstens-CRT-tema från kitet. Store äger faserna; denna komponent
- * mappar fas → vy.
+ * Toppnivå för MÄNNISKOTESTET. Attract → tillståndsmaskin. Kiosk = en skärm,
+ * CRT-tema från kitet (rummen sätter sin egen accentfärg lokalt). Store äger
+ * faserna; denna komponent mappar fas → vy.
+ *
+ * attract → branchIntro (titel) → intro (story) → room (ÖVNING) → goLive
+ *          → room ×5 → result → checkout
  */
 import { onMounted } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
@@ -13,15 +16,12 @@ import ModeCountdown from '@/station-kit/components/ModeCountdown.vue'
 import MediaSlot from './components/MediaSlot.vue'
 
 import { useMinnestestStore } from './store/minnestestStore'
-import CheckinScreen from './components/CheckinScreen.vue'
-import RoleSelect from './components/RoleSelect.vue'
 import BranchIntro from './components/BranchIntro.vue'
-import PilotIntro from './components/PilotIntro.vue'
-import StepCycle from './components/StepCycle.vue'
-import ResultWalkthrough from './components/ResultWalkthrough.vue'
+import IntroScreen from './components/IntroScreen.vue'
+import RoomCycle from './components/RoomCycle.vue'
+import ResultScreen from './components/ResultScreen.vue'
 import FacilitatorControls from './components/FacilitatorControls.vue'
 import PauseOverlay from './components/PauseOverlay.vue'
-import VerdictScreen from './components/VerdictScreen.vue'
 import CheckoutScreen from './components/CheckoutScreen.vue'
 
 const { t } = useI18n()
@@ -31,8 +31,8 @@ onMounted(() => store.init())
 </script>
 
 <template>
-  <div class="app" :data-mode="store.mode">
-    <!-- Attract tills första gesten/band-bipp -->
+  <div class="app">
+    <!-- Attract tills första gesten -->
     <div v-if="store.phase === 'attract'" class="app__single">
       <CrtScreen>
         <div class="attract-wrap">
@@ -49,23 +49,19 @@ onMounted(() => store.init())
     <template v-else>
       <div class="app__single">
         <CrtScreen>
-          <CheckinScreen v-if="store.phase === 'checkin'" />
-          <RoleSelect v-else-if="store.phase === 'roleSelect'" />
-          <BranchIntro v-else-if="store.phase === 'branchIntro'" @start="store.startBranch()" />
-          <PilotIntro v-else-if="store.phase === 'pilotIntro'" @done="store.pilotIntroDone()" />
+          <BranchIntro v-if="store.phase === 'branchIntro'" @start="store.startBranch()" />
+          <IntroScreen v-else-if="store.phase === 'intro'" @done="store.introDone()" />
           <ModeCountdown
             v-else-if="store.phase === 'goLive'"
             :from="5"
-            :title="t('mode.golive_title')"
+            :title="t('room.golive_title')"
             @done="store.goLiveDone()"
           />
-          <StepCycle v-else-if="store.phase === 'step'" />
-          <ResultWalkthrough
-            v-else-if="store.phase === 'practiceReveal'"
-            mode="test"
-            @finish="store.practiceRevealDone()"
+          <RoomCycle
+            v-else-if="store.phase === 'room'"
+            :key="store.isTutorial ? 'tutorial' : 'room-' + store.roomIndex"
           />
-          <VerdictScreen v-else-if="store.phase === 'verdict'" />
+          <ResultScreen v-else-if="store.phase === 'result'" />
           <CheckoutScreen v-else-if="store.phase === 'checkout'" />
         </CrtScreen>
       </div>

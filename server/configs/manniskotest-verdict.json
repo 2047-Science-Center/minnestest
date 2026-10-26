@@ -1,0 +1,9 @@
+{
+  "id": "manniskotest-verdict",
+  "model": "gpt-5-mini",
+  "reasoningEffort": "low",
+  "maxOutputTokens": 800,
+  "jsonMode": true,
+  "scoreInstructionsFile": "instructions/manniskotest-verdict.sv.txt",
+  "type": "manniskotest-verdict"
+}

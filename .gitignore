@@ -11,3 +11,6 @@ coverage
 .env
 .env.*
 server/.env
+
+# Källbilder/-klipp (stora, hör ej hemma i repot)
+Assets/

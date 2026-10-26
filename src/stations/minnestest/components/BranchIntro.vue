@@ -1,23 +1,15 @@
 <script setup lang="ts">
 /**
- * Gren-intro efter rollvalet: en titel-skärm per gren (doktorand → FLYKTEN,
- * metodspecialist → TANKETESTET) med STARTA och en loopande attract-video i
- * bakgrunden (ett av scenklippen). STARTA → in i pilot-läget (blått).
+ * Titelskärm: MÄNNISKOTESTET + STARTA, med en loopande attract-video i
+ * bakgrunden (video/mt-attract.mp4 om den finns; annars mörk botten). STARTA →
+ * story-introt (cybersäkerhet/Valvet).
  */
-import { computed } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
 import { asset } from '@/config'
-import { useMinnestestStore } from '../store/minnestestStore'
 
 const emit = defineEmits<{ start: [] }>()
 const { t } = useI18n()
-const store = useMinnestestStore()
-
-const isFermi = computed(() => store.roleId === 'metodspecialist')
-const title = computed(() => (isFermi.value ? t('branch.fermi.title') : t('branch.flykt.title')))
-const videoSrc = computed(() =>
-  asset(isFermi.value ? 'video/fermi-attract.mp4' : 'video/flykt-attract.mp4'),
-)
+const videoSrc = asset('video/mt-attract.mp4')
 </script>
 
 <template>
@@ -34,7 +26,9 @@ const videoSrc = computed(() =>
     />
     <div class="branch__scrim" aria-hidden="true" />
     <div class="branch__inner">
-      <h1 class="branch__title ink-strong">{{ title }}</h1>
+      <p class="branch__eyebrow">{{ t('app.subtitle') }}</p>
+      <h1 class="branch__title ink-strong">{{ t('branch.title') }}</h1>
+      <p class="branch__sub">{{ t('branch.sub') }}</p>
       <button class="crt-button crt-button--strong branch__start" @click="emit('start')">
         {{ t('branch.start') }} ▸
       </button>
@@ -66,9 +60,9 @@ const videoSrc = computed(() =>
   z-index: 1;
   background: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.35) 0%,
-    rgba(0, 0, 0, 0.45) 55%,
-    rgba(0, 0, 0, 0.78) 100%
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(0, 0, 0, 0.5) 55%,
+    rgba(0, 0, 0, 0.82) 100%
   );
 }
 .branch__inner {
@@ -77,26 +71,40 @@ const videoSrc = computed(() =>
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.6rem;
+  gap: 1rem;
   text-align: center;
   padding: 1.5rem;
 }
+.branch__eyebrow {
+  font-family: var(--font-mono);
+  letter-spacing: 0.3em;
+  color: var(--color-ink-muted);
+  margin: 0;
+  animation: branch-in 0.5s var(--ease-out, ease-out) both;
+}
 .branch__title {
   font-family: var(--font-retro);
-  font-size: clamp(3rem, 11vw, 7rem);
+  font-size: clamp(2.6rem, 9vw, 6rem);
   line-height: 1;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--color-primary);
-  text-shadow:
-    var(--glow-soft),
-    0 2px 20px rgba(0, 0, 0, 0.85);
+  text-shadow: var(--glow-soft), 0 2px 20px rgba(0, 0, 0, 0.85);
   margin: 0;
-  animation: branch-in 0.6s var(--ease-out, ease-out) both;
+  animation: branch-in 0.6s var(--ease-out, ease-out) 0.1s both;
+}
+.branch__sub {
+  color: var(--color-ink-strong);
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 2.4vw, 1.3rem);
+  max-width: 40ch;
+  margin: 0;
+  animation: branch-in 0.5s var(--ease-out, ease-out) 0.25s both;
 }
 .branch__start {
   font-size: 1.6rem;
   padding: 0.5em 1.6em;
-  animation: branch-in 0.5s var(--ease-out, ease-out) 0.15s both;
+  margin-top: 0.6rem;
+  animation: branch-in 0.5s var(--ease-out, ease-out) 0.4s both;
 }
 @keyframes branch-in {
   from {
@@ -105,7 +113,9 @@ const videoSrc = computed(() =>
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .branch__eyebrow,
   .branch__title,
+  .branch__sub,
   .branch__start {
     animation: none;
   }

@@ -1,23 +1,21 @@
 /**
- * Central config för Minnestestet (X&Y-riggen).
+ * Central config för MÄNNISKOTESTET (X&Y-riggen, station 2).
  *
- * Rollvalet är en FORK (metodspecialist-Fermi-spec §0): `role → exampleId →
- * exempeldata + configs/<configId>.json`. Två OLIKA exempel delar motorn
- * (trestegsraket, tvåfas tänk-högt, /assess per-steg, final-compose, stigande
- * skala); det som skiljer dem är hela uppgiftsinnehållet + bedömningen.
- *   metodspecialist → 'fermi-skrotbilar' (Fermi-skattning) — byggs skarpt.
- *   doktorand       → 'flykt'            (flykt undan krig).
+ * Valvets innersta släpper bara in MÄNNISKOR — ett test som inte går att hacka.
+ * Tre deltagare tar sig genom FEM gatade valvrum i serie. Per rum: ett scenario
+ * utan facit → de tre resonerar EN I TAGET → Valdi väger ihop → porten ÖPPNAS
+ * eller ACCESS DENIED. En förtroendemätare (dold 0–10 per svar → 0–100 för
+ * gruppen) driver utslaget.
  *
- * Pilot vs drift skiljs av `mode`. INGA hemligheter här (nycklar i gatewayns
- * .env). Fronten pratar aldrig direkt med OpenAI/ElevenLabs — alltid via adapter.
+ * Delar UPPBYGGNAD med lögndetektorn men är en EGEN app. Inga hemligheter här
+ * (nycklar i gatewayns .env). Fronten pratar aldrig direkt med OpenAI/ElevenLabs.
  */
 
 export type Mode = 'pilot' | 'production'
-export type RoleId = 'metodspecialist' | 'doktorand'
-export type ExampleId = 'flykt' | 'fermi-skrotbilar'
-export type ExampleType = 'flykt' | 'fermi'
+/** Rummens färgidentitet (så man kan säga "det gula rummet"). */
+export type RoomColor = 'bla' | 'gul' | 'gron' | 'rod' | 'guld'
 
-/** Minnestestet = station 2 i X&Y-kedjan (incheckning → st1 → st2 → reveal …). */
+/** Människotestet = station 2 i X&Y-kedjan. */
 export const STATION_N = 2
 
 export const config = {
@@ -25,246 +23,143 @@ export const config = {
   stationN: STATION_N,
   lang: 'sv' as 'sv' | 'no' | 'svorsk',
 
-  /** Tänk-högt-fönster per block (sekunder) och när varningen tänds. Rappare
-   *  tempo i gatade stegen: 30 s per block (svar resp. motivering). */
-  stepSeconds: 30,
+  /** Antal deltagare som turas om (en i taget) per rum. */
+  participants: 3,
+
+  /** Taltid per deltagare (sekunder) + när 10-sek-varningen tänds. */
+  talkSeconds: 25,
   warnAtSeconds: 7,
+
+  /** Nedräkning innan första deltagaren i ett rum (och mellan deltagare). */
+  countdownFrom: 5,
+  handoffSeconds: 5,
 
   /** Incheckningens auto-vidare (ms). */
   checkinAutoMs: 2000,
 
-  /** /assess-gatewayen. Kiosk-bygget sätter VITE_ASSESS_URL='' → tomt = SAMMA
-   *  ORIGIN (gatewayn serverar även appen). Osatt (dev) → separat gateway-port.
-   *  `??` (inte `||`) så tom sträng bevaras som "same origin". */
+  /** /assess-gatewayen. Kiosk-bygget sätter VITE_ASSESS_URL='' → samma origin. */
   assess: {
     baseUrl: (import.meta.env.VITE_ASSESS_URL ?? 'http://localhost:8787') as string,
   },
 
-  /** NPC-röst (/speak, ElevenLabs). Texten bär alltid; röst är add-on ovanpå.
-   *  `rate` = uppspelningshastighet i klienten (pitch bevaras). */
+  /** NPC-röst (/speak). Ingen uppläsning i människotestet NU — texten bär.
+   *  (Add-on kan slås på senare; `enabled:false` gör speakNpc till en no-op.) */
   speak: {
-    enabled: true,
+    enabled: false,
     rate: 1.0,
   },
 
-  /** Drift-adresser. wsUrl tomt → BroadcastChannel (samma-dator-synk).
-   *  mqttUrl = broker för identitet/resultat/ljus (webbläsare → ws-lyssnare).
-   *  Överstyrs vid bygget med VITE_MQTT_URL. Inga hemligheter här. */
+  /** Drift-adresser. */
   production: {
     wsUrl: '',
     mqttUrl: 'ws://127.0.0.1:9001',
   },
 } as const
 
-/**
- * Bygger en url till en fil i public/ som funkar oavsett bas-sökväg.
- */
+/** Bygger en url till en fil i public/ som funkar oavsett bas-sökväg. */
 export function asset(path: string): string {
   return encodeURI(import.meta.env.BASE_URL + path.replace(/^\/+/, ''))
 }
 
 /* ------------------------------------------------------------------ *
- * Roller — rollvalet loggas (chosen_role/role_presented_as, matar könssiffran)
- * OCH forkar till exempel (§0).
+ * Valvrummen — 5 gatade rum i serie, var sitt scenario (v5) + färg.
+ * Kurva: lätt/konkret → läs det sociala → väg lojalitet → läs det osagda →
+ * vänd ditt eget omdöme. All copy i i18n under scenario.<id>.*; ljud/bild via
+ * sceneBase (public/video/<base>.mp4|.jpg, public/Sound/ambience/<base>.mp3).
  * ------------------------------------------------------------------ */
 
-export interface RoleDef {
-  id: RoleId
-  media: string
-  resultRole: 'A' | 'B'
-  /** Forken: vilket exempel rollen leder in på. */
-  example: ExampleId
-}
-
-export const ROLES: RoleDef[] = [
-  { id: 'metodspecialist', media: 'roll_metodspecialist', resultRole: 'A', example: 'fermi-skrotbilar' },
-  { id: 'doktorand', media: 'roll_doktorand', resultRole: 'B', example: 'flykt' },
-]
-
-/* ------------------------------------------------------------------ *
- * Exempel — två olika uppgiftstyper på samma motor.
- * ------------------------------------------------------------------ */
-
-export interface ExampleStep {
-  /** i18n-nyckelrot, t.ex. 'flykt.niva1' / 'fermi.niva1'. */
-  key: string
-  /** Stegets referensbild (media-id) — ligger kvar genom steget. */
-  referenceMedia: string
-  /** Latensmask-klipp i analys-rutan; utelämnas → referensbilden används. */
-  analysMedia?: string
-  /** Fermi: enhet på gissningen ('kg' | 'antal' | 'ton' | 'lass'). */
-  unit?: string
-  /** Fermi-gissning: stegets +/- -knappar (touch). Olika skala per nivå. */
-  guess?: GuessScale
-  /** Fermi ja/nej-nivå: svars-blocket blir två knappar i stället för sifferväljare. */
-  choice?: string[]
-  /** Gate-rubrik: vad ett godkänt resonemang kräver på DEN HÄR nivån (stigande
-   *  krav). Skickas till /assess så modellen poängsätter mot rätt ribba. */
-  rubrik: string
-}
-
-/** Touch-stepper för Fermi-gissningen: bas-steg, gränser och startvärde. */
-export interface GuessScale {
-  /** Ökning/minskning per tryck (och bas för håll-acceleration). */
-  step: number
-  min: number
-  max: number
-  /** Förifyllt värde (mitt i ett rimligt spann → färre tryck). */
-  start: number
-}
-
-export interface ExampleDef {
-  id: ExampleId
-  type: ExampleType
-  /** Gateway-config (configs/<configId>.json). */
+export interface Room {
+  /** i18n-rot: scenario.<id>.context/.story/.question/.rubrik. */
+  id: string
+  /** Scen-asset-bas (video + poster + ljudbild). */
+  sceneBase: string
+  /** Rummets färgidentitet (driver accent + namn). */
+  color: RoomColor
+  /** Gateway-config för per-deltagar-bedömningen. */
   configId: string
-  /** Extra intro-skärm före steg 1 (Fermi-intro). Utelämnas = ingen. */
-  introMedia?: string
-  /** Nedräkning innan uppgiften startar (beat 3). */
-  countdownFrom: number
-  steps: ExampleStep[]
 }
 
-export const EXAMPLES: Record<ExampleId, ExampleDef> = {
-  // Doktorand-sidan — flykten som en gatad stege: allt mer pressad & specifik.
-  flykt: {
-    id: 'flykt',
-    type: 'flykt',
-    configId: 'flykt',
-    countdownFrom: 5,
-    steps: [
-      {
-        key: 'flykt.niva1', referenceMedia: 'flykt_1_packa',
-        rubrik: 'GENERÖS nivå: nämn något rimligt att ta med och minsta lilla skäl. Nästan allt rimligt godkänns.',
-      },
-      {
-        key: 'flykt.niva2', referenceMedia: 'flykt_2_vagar',
-        rubrik: 'Väg minst EN avvägning (t.ex. snabbt vs säkert, stor väg vs liten) och motivera vägvalet.',
-      },
-      {
-        key: 'flykt.niva3', referenceMedia: 'flykt_3_skog',
-        rubrik: 'Visa risk-resonemang kring vägspärren/soldaterna OCH en plan B om det går fel.',
-      },
-      {
-        key: 'flykt.niva4', referenceMedia: 'flykt_2_vagar',
-        rubrik: 'Väg konsekvenser åt BÅDA håll (ta med främlingen eller inte) — inte bara en sida.',
-      },
-      {
-        key: 'flykt.niva5', referenceMedia: 'flykt_3_skog',
-        rubrik: 'Fatta ett TYDLIGT beslut under tidspress och osäkerhet och försvara det med framförhållning.',
-      },
-    ],
-  },
-  // Metodspecialist-sidan — skattnings-stegen: eskalerande Fermi-skattningar.
-  'fermi-skrotbilar': {
-    id: 'fermi-skrotbilar',
-    type: 'fermi',
-    configId: 'fermi-skrotbilar',
-    countdownFrom: 5,
-    steps: [
-      {
-        key: 'fermi.niva1', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'kg',
-        guess: { step: 50, min: 0, max: 4000, start: 0 },
-        rubrik: 'GENERÖS nivå: ge en rimlig storleksordning för en bils vikt + minsta skäl.',
-      },
-      {
-        key: 'fermi.niva2', referenceMedia: 'steg2_trafik', analysMedia: 'esk2_berakning', unit: 'antal',
-        guess: { step: 5000, min: 0, max: 1000000, start: 0 },
-        rubrik: 'Bryt ner antalet skrotade bilar/år (t.ex. antal bilar × andel som skrotas) — gissa inte blint.',
-      },
-      {
-        key: 'fermi.niva3', referenceMedia: 'steg3_skrot', analysMedia: 'esk3_overgang', unit: 'ton',
-        guess: { step: 5000, min: 0, max: 2000000, start: 0 },
-        rubrik: 'Kombinera vikt × antal till ton OCH gör en storleksordnings-sanity-check.',
-      },
-      {
-        key: 'fermi.niva4', referenceMedia: 'steg3_skrot', choice: ['Ja', 'Nej'],
-        rubrik: 'Jämför ett års skrotmetall mot Eiffeltornet (~7 300 ton), explicita antaganden, tydlig ja/nej.',
-      },
-      {
-        key: 'fermi.niva5', referenceMedia: 'steg2_trafik', unit: 'lass',
-        guess: { step: 1000, min: 0, max: 500000, start: 0 },
-        rubrik: 'Dela ton med lastbilskapacitet (~25 ton/lass) och motivera antagandet.',
-      },
-    ],
-  },
-}
-
-export function exampleForRole(role: RoleId): ExampleDef {
-  const r = ROLES.find((x) => x.id === role) ?? ROLES[0]
-  return EXAMPLES[r.example]
-}
-
-/**
- * ÖVNINGSEXEMPEL (testläge) — EN enkel övningsfråga per gren, egen gateway-config
- * (fermi-ovning/flykt-ovning). Deltagarna svarar, får en riktig bedömning och ser
- * poäng-genomgången i testläge INNAN det skarpa. Ingen intro (coach-introt gjorde
- * den biten); countdown kort.
- */
-export const PRACTICE: Record<ExampleId, ExampleDef> = {
-  flykt: {
-    id: 'flykt',
-    type: 'flykt',
-    configId: 'flykt-ovning',
-    countdownFrom: 5,
-    steps: [
-      {
-        key: 'flykt.ovning', referenceMedia: 'flykt_ovning_eld',
-        rubrik: 'ÖVNING, generös: nämn något rimligt att ta med + minsta skäl.',
-      },
-    ],
-  },
-  'fermi-skrotbilar': {
-    id: 'fermi-skrotbilar',
-    type: 'fermi',
-    configId: 'fermi-ovning',
-    countdownFrom: 5,
-    steps: [
-      {
-        key: 'fermi.ovning', referenceMedia: 'steg1_bil', analysMedia: 'esk1_berakning', unit: 'slag',
-        guess: { step: 5000, min: 0, max: 500000, start: 0 },
-        rubrik: 'ÖVNING, generös: rimlig storleksordning + minsta skäl.',
-      },
-    ],
-  },
-}
-
-/* ------------------------------------------------------------------ *
- * Gatad stege — stigande tröskel per nivå (0–10). L1–2 generösa, sen snabbt
- * hårdare. Poängen = högsta klarade nivån. Tunbar här.
- * ------------------------------------------------------------------ */
-export const MAX_NIVA = 5
-export const LEVEL_THRESHOLDS: readonly number[] = [2, 4, 6, 7, 8]
-
-/** Tröskel för en nivå (0-indexerat steg). Övning (1 nivå) → generös. */
-export function thresholdForLevel(index: number): number {
-  return LEVEL_THRESHOLDS[index] ?? LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]
-}
-
-export function practiceForRole(role: RoleId): ExampleDef {
-  const r = ROLES.find((x) => x.id === role) ?? ROLES[0]
-  return PRACTICE[r.example]
-}
-
-/* ------------------------------------------------------------------ *
- * Stigande slutskala 1–10 — namngivna markeringar (delad av båda exempel).
- * ------------------------------------------------------------------ */
-
-export interface ScaleMark {
-  min: number
-  max: number
-  key: string
-}
-
-export const SCALE_MARKS: ScaleMark[] = [
-  { min: 1, max: 2, key: 'skala.mark_1_2' },
-  { min: 3, max: 4, key: 'skala.mark_3_4' },
-  { min: 5, max: 6, key: 'skala.mark_5_6' },
-  { min: 7, max: 8, key: 'skala.mark_7_8' },
-  { min: 9, max: 10, key: 'skala.mark_9_10' },
+export const ROOMS: Room[] = [
+  { id: 'badplats', sceneBase: 'mt_1_badplats', color: 'bla', configId: 'manniskotest' },
+  { id: 'pizza', sceneBase: 'mt_3_pizza', color: 'gul', configId: 'manniskotest' },
+  { id: 'hangel', sceneBase: 'mt_2_fest', color: 'gron', configId: 'manniskotest' },
+  { id: 'syskon', sceneBase: 'mt_4_smasyskon', color: 'rod', configId: 'manniskotest' },
+  { id: 'tystminut', sceneBase: 'mt_5_aula', color: 'guld', configId: 'manniskotest' },
 ]
+
+/** ÖVNINGSRUMMET — en full genomspelning (scenario → tre talar → port-reveal)
+ *  på ett laddningsfritt vardagsdilemma, så de fattar hela maskineriet. Räknas
+ *  ALDRIG; porten öppnas alltid. */
+export const TUTORIAL_ROOM: Room = {
+  id: 'ovning',
+  sceneBase: '',
+  color: 'bla',
+  configId: 'manniskotest',
+}
+
+/** Config för sammanvägningen (Valdis gemensamma utlåtande per rum). */
+export const VERDICT_CONFIG = 'manniskotest-verdict'
+
+/* ------------------------------------------------------------------ *
+ * Rum-färger — hex + rgb för glöd. Driver --color-primary/--mode-accent-rgb
+ * i det aktiva rummet (överstyr bärnstens-grundtemat).
+ * ------------------------------------------------------------------ */
+export interface ColorDef {
+  hex: string
+  rgb: string
+  dim: string
+}
+export const ROOM_COLORS: Record<RoomColor, ColorDef> = {
+  bla: { hex: '#4aa3ff', rgb: '74, 163, 255', dim: '#2b6fb8' },
+  gul: { hex: '#ffe24a', rgb: '255, 226, 74', dim: '#b8a01f' },
+  gron: { hex: '#7ad14f', rgb: '122, 209, 79', dim: '#4f9630' },
+  rod: { hex: '#ff5a3c', rgb: '255, 90, 60', dim: '#b83a26' },
+  guld: { hex: '#f0b429', rgb: '240, 180, 41', dim: '#a87a16' },
+}
+
+/* ------------------------------------------------------------------ *
+ * Dörr-/rums-art per färg. Varje rum har en STÄNGD-stillbild (visas stängd +
+ * under "VALDI ÖVERVÄGER") och en ÖPPNINGS-video (stängd port → ljus strömmar
+ * ut; spelas när porten öppnas). Rumsnumret är inbakat i arten. `video`
+ * utelämnad → stillbild + CSS-öppning som fallback tills videon finns.
+ * Övningen (ingen färg-art) → CSS-porten.
+ * ------------------------------------------------------------------ */
+export interface DoorArt {
+  /** Stängd-dörr-stillbild (sökväg relativt public/, via asset()). */
+  still: string
+  /** Öppnings-video (sökväg relativt public/). Saknas → CSS-öppning. */
+  video?: string
+}
+export const DOOR_ART: Record<RoomColor, DoorArt> = {
+  bla: { still: 'media/valv_bla.png', video: 'video/valv_bla.mp4' },
+  gul: { still: 'media/valv_gul.png', video: 'video/valv_gul.mp4' },
+  gron: { still: 'media/valv_gron.png', video: 'video/valv_gron.mp4' },
+  rod: { still: 'media/valv_rod.png', video: 'video/valv_rod.mp4' },
+  guld: { still: 'media/valv_guld.png', video: 'video/valv_guld.mp4' },
+}
+
+/* ------------------------------------------------------------------ *
+ * Förtroendemätaren — dold 0–10 per svar → 0–100 för gruppen. Tre zoner.
+ * Nålrörelse per rum = (medel − par) × k, clampat 0–100. Stigande par → svårare
+ * att hålla ställningen på senare rum. Förlust ≤ loseAt → ACCESS DENIED (slut).
+ * ------------------------------------------------------------------ */
+export const METER = {
+  start: 50,
+  loseAt: 30,
+  highAt: 65,
+  /** Hur hårt snittet slår på nålen. */
+  k: 5,
+  /** "Godkänt" per deltagare (✓) ur egen dold poäng. */
+  passMark: 5.5,
+  /** Stigande par per rum (0-indexerat). Högre par → tuffare rum. */
+  parByRoom: [5.0, 5.2, 5.5, 5.8, 6.1] as readonly number[],
+} as const
+
+export function parForRoom(index: number): number {
+  return METER.parByRoom[index] ?? METER.parByRoom[METER.parByRoom.length - 1]
+}
 
 export const PILOT_GROUP = {
   id: '07',
-  members: ['Alva', 'Noah', 'Iris'],
+  members: ['Deltagare 1', 'Deltagare 2', 'Deltagare 3'],
 } as const

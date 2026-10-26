@@ -33,6 +33,10 @@ export type Sfx =
   | 'measure1' // fermi steg 1 — mät-ljud (våg landar)
   | 'measure2' // fermi steg 2 — mät-ljud (räknare tickar)
   | 'measure3' // fermi steg 3 — mät-ljud (tung press/berg)
+  | 'vaultriser' // spänningsriser mot portens utslag
+  | 'unlock' // valvlås frigörs (tungt clunk) strax före öppning
+  | 'vaultopen' // tung valvdörr som öppnas (access granted)
+  | 'vaultdenied' // tung försegling / larm (access denied)
 
 /**
  * Valfritt sampel-lager. Filnamn relativt public/Sound/sfx/. Av som standard
@@ -63,6 +67,10 @@ export const SAMPLE_FILES: Partial<Record<Sfx, string>> = {
   measure1: 'sfx-measure-1.mp3',
   measure2: 'sfx-measure-2.mp3',
   measure3: 'sfx-measure-3.mp3',
+  vaultriser: 'sfx-vault-riser.mp3',
+  unlock: 'sfx-unlock.mp3',
+  vaultopen: 'sfx-vault-open.mp3',
+  vaultdenied: 'sfx-vault-denied.mp3',
 }
 
 class AudioEngine {

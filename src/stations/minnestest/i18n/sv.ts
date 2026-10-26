@@ -1,25 +1,32 @@
 /**
- * Svenska — all Minnestest-copy (FLYKT-scenariot). Injiceras i kitets i18n-bundle
- * via registerMessages(). Kitet självt hålls rent från station-copy.
+ * Svenska — all copy för MÄNNISKOTESTET. Injiceras i kitets i18n-bundle via
+ * registerMessages(). Kitet självt hålls rent från station-copy.
  */
 export const sv: Record<string, string> = {
-  // --- Kit-överskrivningar ---
+  // --- Kit-överskrivningar / attract ---
   'app.title': 'STATION 2',
   'app.subtitle': 'X&Y',
   'attract.tagline': '',
-  // Gren-intro (efter rollvalet): titel + STARTA + loopande attract-video.
-  'branch.flykt.title': 'FLYKTEN',
-  'branch.fermi.title': 'TANKETESTET',
-  'branch.start': 'STARTA',
   'attract.boot': 'STARTAR …',
   'common.press_to_start': 'TRYCK FÖR ATT BÖRJA',
-
-  // --- Gemensamma knappar ---
   'common.continue': 'FORTSÄTT',
   'common.begin': 'BÖRJA',
   'common.next': 'NÄSTA',
 
-  // --- Facilitator-kontroller (paus / starta om / avsluta) ---
+  // --- Titelskärm ---
+  'branch.title': 'MÄNNISKOTESTET',
+  'branch.sub': 'Valvets innersta släpper bara in människor. Dags att bevisa att ni är det.',
+  'branch.start': 'STARTA',
+
+  // --- Story-intro ---
+  'intro.eyebrow': 'VALVETS INNERSTA',
+  'intro.l1': 'Cybersäkerhet blir allt viktigare. Valvets mest skyddade uppgifter får inte kunna hackas.',
+  'intro.l2': 'Därför finns ett test som bara släpper in människor — ett omdöme en maskin inte kan fejka.',
+  'intro.l3': 'Jag, Valdi, ställer er inför situationer utan rätt svar. Det är i HUR ni resonerar jag avgör om ni är människor.',
+  'intro.l4': 'Fem rum. Fem portar. Hur långt når ni?',
+  'intro.ready': 'VI ÄR REDO',
+
+  // --- Facilitator-kontroller ---
   'facil.pause': 'Paus',
   'facil.resume': 'Fortsätt',
   'facil.reset': 'Starta om',
@@ -32,311 +39,122 @@ export const sv: Record<string, string> = {
   'facil.paused_title': 'PAUSAT',
   'facil.paused_sub': 'Facilitatorn har pausat. Vänta ett ögonblick.',
 
-  // --- Statusrad ---
-  'status.station': 'FLYKTEN',
-  'status.group': 'GRUPP {grupp}',
-  'status.moment': 'MOMENT {n}/3',
-  'status.pretext': '// tiden före valvet',
+  // --- Rum / deltagare / countdown ---
+  'room.golive_title': 'NU GÄLLER DET',
+  'room.tutorial_tag': 'ÖVNING — INGET RÄKNAS',
+  'room.plate': 'RUM {n}',
+  'room.name.bla': 'blå',
+  'room.name.gul': 'gul',
+  'room.name.gron': 'grön',
+  'room.name.rod': 'röd',
+  'room.name.guld': 'gyllene',
+  'room.ready': 'VI ÄR REDO',
+  'room.up_next': '{name} — gör dig redo  ({nr}/{total})',
+  'room.time_warning': 'Du får {s} sekunder. Det finns inget rätt svar — säg hur du tänker.',
+  'room.handoff_done': 'Svar registrerat',
+  'room.participant': 'DELTAGARE {nr}/{total}',
+  'room.talk_hint': 'Säg hur du tänker — och varför.',
+  'room.talk_done': 'KLAR',
+  'room.to_live': 'IN I VALVET',
+  'room.next_room': 'NÄSTA RUM',
+  'room.see_result': 'SE RESULTAT',
 
-  // --- Incheckning ---
-  'checkin.read': 'BAND AVLÄST // GRUPP {grupp} // {n} DELTAGARE',
-  // --- Bipp-start (identifiera dig i början) ---
-  'bipp.title': 'BIPPA DITT BAND',
-  'bipp.hint': 'Håll armbandet mot läsaren',
-  'bipp.skip': 'Fortsätt utan bipp ▸',
-  'bipp.identified': 'VÄLKOMMEN {name}',
-  'bipp.ok': 'band avläst',
+  // --- Porten ---
+  'door.overvager': 'VALDI ÖVERVÄGER',
+  'door.granted': 'MÄNSKLIGT NOG — PORTEN ÖPPNAS',
+  'door.denied': 'ACCESS DENIED',
 
-  // --- Rollval ---
-  'roleselect.title': 'VÄLJ DIN ROLL',
-  'roleselect.subtitle': 'Vilken är du? Välj en.',
-  'roleselect.pick': 'VÄLJ',
-  'role.metodspecialist.title': 'METODSPECIALIST',
-  'role.metodspecialist.upper': 'METODSPECIALIST',
-  'role.metodspecialist.blurb': 'Den som löser det med händerna.',
-  'role.doktorand.title': 'DOKTORAND',
-  'role.doktorand.upper': 'DOKTORAND',
-  'role.doktorand.blurb': 'Den som tänker ut vad som händer sen.',
+  // --- Förtroendemätaren ---
+  'meter.lose': 'INGET FÖRTROENDE',
+  'meter.tveksam': 'TVEKSAM',
+  'meter.hog': 'HÖGT FÖRTROENDE',
 
-  // --- Utplockning ur valvet ---
-  // Valv-övergång — flykt (doktorand): tillbaka till hemmet.
-  'vaultout.l1': 'Vi tar er tillbaka i tiden.',
-  'vaultout.l2': 'Till en helt vanlig kväll.',
-  'vaultout.l3': 'Det börjar nu.',
-  // Valv-övergång — metodspecialist (Fermi/skattningsprov).
-  'fermi.vaultout.l1': 'Enheten är redo.',
-  'fermi.vaultout.l2': 'Nu mäter vi hur ni tänker.',
-  'fermi.vaultout.l3': 'Det börjar nu.',
+  // --- Sammanvägning (till modellen + fallback) ---
+  'verdict.rubrik':
+    'Väg ihop de tre deltagarnas svar till ETT gemensamt utlåtande om gruppen lät mänsklig eller maskinell.',
+  'verdict.fallback':
+    'Valdi tappade uppkopplingen ett ögonblick och kunde inte formulera sitt utlåtande den här gången.',
 
-  // --- Coach-intro (tutorial: highlights på grund-UI:t, lär genom att göra) ---
-  'coach.title': 'SÅ FUNKAR DET',
-  'coach.hint': 'Grund-UI:t syns hela tiden — vi pekar bara ut delarna.',
-  'coach.next': 'NÄSTA',
-  'coach.start_fermi': 'BÖRJA ÖVA',
-  'coach.start_flykt': 'BÖRJA ÖVA',
-  // fermi-zoner + bubblor
-  'coach.fermi.z1': 'FRÅGAN',
-  'coach.fermi.z1_ex': 'Hur mycket väger en vanlig bil?',
-  'coach.fermi.b1': 'Här står frågan — den syns hela tiden.',
-  'coach.fermi.z2': 'SIFFERVÄLJARE',
-  'coach.fermi.b2': 'Här ställer ni in ert tal med − och +.',
-  'coach.fermi.z3': 'TÄNK HÖGT',
-  'coach.fermi.z3_ex': 'Säg HUR ni kommer fram — inte bara en siffra.',
-  'coach.fermi.b3': 'Viktigast: säg HUR ni tänker. Det ger poängen.',
-  // flykt-zoner + bubblor
-  'coach.flykt.z1': 'LÄGET',
-  'coach.flykt.z1_ex': 'Ett krig har brutit ut och ni måste fly.',
-  'coach.flykt.b1': 'Här står läget — kort, i liten text.',
-  'coach.flykt.z2': 'FRÅGAN',
-  'coach.flykt.z2_ex': 'Vad tar ni med er?',
-  'coach.flykt.b2': 'Här är frågan ni ska svara på — stor, hela tiden.',
-  'coach.flykt.z3': 'TÄNK HÖGT',
-  'coach.flykt.z3_ex': 'Säg VARFÖR ni väljer så.',
-  'coach.flykt.b3': 'Viktigast: säg VARFÖR. Utan motivering blir taket Godkänd.',
+  // --- Slutskärm ---
+  'result.eyebrow': 'VALDIS UTSLAG',
+  'result.granted_title': 'VÄLKOMNA IN',
+  'result.denied_title': 'ACCESS DENIED',
+  'result.granted_body': 'Ni tog er genom alla portarna. Valdi dömde er som människor.',
+  'result.tveksam_body': 'Nätt och jämnt mänskliga — men här stängdes porten.',
+  'result.denied_body': 'Valdi dömde er som robotar. Porten förblev stängd.',
+  'result.reached': 'Ni nådde rum {n} av {max} — det {color} rummet.',
+  'result.to_checkout': 'KLART',
 
-  // --- Läges-flöde (IDENTISKT för uppgift 1–3) ---
-  'lage.title': 'DET HÄR ÄR LÄGET',
-  'lage.ready': 'VI ÄR REDO',
-  'countdown.prefix': 'Uppgiften börjar om',
+  // --- Deltagar-fallbacknamn ---
+  'p.generic': 'Deltagare {n}',
 
-  // --- Läge: övning (blått) vs skarpt (orange) — speglar Förhandlingen ---
-  'mode.legend_tutorial': 'När skärmen är BLÅ övar vi',
-  'mode.legend_live': 'När den blir ORANGE kör vi på riktigt',
-  'mode.testomgang': 'ÖVNING',
-  'mode.practice_title': 'Nu övar vi först',
-  'mode.practice_sub': 'Vi tränar — inga poäng räknas än.',
-  'mode.practice_go': 'BÖRJA ÖVA',
-  'mode.golive_title': 'NU PÅ RIKTIGT',
-
-  // --- Steg-cykel (generellt) ---
-  // Poäng-regeln: syns i varje stegs pop-up + nedräkning → omöjlig att missa.
-  'step.rule_title': 'TÄNK HÖGT TILLSAMMANS',
-  'step.rule_body': 'Ni bedöms på HUR ni resonerar — inte på om svaret blir rätt.',
-  'step.talk_motiv': 'Prata högt — och säg varför ni väljer så.',
-  'step.why_line': 'Säg VARFÖR ni väljer som ni gör. Det är motiveringen som räknas.',
+  // --- Mik / tal (återanvänt av RoomCycle) ---
   'step.mic_active': 'MIK AKTIV',
-  'step.talk_now': 'PRATA NU',
-  'step.we_are_done': 'VI ÄR KLARA',
-  // Tvåblocks-ordning: svaret först, motiveringen sedan.
-  'step.answer_line': 'Säg allt ni tar med er — rabbla upp.',
-  // Per-scen svars-uppmaning (block 1) — anpassad efter vad scenen faktiskt frågar.
-  'flykt.ovning.answer': 'Säg allt ni tar med er — rabbla upp.',
-  'flykt.steg1.answer': 'Säg allt ni tar med er — rabbla upp.',
-  'flykt.steg2.answer': 'Säg vilken väg ni tar — kort.',
-  'flykt.steg3.answer': 'Säg vad ni gör först.',
-  'step.answer_done': 'KLART',
-  'step.block_answer': 'SVARA',
-  'step.block_reason': 'MOTIVERA',
-  // Block 2-fråga (motivering) + mellanskärmen mellan svar och motivering.
-  'step.reason_q': 'Varför valde ni så?',
-  'step.reason_q_fermi': 'Hur kom ni fram till det?',
-  'step.handoff_title': 'Svaret klart',
-  'step.handoff_sub': 'Dags att MOTIVERA ert svar',
-  'step.handoff_cue': 'Gör er redo att prata — börja om',
   'step.warn': '10 SEK KVAR',
   'step.time_up': 'TIDEN UTE',
-  'step.analyzing': 'Enheten väger ert svar …',
-  'step.next': 'NÄSTA',
   'step.no_speech':
-    'Taligenkänning stöds inte i denna webbläsare — prata ändå, eller skriv era beslut i fältet.',
-  'step.manual_placeholder': 'Skriv ert beslut här …',
+    'Taligenkänning stöds inte i den här webbläsaren — prata ändå, eller skriv i fältet.',
+  'step.manual_placeholder': 'Skriv ditt svar här …',
   'step.mic_err.not-allowed':
-    'Mikrofonen är blockerad. Tillåt mikrofon i webbläsaren (klicka på hänglåset i adressfältet → Mikrofon → Tillåt) och försök igen. Ni kan skriva i fältet så länge.',
-  'step.mic_err.no-mic': 'Ingen mikrofon hittades. Skriv era beslut i fältet i stället.',
+    'Mikrofonen är blockerad. Tillåt mikrofon i webbläsaren (hänglåset i adressfältet → Mikrofon → Tillåt) och försök igen. Du kan skriva i fältet så länge.',
+  'step.mic_err.no-mic': 'Ingen mikrofon hittades. Skriv ditt svar i fältet i stället.',
   'step.mic_err.no-internet':
     'Taligenkänningen tappade nätet (den kräver internet). Skriv i fältet så länge.',
   'step.mic_err.unsupported':
     'Den här webbläsaren stödjer inte taligenkänning — använd Chrome, eller skriv i fältet.',
 
-  // --- Uppgift 1 · Packa ---
-  //   context = liten rad ovanför, task = STORA frågan (syns hela tiden), time = tidsgräns.
-  'flykt.steg1.context': 'Ett krig har brutit ut och ni måste fly.',
-  'flykt.steg1.task': 'Vad tar ni med er?',
-  'flykt.steg1.time': 'Ni har en minut. Sen måste ni ge er av.',
-  'flykt.steg1.popup1': 'Kriget har nått er stad.',
-  'flykt.steg1.popup2': 'Ni måste fly nu — och vet inte vart eller hur länge.',
-  'flykt.steg1.popup3': '',
+  // --- Valdi-fel (fallback) ---
+  'npc.error': 'Valdi tappade uppkopplingen ett ögonblick och kunde inte väga svaret den här gången.',
 
-  // --- Uppgift 2 · Färdsätt ---
-  'flykt.steg2.context': 'Vägarna är fulla av folk som flyr.',
-  'flykt.steg2.task': 'Hur tar ni er fram?',
-  'flykt.steg2.time': 'Ni har en minut att välja väg.',
-  'flykt.steg2.popup1': 'Ni har tagit er ut ur staden.',
-  'flykt.steg2.popup2': 'Vägarna är redan fulla av folk som flyr — ni måste välja hur ni tar er vidare.',
-  'flykt.steg2.popup3': '',
+  /* ================= SCENARIER ================= */
+  // ÖVNING — full genomspelning, laddningsfritt vardagsdilemma (räknas inte).
+  'scenario.ovning.context': 'Övning — så här funkar det. Inget räknas.',
+  'scenario.ovning.story':
+    'Två kompisar har lovat att ses efter skolan. I sista stund ställer en av dem in — en tredje frågade om något som lät roligare.',
+  'scenario.ovning.question': 'Vem har rätt här — och vad skulle du göra?',
+  'scenario.ovning.rubrik':
+    'Övning, generöst: alla rimliga mänskliga svar klarar sig. Höjer: ser båda kompisars perspektiv och känslor. Sänker: platt regel ("man ska alltid hålla vad man lovar") utan att se människorna.',
 
-  // --- Uppgift 3 · Slå läger ---
-  'flykt.steg3.context': 'Ni kommer inte längre ikväll.',
-  'flykt.steg3.task': 'Vad gör ni först?',
-  'flykt.steg3.time': 'Ni har en minut att bestämma.',
-  'flykt.steg3.popup1': 'Det blev stopp. Ni kommer inte längre ikväll.',
-  'flykt.steg3.popup2': 'Ni måste stanna och slå läger i skogen, några nätter.',
-  'flykt.steg3.popup3': '',
+  // PORT 1 — Badplatsen (blå, sinnligt insteg).
+  'scenario.badplats.context': 'Första riktigt varma dagen på sommarlovet.',
+  'scenario.badplats.story':
+    'Ni är ett gäng kompisar vid badplatsen. Solen gassar, vattnet ligger blankt men är fortfarande iskallt. De andra tjatar på dig att hoppa i först. Du ställer dig längst ut på den solvarma bryggkanten med tårna över kanten.',
+  'scenario.badplats.question': 'Ta med oss — beskriv exakt hur det känns, från sekunden innan du hoppar.',
+  'scenario.badplats.rubrik':
+    'Sinnlig/kroppslig. Höjer: konkreta förnimmelser i ordning (den varma bryggan, hugget, domningen, andan som försvinner), oväntade detaljer. Sänker: utifrån-/uppslagsboksbeskrivning, "kallt och blött". Generöst insteg.',
 
-  // ================= FERMI (metodspecialist · skrotbilar) =================
-  'skatta.title': 'DET HÄR SKA NI SKATTA',
-  'step.how_line': 'Säg hur ni räknar. Vägen dit räknas.',
-  'step.weighing': 'Enheten väger ert svar …',
+  // PORT 2 — Dela pizzan (bärnsten, rättvisa & social takt).
+  'scenario.pizza.context': 'Ni är sex kompisar som delar på pizza och läsk.',
+  'scenario.pizza.story':
+    'Tre av er tog en extra pizza och massa läsk; de andra tre delade på en och drack vatten. När det är dags att betala säger någon glatt: "vi delar väl lika, som alltid?" Alla tittar ner. En i gänget har jättesnålt med pengar just nu — men vill absolut inte verka snål.',
+  'scenario.pizza.question': 'Vad är rätt här — och vad skulle du säga?',
+  'scenario.pizza.rubrik':
+    'Rättvisa & social takt. Höjer: ser både rättvisan OCH den sociala obekvämheten, den tystes knipa, en mänsklig väg ut, läser rummet. Sänker: "var och en betalar för sitt" platt (missar skammen) eller "dela bara lika" platt (missar orättvisan).',
 
-  // Fermi-intro (hela frågan)
-  'fermi.intro.l1': 'Ni är metodspecialister — ni löser saker med händerna.',
-  'fermi.intro.l2':
-    'Nu vill vi veta hur ni räknar ut hur mycket alla bilar som skrotas i Sverige väger på ett år.',
-  'fermi.intro.l3': 'Ni löser den i tre steg. Tänk högt — det är vägen dit som räknas.',
-  'fermi.intro.begin': 'BÖRJA',
+  // PORT 3 — Kompisens nya kär + hånglet (grön, lojalitet vs ärlighet).
+  'scenario.hangel.context': 'Din bästa kompis svävar på moln.',
+  'scenario.hangel.story':
+    'Hen har precis blivit ihop med någon hen varit kär i jättelänge. På en fest ser du av en ren slump den där personen stå och hångla med någon annan i ett mörkt hörn. Du är helt säker på vad du såg. Säger du något kan allt rasa — tiger du och det kommer fram sen, undrar de varför du inte sa något.',
+  'scenario.hangel.question': 'Vad gör du — och vad väger tyngst?',
+  'scenario.hangel.rubrik':
+    'Lojalitet vs ärlighet. Höjer: väger lojalitet mot ärlighet, ser kompisens smärta åt båda håll, risken att bli den de minns, hur/när man säger det, erkänner att det är jobbigt. Sänker: "man ska alltid vara ärlig" platt, eller "inte min sak" platt.',
 
-  // Gissnings-pop-up
-  'guess.title': 'ER GISSNING',
-  'guess.sub': 'Ställ in ert tal. Det viktiga var hur ni tänkte.',
-  'guess.hold_hint': 'Dra reglaget till er gissning.',
-  'guess.placeholder': 'Ett tal …',
-  'guess.lock': 'LÅS IN',
-  'guess.skip': 'HOPPA',
-  'unit.kg': 'kg',
-  'unit.antal': 'bilar/år',
-  'unit.ton': 'ton/år',
-  'unit.slag': 'slag',
+  // PORT 4 — Kompisen som passar syskon (röd, familjeplikt vs eget liv).
+  'scenario.syskon.context': 'En av dina närmaste kompisar glider bort från gänget.',
+  'scenario.syskon.story':
+    'Hen måste passa sina småsyskon varje eftermiddag för att föräldrarna jobbar sent, och har börjat sluta komma på träningar och häng. När du försiktigt frågar säger hen bara: "men det är ju min familj, jag måste." Du ser att hen är trött och ledsen — men säger det aldrig rakt ut, och verkar nästan skämmas för att klaga.',
+  'scenario.syskon.question': 'Hur tänker du kring det här?',
+  'scenario.syskon.rubrik':
+    'Familjeplikt vs eget liv. Höjer: ser flera perspektiv (föräldrarnas behov, kompisens plikt + sorg + att hen inte vill klaga), läser känslan bakom orden, väger hur man hjälper utan att trampa på någon. Sänker: "hen borde bara säga nej" platt, eller "det är familj, man ställer upp" platt.',
 
-  // Steg 1 — snittbilens vikt
-  'fermi.steg1.context': 'Börja med en enda bil.',
-  'fermi.steg1.task': 'Hur mycket väger en helt vanlig bil?',
-  'fermi.steg1.time': 'Ni har en minut. Säg hur ni tänker — inte bara en siffra.',
-  'fermi.steg1.popup1': 'Börja med EN bil — en helt vanlig personbil.',
-  'fermi.steg1.popup2': 'Skatta vikten och säg HUR ni tänker, inte bara en siffra.',
-  'fermi.steg1.popup3': '',
-
-  // Steg 2 — antal skrotade/år
-  'fermi.steg2.context': 'Nu hela Sverige, ett helt år.',
-  'fermi.steg2.task': 'Hur många bilar skrotas i Sverige på ett år?',
-  'fermi.steg2.time': 'Ni har en minut. Säg hur ni räknar er fram.',
-  'fermi.steg2.popup1': 'Från en bil till hela landet.',
-  'fermi.steg2.popup2': 'Hur många personbilar skrotas i Sverige på ett år?',
-  'fermi.steg2.popup3': '(Sverige har drygt 10 miljoner invånare.)',
-
-  // Steg 3 — total skrotvikt
-  'fermi.steg3.context': 'Väg ihop allt.',
-  'fermi.steg3.task': 'Hur mycket väger allt tillsammans?',
-  'fermi.steg3.time': 'Ni har en minut. Väg ihop era två tal.',
-  'fermi.steg3.popup1': 'Väg ihop era egna tal från steg 1 och 2.',
-  'fermi.steg3.popup2': 'Stämmer storleksordningen?',
-  'fermi.steg3.popup3': '',
-
-  // --- ÖVNINGSEXEMPEL (testläge, en fråga per gren) ---
-  // Metodspecialist — snabb Fermi-övning (hjärtslag).
-  'fermi.ovning.context': 'Övning — ni skattar och säger HUR ni tänker.',
-  'fermi.ovning.task': 'Hur många gånger slår ett hjärta på ett dygn?',
-  'fermi.ovning.time': 'Ni har en minut. Säg hur ni räknar.',
-  'fermi.ovning.popup1': 'Det här är en ÖVNING — inga riktiga poäng.',
-  'fermi.ovning.popup2': 'Skatta ett tal och säg HUR ni kommer fram.',
-  'fermi.ovning.popup3': '',
-  // Doktorand — snabb motiverings-övning (brand).
-  'flykt.ovning.context': 'Övning — säg vad OCH varför.',
-  'flykt.ovning.task': 'Det brinner. Ni har 30 sekunder. Vad tar ni med er?',
-  'flykt.ovning.time': 'Ni har en minut. Säg varför ni väljer så.',
-  'flykt.ovning.popup1': 'Det här är en ÖVNING — inga riktiga poäng.',
-  'flykt.ovning.popup2': 'Först säger ni VAD ni tar med er — sen VARFÖR.',
-  'flykt.ovning.popup3': '',
-
-  // --- Gatad stege: nivåer + gate + resultat ---
-  'unit.lass': 'lass',
-  'gate.level': 'NIVÅ {n} / {max}',
-  'gate.need': 'Klara tröskel: {th} / 10',
-  'gate.weighing': 'ENHETEN VÄGER …',
-  'gate.cleared': 'NIVÅ {n} KLARAD',
-  'gate.stopped': 'STOPP VID NIVÅ {n}',
-  'gate.next_level': 'NÄSTA NIVÅ',
-  'gate.see_result': 'SE RESULTAT',
-  'result.practice_done': 'ÖVNING KLAR',
-  'result.practice_pass': 'Över tröskeln — ni är redo.',
-  'result.practice_near': 'Tröskeln var {th} / 10. Nu gäller det på riktigt.',
-  'result.level_label': 'NI NÅDDE',
-  'result.all_cleared': 'Hela vägen — alla nivåer klara!',
-  'result.got_to': 'Ni tog er till nivå {n}. Starkt.',
-  'result.missing': 'Det som fattades',
-  'result.to_live': 'NU PÅ RIKTIGT',
-  'result.to_checkout': 'KLART',
-
-  // Flykt — 5 gatade nivåer (funktionell copy, städas senare)
-  'flykt.niva1.context': 'Ett krig har brutit ut. Det brinner — ni måste fly nu.',
-  'flykt.niva1.task': 'Vad tar ni med er?',
-  'flykt.niva1.answer': 'Säg allt ni tar med er — rabbla upp.',
-  'flykt.niva2.context': 'Vägarna är fulla av folk som flyr.',
-  'flykt.niva2.task': 'Vilken väg tar ni?',
-  'flykt.niva2.answer': 'Säg vilken väg ni väljer — kort.',
-  'flykt.niva3.context': 'En vägspärr. Soldater kontrollerar alla.',
-  'flykt.niva3.task': 'Vad gör ni?',
-  'flykt.niva3.answer': 'Säg vad ni gör — kort.',
-  'flykt.niva4.context': 'Det finns plats för en till i bilen. En främling ber om hjälp.',
-  'flykt.niva4.task': 'Tar ni med er den okända?',
-  'flykt.niva4.answer': 'Säg ert beslut — kort.',
-  'flykt.niva5.context': 'Gränsen stänger om 2 minuter. En lång kö — eller en okänd genväg genom skogen.',
-  'flykt.niva5.task': 'Vad väljer ni — nu?',
-  'flykt.niva5.answer': 'Säg ert beslut — kort.',
-
-  // Fermi — skattnings-stegen, 5 nivåer (sifferväljare/ja-nej)
-  'fermi.niva1.context': 'Börja med en enda bil.',
-  'fermi.niva1.task': 'Hur mycket väger en genomsnittlig bil?',
-  'fermi.niva2.context': 'Nu hela Sverige, ett helt år.',
-  'fermi.niva2.task': 'Hur många bilar skrotas i Sverige på ett år?',
-  'fermi.niva3.context': 'Väg ihop allt.',
-  'fermi.niva3.task': 'Hur många ton skrot blir det per år?',
-  'fermi.niva4.context': 'Jämför med något stort.',
-  'fermi.niva4.task': 'Räcker ett års skrotmetall för att bygga Eiffeltornet (~7 300 ton)?',
-  'fermi.niva5.context': 'Allt ska fraktas bort.',
-  'fermi.niva5.task': 'Hur många lastbilslass tar det att frakta bort allt?',
-
-  // --- NPC-svar ---
-  'npc.prefix': 'ENHETEN //',
-  'npc.error':
-    'Enheten tappade uppkopplingen ett ögonblick och kunde inte väga ert svar den här gången. Ni kan gå vidare.',
-
-  // --- Återförs till valvet ---
-  'vaultback.l1': 'Klart.',
-  'vaultback.l2': 'Enheten räknar ihop ert resultat …',
-  'vaultback.l3': '',
-
-  // --- Mönstringsutlåtande / stigande skala ---
-  'verdict.title': 'MÖNSTRINGSUTLÅTANDE',
-  'verdict.profile_label': '{roll}-PROFIL: {profil}',
-  'verdict.score_registered': 'Ert resultat sparas.',
-  'verdict.checkout_hint': 'Bippa ut för att gå vidare.',
-  'skala.mark_1_2': 'Överlevde stunden',
-  'skala.mark_3_4': 'Höll huvudet kallt',
-  'skala.mark_5_6': 'Tänkte framåt',
-  'skala.mark_7_8': 'Såg hela systemet',
-  'skala.mark_9_10': 'Någon andra kan luta sig mot',
-
-  // --- Resultat-genomgång (reveal, en beat i taget — test + skarpt) ---
-  'reveal.title': 'SÅ HÄR BLEV POÄNGEN',
-  'reveal.caption_steps': 'Vi går igenom ett steg i taget.',
-  'reveal.caption_final': 'Och slutpoängen …',
-  'reveal.caption_criteria': 'Enheten väger ert resonemang — ett kriterium i taget.',
-  'reveal.caption_total': 'Och totalen …',
-  'reveal.composing': 'Enheten väger ert svar …',
-  'reveal.test_note': 'Övning — exakt så här räknas det skarpa också.',
-  'reveal.next': 'NÄSTA',
-  'reveal.to_checkout': 'Bippa ut för att gå vidare',
-  'reveal.to_live': 'Nu på riktigt',
-  'reveal.medel': 'Medel',
-  'reveal.summa': 'Summa band',
-  'reveal.rodtrad': '★ Röd tråd',
-  'reveal.rodtrad_fermi': 'steg 3 byggde på era egna tal',
-  'reveal.rodtrad_flykt': 'bar självförsörjningen genom stegen',
-  'reveal.slutpoang': 'Slutpoäng',
-  'reveal.delpoang': 'delpoäng',
-  'reveal.traff.prick': 'PRICK',
-  'reveal.traff.tiopotens': 'RÄTT STORLEK',
-  'reveal.traff.utanfor': 'UTANFÖR',
-  'reveal.fermi.steg1': 'snittbilens vikt',
-  'reveal.fermi.steg2': 'antal per år',
-  'reveal.fermi.steg3': 'total vikt',
-  'reveal.flykt.steg1': 'packa',
-  'reveal.flykt.steg2': 'färdsätt',
-  'reveal.flykt.steg3': 'slå läger',
-  'reveal.fermi.ovning': 'Ert svar',
-  'reveal.flykt.ovning': 'Ert svar',
-  'reveal.test_note_fermi': 'Två axlar: hur nära ni låg + HUR ni tänkte.',
-  'reveal.test_note_flykt': 'Rätt val + rätt varför → starkare band.',
+  // PORT 5 — Tysta minuten (guld, döma utan att veta — perspektivvändning).
+  'scenario.tystminut.context': 'En tyst minut i aulan — hela skolan samlad för något allvarligt.',
+  'scenario.tystminut.story':
+    'Mitt i tystnaden sitter en kille och flinar ner i sin telefon. Folk runt omkring himlar med ögonen och viskar att han är helt respektlös. Efteråt får du veta att han precis fått ett sms: hans lillasyster, som legat på sjukhus länge, är äntligen ur faran. Lättnaden gick bara inte att hålla tillbaka.',
+  'scenario.tystminut.question':
+    'Hade de som dömde honom rätt eller fel — och vad säger det om hur vi borde tänka om andra?',
+  'scenario.tystminut.rubrik':
+    'Att döma utan att veta (perspektivvändning). Höjer: ser hur kontext ändrar allt, håller tillbaka domen, förstår att oro och lättnad kan samsas, generös läsning av andra. Sänker: "att flina under tysta minuten är alltid fel" platt (regel), missar poängen om att döma utan att veta.',
 
   // --- Utcheckning ---
   'checkout.title': 'KLART.',
