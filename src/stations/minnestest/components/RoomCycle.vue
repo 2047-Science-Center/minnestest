@@ -11,7 +11,7 @@
  */
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
-import { config, asset } from '@/config'
+import { config, asset, MODE_COLORS } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import { useSpeechCapture } from '@/station-kit/capture/useSpeechCapture'
 
@@ -41,16 +41,15 @@ const posterSrc = computed(() => (sceneBase.value ? asset(`video/${sceneBase.val
 const context = computed(() => t(`scenario.${scenarioId.value}.context`))
 const story = computed(() => t(`scenario.${scenarioId.value}.story`))
 const question = computed(() => t(`scenario.${scenarioId.value}.question`))
+// Kort ingress i tal-steget som påminner om scenariot ("Max ställde in …").
+const recap = computed(() => t(`scenario.${scenarioId.value}.recap`))
 const roomName = computed(() => t(`room.name.${store.room.color}`))
 
-const acc = computed(() => store.roomColor.hex)
-const accRgb = computed(() => store.roomColor.rgb)
-const accDim = computed(() => store.roomColor.dim)
-const rootStyle = computed(() => ({
-  '--color-primary': acc.value,
-  '--color-primary-dim': accDim.value,
-  '--mode-accent-rgb': accRgb.value,
-}))
+// UI-chrome följer LÄGET (mint i övning, bärnsten i skarpt) — inte rumsfärgen.
+// Rummets egen färg bärs av dörr-arten (VaultDoor väljer art via store.room.color).
+const modeKey = computed(() => (store.isTutorial ? 'test' : 'live'))
+const acc = computed(() => MODE_COLORS[modeKey.value].hex)
+const accRgb = computed(() => MODE_COLORS[modeKey.value].rgb)
 
 // --- Deltagare ---
 const pIndex = computed(() => store.activeParticipant)
@@ -84,6 +83,29 @@ const showUtlatande = ref(false)
 const canProceed = ref(false)
 const revealTimers: ReturnType<typeof setTimeout>[] = []
 const verdict = computed(() => store.verdict)
+
+// "VALDI ÖVERVÄGER" — en ström av begrepp Valdi "tänker på" (som en AI:s tankeström).
+const THINK_TERMS = [
+  'empati', 'perspektiv', 'det osagda', 'tonfall', 'ärlighet', 'lojalitet', 'skam',
+  'rättvisa', 'omtanke', 'avvägning', 'känsla', 'konsekvens', 'medkänsla', 'tvekan',
+  'ansvar', 'relation', 'förlåtelse', 'mod', 'grupptryck', 'sårbarhet', 'hänsyn',
+  'orättvisa', 'vänskap', 'plikt', 'osäkerhet', 'mänsklighet',
+]
+const thinkStream = ref<string[]>([])
+let thinkTimer: ReturnType<typeof setInterval> | null = null
+function startThinkStream(): void {
+  thinkStream.value = []
+  let i = Math.floor(Math.random() * THINK_TERMS.length)
+  thinkTimer = setInterval(() => {
+    i = (i + 1 + Math.floor(Math.random() * 3)) % THINK_TERMS.length
+    thinkStream.value.push(THINK_TERMS[i])
+    if (thinkStream.value.length > 5) thinkStream.value.shift()
+  }, 430)
+}
+function stopThinkStream(): void {
+  if (thinkTimer) clearInterval(thinkTimer)
+  thinkTimer = null
+}
 
 function collectedAnswer(): string {
   return [capture.transcript.value.trim(), manualText.value.trim()].filter(Boolean).join(' ').trim()
@@ -189,6 +211,7 @@ async function enterReveal(): Promise<void> {
   sub.value = 'reveal'
   revealPhase.value = 'overvager'
   doorState.value = 'overvager'
+  startThinkStream()
   meterState.value = 'weighing'
   meterVal.value = store.confidence
   // Scenens ljudbild → lågt valvbrum under porten.
@@ -205,6 +228,7 @@ async function enterReveal(): Promise<void> {
 
 function land(): void {
   revealPhase.value = 'landed'
+  stopThinkStream()
   const v = verdict.value
   if (!v) return
   // Spänningsriser byggs mot portens utslag (toppar när dörren börjar röra sig).
@@ -227,13 +251,18 @@ function land(): void {
     doorState.value = v.granted ? 'open' : 'denied'
     audio.play(v.granted ? 'vaultopen' : 'vaultdenied')
   }, doorAt)
-  // 5) Valdis utlåtande + knapp.
+  // 5) Låt utslaget ("MÄNSKLIGT NOG" / ACCESS DENIED) stå ~3 s innan texten.
   later(() => {
     showUtlatande.value = true
-  }, doorAt + 600)
+    // Valdi läser upp sitt korta utlåtande (ElevenLabs) — kul för gruppen.
+    void store.speakNpc(verdict.value?.utlatande ?? '').finally(() => {
+      canProceed.value = true
+    })
+  }, doorAt + 3000)
+  // Fallback: knappen går alltid att klicka även om rösten är av/fallerar.
   later(() => {
     canProceed.value = true
-  }, doorAt + 1500)
+  }, doorAt + 3000 + 6000)
 }
 
 function proceed(): void {
@@ -276,13 +305,14 @@ onMounted(() => enterScenario())
 onUnmounted(() => {
   clearTick()
   clearRevealTimers()
+  stopThinkStream()
   capture.stop()
   audio.bedStop(800)
 })
 </script>
 
 <template>
-  <div class="room" :style="rootStyle">
+  <div class="room">
     <!-- BACKDROP: rummets scen (scenario/talk) — porten tar över i reveal -->
     <template v-if="sub !== 'reveal'">
       <div class="room__bg" aria-hidden="true" />
@@ -356,10 +386,10 @@ onUnmounted(() => {
         </div>
         <div class="talk__timer" :class="{ 'talk__timer--warn': warn }">{{ timeLabel }}</div>
       </header>
-      <p class="talk__q">{{ question }}</p>
+      <p v-if="recap" class="talk__recap">{{ recap }}</p>
       <div class="talk__live">
         <p class="talk__transcript" :class="{ 'talk__transcript--empty': !capture.transcript.value }">
-          {{ capture.transcript.value || t('room.talk_hint') }}
+          {{ capture.transcript.value || question }}
         </p>
       </div>
       <div class="talk__foot">
@@ -389,6 +419,11 @@ onUnmounted(() => {
           :room-name="roomName"
           :tutorial="store.isTutorial"
         />
+      </div>
+
+      <!-- Valdis tankeström (begrepp dyker upp medan den överväger) -->
+      <div v-if="revealPhase === 'overvager'" class="reveal__think" aria-hidden="true">
+        <span v-for="(w, i) in thinkStream" :key="w + '-' + i" class="reveal__think-term">{{ w }}</span>
       </div>
 
       <div class="reveal__panel">
@@ -601,10 +636,11 @@ onUnmounted(() => {
   border-color: var(--color-danger, #ff5a5a);
   animation: blink 0.5s steps(2, start) infinite;
 }
-.talk__q {
+.talk__recap {
   text-align: center;
   color: var(--color-ink-muted);
-  font-size: 0.95rem;
+  font-size: 1rem;
+  font-style: italic;
   margin: 0;
 }
 .talk__live {
@@ -698,6 +734,38 @@ onUnmounted(() => {
   padding: 2.5rem 0.8rem 0.9rem;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 55%, rgba(0, 0, 0, 0.55) 80%, transparent 100%);
 }
+/* Valdis tankeström under övervägandet */
+.reveal__think {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 56%;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  pointer-events: none;
+}
+.reveal__think-term {
+  font-family: var(--font-mono);
+  font-size: clamp(0.8rem, 1.9vw, 1.05rem);
+  letter-spacing: 0.1em;
+  color: var(--color-primary);
+  opacity: 0.22;
+  text-shadow: 0 0 10px rgba(var(--mode-accent-rgb), 0.5);
+  animation: think-in 0.45s var(--ease-out, ease-out) both;
+}
+.reveal__think-term:last-child {
+  opacity: 1;
+  font-size: clamp(1.1rem, 2.6vw, 1.5rem);
+}
+@keyframes think-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
 .reveal__checks {
   display: flex;
   gap: 1rem;
@@ -757,6 +825,7 @@ onUnmounted(() => {
   .talk__mic,
   .talk__timer--warn,
   .reveal__chk,
+  .reveal__think-term,
   .reveal__utlatande {
     animation: none;
   }

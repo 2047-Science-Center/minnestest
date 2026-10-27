@@ -31,7 +31,7 @@ onMounted(() => store.init())
 </script>
 
 <template>
-  <div class="app">
+  <div class="app" :data-mode="store.isTutorial ? 'test' : 'live'">
     <!-- Attract tills första gesten -->
     <div v-if="store.phase === 'attract'" class="app__single">
       <CrtScreen>

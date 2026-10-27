@@ -325,7 +325,6 @@ class AudioEngine {
   // --- Musikbädd (loop, t.ex. tutorial-loopen) — eget HTMLAudio-lager med fade,
   //     separat från SFX-syntesen. Icke-kritiskt: fallerar tyst. ---
   private bedEl: HTMLAudioElement | null = null
-  private bedRaf = 0
   private bedTarget = 0.22
 
   /** Starta/byt en looppad musikbädd (fil relativt public/Sound/) med in-fade. */
@@ -367,16 +366,22 @@ class AudioEngine {
   }
 
   private fadeTo(el: HTMLAudioElement, to: number, ms: number, done?: () => void): void {
-    cancelAnimationFrame(this.bedRaf)
+    // Per-element rAF: en NY fade (nästa rums bädd) får INTE avbryta en pågående
+    // ut-fade + paus på en ANNAN bädd — annars läcker/staplas bäddarna.
+    const elx = el as HTMLAudioElement & { _fadeRaf?: number }
+    if (elx._fadeRaf) cancelAnimationFrame(elx._fadeRaf)
     const from = el.volume
     const t0 = performance.now()
     const step = (t: number) => {
-      const k = Math.min(1, (t - t0) / ms)
+      const k = ms <= 0 ? 1 : Math.min(1, (t - t0) / ms)
       el.volume = Math.max(0, Math.min(1, from + (to - from) * k))
-      if (k < 1) this.bedRaf = requestAnimationFrame(step)
-      else done?.()
+      if (k < 1) elx._fadeRaf = requestAnimationFrame(step)
+      else {
+        elx._fadeRaf = 0
+        done?.()
+      }
     }
-    this.bedRaf = requestAnimationFrame(step)
+    elx._fadeRaf = requestAnimationFrame(step)
   }
 }
 

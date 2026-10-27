@@ -110,16 +110,18 @@ export const sv: Record<string, string> = {
   // ÖVNING — full genomspelning, laddningsfritt vardagsdilemma (räknas inte).
   'scenario.ovning.context': 'Övning — så här funkar det. Inget räknas.',
   'scenario.ovning.story':
-    'Två kompisar har lovat att ses efter skolan. I sista stund ställer en av dem in — en tredje frågade om något som lät roligare.',
-  'scenario.ovning.question': 'Vem har rätt här — och vad skulle du göra?',
+    'Alma och Max hade bestämt att ses efter skolan — de hade sett fram emot det hela veckan. Men i sista stund skriver Max att han inte kommer: Liam frågade om han ville hänga i stället, och det lät roligare. Alma blir sittande ensam med sitt meddelande.',
+  'scenario.ovning.question': 'Är det här fel — och varför?',
+  'scenario.ovning.recap': 'Max ställde in på Alma i sista stund — för att hänga med Liam i stället.',
   'scenario.ovning.rubrik':
-    'Övning, generöst: alla rimliga mänskliga svar klarar sig. Höjer: ser båda kompisars perspektiv och känslor. Sänker: platt regel ("man ska alltid hålla vad man lovar") utan att se människorna.',
+    'Övning, generöst: alla rimliga mänskliga svar klarar sig. Höjer: ser både Almas besvikelse och att Max kanske inte menade illa, väger vänskap mot att vilja annat. Sänker: platt regel ("man ska alltid hålla vad man lovar") utan att se människorna.',
 
   // PORT 1 — Badplatsen (blå, sinnligt insteg).
   'scenario.badplats.context': 'Första riktigt varma dagen på sommarlovet.',
   'scenario.badplats.story':
     'Ni är ett gäng kompisar vid badplatsen. Solen gassar, vattnet ligger blankt men är fortfarande iskallt. De andra tjatar på dig att hoppa i först. Du ställer dig längst ut på den solvarma bryggkanten med tårna över kanten.',
   'scenario.badplats.question': 'Ta med oss — beskriv exakt hur det känns, från sekunden innan du hoppar.',
+  'scenario.badplats.recap': 'Du står längst ut på den solvarma bryggkanten — de andra tjatar på att du ska hoppa i först.',
   'scenario.badplats.rubrik':
     'Sinnlig/kroppslig. Höjer: konkreta förnimmelser i ordning (den varma bryggan, hugget, domningen, andan som försvinner), oväntade detaljer. Sänker: utifrån-/uppslagsboksbeskrivning, "kallt och blött". Generöst insteg.',
 
@@ -128,6 +130,7 @@ export const sv: Record<string, string> = {
   'scenario.pizza.story':
     'Tre av er tog en extra pizza och massa läsk; de andra tre delade på en och drack vatten. När det är dags att betala säger någon glatt: "vi delar väl lika, som alltid?" Alla tittar ner. En i gänget har jättesnålt med pengar just nu — men vill absolut inte verka snål.',
   'scenario.pizza.question': 'Vad är rätt här — och vad skulle du säga?',
+  'scenario.pizza.recap': 'Tre åt en extra pizza och läsk, tre delade på en och drack vatten — sen sa någon "vi delar väl lika, som alltid?"',
   'scenario.pizza.rubrik':
     'Rättvisa & social takt. Höjer: ser både rättvisan OCH den sociala obekvämheten, den tystes knipa, en mänsklig väg ut, läser rummet. Sänker: "var och en betalar för sitt" platt (missar skammen) eller "dela bara lika" platt (missar orättvisan).',
 
@@ -136,6 +139,7 @@ export const sv: Record<string, string> = {
   'scenario.hangel.story':
     'Hen har precis blivit ihop med någon hen varit kär i jättelänge. På en fest ser du av en ren slump den där personen stå och hångla med någon annan i ett mörkt hörn. Du är helt säker på vad du såg. Säger du något kan allt rasa — tiger du och det kommer fram sen, undrar de varför du inte sa något.',
   'scenario.hangel.question': 'Vad gör du — och vad väger tyngst?',
+  'scenario.hangel.recap': 'På festen såg du din bästa kompis nyblivna kär hångla med någon annan i ett mörkt hörn.',
   'scenario.hangel.rubrik':
     'Lojalitet vs ärlighet. Höjer: väger lojalitet mot ärlighet, ser kompisens smärta åt båda håll, risken att bli den de minns, hur/när man säger det, erkänner att det är jobbigt. Sänker: "man ska alltid vara ärlig" platt, eller "inte min sak" platt.',
 
@@ -144,6 +148,7 @@ export const sv: Record<string, string> = {
   'scenario.syskon.story':
     'Hen måste passa sina småsyskon varje eftermiddag för att föräldrarna jobbar sent, och har börjat sluta komma på träningar och häng. När du försiktigt frågar säger hen bara: "men det är ju min familj, jag måste." Du ser att hen är trött och ledsen — men säger det aldrig rakt ut, och verkar nästan skämmas för att klaga.',
   'scenario.syskon.question': 'Hur tänker du kring det här?',
+  'scenario.syskon.recap': 'Din kompis glider bort från gänget — måste passa småsyskon varje eftermiddag och verkar trött och ledsen.',
   'scenario.syskon.rubrik':
     'Familjeplikt vs eget liv. Höjer: ser flera perspektiv (föräldrarnas behov, kompisens plikt + sorg + att hen inte vill klaga), läser känslan bakom orden, väger hur man hjälper utan att trampa på någon. Sänker: "hen borde bara säga nej" platt, eller "det är familj, man ställer upp" platt.',
 
@@ -153,6 +158,7 @@ export const sv: Record<string, string> = {
     'Mitt i tystnaden sitter en kille och flinar ner i sin telefon. Folk runt omkring himlar med ögonen och viskar att han är helt respektlös. Efteråt får du veta att han precis fått ett sms: hans lillasyster, som legat på sjukhus länge, är äntligen ur faran. Lättnaden gick bara inte att hålla tillbaka.',
   'scenario.tystminut.question':
     'Hade de som dömde honom rätt eller fel — och vad säger det om hur vi borde tänka om andra?',
+  'scenario.tystminut.recap': 'Han flinade i mobilen under tysta minuten — sen fick du veta att hans lillasyster på sjukhuset är ur faran.',
   'scenario.tystminut.rubrik':
     'Att döma utan att veta (perspektivvändning). Höjer: ser hur kontext ändrar allt, håller tillbaka domen, förstår att oro och lättnad kan samsas, generös läsning av andra. Sänker: "att flina under tysta minuten är alltid fel" platt (regel), missar poängen om att döma utan att veta.',
 

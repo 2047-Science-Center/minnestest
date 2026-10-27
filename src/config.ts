@@ -42,10 +42,10 @@ export const config = {
     baseUrl: (import.meta.env.VITE_ASSESS_URL ?? 'http://localhost:8787') as string,
   },
 
-  /** NPC-röst (/speak). Ingen uppläsning i människotestet NU — texten bär.
-   *  (Add-on kan slås på senare; `enabled:false` gör speakNpc till en no-op.) */
+  /** Valdi-röst (/speak, ElevenLabs): läser upp det vägande utlåtandet i
+   *  revealen — den är rolig och lyfter stämningen i gruppen. */
   speak: {
-    enabled: false,
+    enabled: true,
     rate: 1.0,
   },
 
@@ -109,6 +109,13 @@ export interface ColorDef {
   rgb: string
   dim: string
 }
+/** UI-chrome-färg per läge (speglar crt.css): ÖVNING = mintblå, SKARPT = bärnsten.
+ *  Rummens egen färg bärs av dörr-arten — INTE av UI-texten. */
+export const MODE_COLORS = {
+  test: { hex: '#35e0d0', rgb: '53, 224, 208' },
+  live: { hex: '#ff9500', rgb: '255, 149, 0' },
+} as const
+
 export const ROOM_COLORS: Record<RoomColor, ColorDef> = {
   bla: { hex: '#4aa3ff', rgb: '74, 163, 255', dim: '#2b6fb8' },
   gul: { hex: '#ffe24a', rgb: '255, 226, 74', dim: '#b8a01f' },

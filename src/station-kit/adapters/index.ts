@@ -75,7 +75,7 @@ function createAssess(): Assess {
 }
 function createSpeak(): Speak {
   return config.speak.enabled
-    ? new HttpSpeak(config.assess.baseUrl, 'flykt', config.speak.rate)
+    ? new HttpSpeak(config.assess.baseUrl, 'manniskotest', config.speak.rate)
     : new NullSpeak()
 }
 
