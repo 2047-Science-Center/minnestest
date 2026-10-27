@@ -144,13 +144,13 @@ export const sv: Record<string, string> = {
     'Lojalitet vs ärlighet. Höjer: väger lojalitet mot ärlighet, ser kompisens smärta åt båda håll, risken att bli den de minns, hur/när man säger det, erkänner att det är jobbigt. Sänker: "man ska alltid vara ärlig" platt, eller "inte min sak" platt.',
 
   // PORT 4 — Kompisen som passar syskon (röd, familjeplikt vs eget liv).
-  'scenario.syskon.context': 'En av dina närmaste kompisar glider bort från gänget.',
+  'scenario.syskon.context': 'Din kompis Leo verkar aldrig ha tid längre.',
   'scenario.syskon.story':
-    'Hen måste passa sina småsyskon varje eftermiddag för att föräldrarna jobbar sent, och har börjat sluta komma på träningar och häng. När du försiktigt frågar säger hen bara: "men det är ju min familj, jag måste." Du ser att hen är trött och ledsen — men säger det aldrig rakt ut, och verkar nästan skämmas för att klaga.',
-  'scenario.syskon.question': 'Hur tänker du kring det här?',
-  'scenario.syskon.recap': 'Din kompis glider bort från gänget — måste passa småsyskon varje eftermiddag och verkar trött och ledsen.',
+    'Leo bor med en förälder som ofta är sjuk och orkeslös. Det är Leo som handlar, lagar mat och ser efter sin lillebror — men han har aldrig sagt det till någon. När ni undrar varför han aldrig hinner hänga skrattar han bort det och hittar på en ursäkt.',
+  'scenario.syskon.question': 'Du anar att Leo bär mycket hemma men döljer det — säger du något, och i så fall vad?',
+  'scenario.syskon.recap': 'Leo sköter nästan allt hemma åt en sjuk förälder — men döljer det och skämtar bort varför han aldrig hinner hänga.',
   'scenario.syskon.rubrik':
-    'Familjeplikt vs eget liv. Höjer: ser flera perspektiv (föräldrarnas behov, kompisens plikt + sorg + att hen inte vill klaga), läser känslan bakom orden, väger hur man hjälper utan att trampa på någon. Sänker: "hen borde bara säga nej" platt, eller "det är familj, man ställer upp" platt.',
+    'Läsa det osagda / familjeplikt vs eget liv. Höjer: ser bördan bakom ursäkterna, respekterar att Leo döljer det av stolthet/lojalitet, hittar ett finkänsligt sätt att finnas där utan att avslöja eller tvinga fram något. Sänker: "han borde bara be om hjälp" platt, eller "lägg dig inte i" platt — missar varför han tiger.',
 
   // PORT 5 — Tysta minuten (guld, döma utan att veta — perspektivvändning).
   'scenario.tystminut.context': 'En tyst minut i aulan — hela skolan samlad för något allvarligt.',
