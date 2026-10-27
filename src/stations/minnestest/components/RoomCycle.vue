@@ -99,6 +99,11 @@ const holeState = computed<'idle' | 'overvager' | 'granted' | 'denied'>(() =>
       ? 'idle'
       : doorState.value,
 )
+// Kort "koppla ifrån"-beat (vit-klippet) när revealen börjar, innan övervägandet.
+const holeIntro = ref(false)
+const holeRevealState = computed<
+  'idle' | 'overvager' | 'granted' | 'deactivate' | 'denied'
+>(() => (holeIntro.value ? 'deactivate' : holeState.value))
 const showChecks = ref(false)
 const showUtlatande = ref(false)
 const canProceed = ref(false)
@@ -246,6 +251,10 @@ async function enterReveal(): Promise<void> {
   sub.value = 'reveal'
   revealPhase.value = 'overvager'
   doorState.value = 'overvager'
+  if (isHole.value) {
+    holeIntro.value = true
+    later(() => (holeIntro.value = false), 1600)
+  }
   startThinkStream()
   meterState.value = 'weighing'
   meterVal.value = store.confidence
@@ -350,21 +359,27 @@ onUnmounted(() => {
 
 <template>
   <div class="room">
-    <!-- BACKDROP: rummets scen (scenario/talk) — porten tar över i reveal -->
+    <!-- BACKDROP: rummets scen (scenario/talk) — porten/hålet tar över i reveal -->
     <template v-if="sub !== 'reveal'">
-      <div class="room__bg" aria-hidden="true" />
-      <video
-        v-if="clipSrc"
-        :key="clipSrc"
-        class="room__video"
-        :src="clipSrc"
-        :poster="posterSrc"
-        autoplay
-        loop
-        muted
-        playsinline
-        aria-hidden="true"
-      />
+      <!-- Lögndetektorn: Valdi-hålet pulsar som bakgrund medan man talar -->
+      <div v-if="isHole && sub === 'talk'" class="room__hole" aria-hidden="true">
+        <ValdiHole state="pulse" :accent="acc" :accent-rgb="accRgb" />
+      </div>
+      <template v-else>
+        <div class="room__bg" aria-hidden="true" />
+        <video
+          v-if="clipSrc"
+          :key="clipSrc"
+          class="room__video"
+          :src="clipSrc"
+          :poster="posterSrc"
+          autoplay
+          loop
+          muted
+          playsinline
+          aria-hidden="true"
+        />
+      </template>
       <div class="room__scrim" aria-hidden="true" />
     </template>
 
@@ -447,7 +462,7 @@ onUnmounted(() => {
     <!-- REVEAL — porten + Valdi överväger → utslag -->
     <section v-else class="reveal">
       <div class="reveal__door">
-        <ValdiHole v-if="isHole" :state="holeState" :accent="acc" :accent-rgb="accRgb" />
+        <ValdiHole v-if="isHole" :state="holeRevealState" :accent="acc" :accent-rgb="accRgb" />
         <VaultDoor
           v-else
           :state="doorState"
@@ -518,6 +533,11 @@ onUnmounted(() => {
   height: 100%;
   object-fit: cover;
   opacity: 0.9;
+}
+.room__hole {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 .room__scrim {
   position: absolute;

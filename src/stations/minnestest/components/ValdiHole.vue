@@ -1,50 +1,50 @@
 <script setup lang="ts">
 /**
- * VALDI-HÅLET — lögndetektorns reveal/interaktions-visual. Ett hand-hål med en
- * ring som speglar en riktig LED-ring (rena primitiv: solid färg, puls, grön/röd).
- *   idle      — vilande (svag ring).
- *   pulse     — aktiv under taltiden (ringen andas grönt).
- *   overvager — "VALDI ÖVERVÄGER" (ringen scannar i accentfärg).
- *   granted   — grön, Valdi släpper in (klarade lögnen).
- *   denied    — röd, Valdi köpte det inte.
- *
- * CSS-platshållare tills den riktiga polygraf-pulten + klippen genereras — då
- * droppas de in via filnamn (valdi_base.jpg + valdi_activate/pulse/deactivate.mp4).
+ * VALDI-HÅLET — lögndetektorns reveal/interaktions-visual. Spelar de riktiga
+ * polygraf-pult-klippen (LED-ringen inne i hålet):
+ *   pulse / overvager / idle → valdi_pulse (ringen andas grönt, loop)
+ *   granted                  → valdi_gron  (ringen solid grön, loop)
+ *   deactivate               → valdi_vit   (ringen blinkar vitt → släcks, en gång)
+ *   denied                   → valdi_pulse + röd färgskiftning (ringen röd)
  */
+import { computed } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
+import { asset } from '@/config'
 
-defineProps<{
-  state: 'idle' | 'pulse' | 'overvager' | 'granted' | 'denied'
+const props = defineProps<{
+  state: 'idle' | 'pulse' | 'overvager' | 'granted' | 'deactivate' | 'denied'
   accent: string
   accentRgb: string
 }>()
 
 const { t } = useI18n()
-const GREEN = '122, 209, 79'
-const RED = '255, 90, 60'
+
+const src = computed(() => {
+  switch (props.state) {
+    case 'granted':
+      return asset('video/valdi_gron.mp4')
+    case 'deactivate':
+      return asset('video/valdi_vit.mp4')
+    default:
+      return asset('video/valdi_pulse.mp4') // pulse / overvager / idle / denied
+  }
+})
+const loop = computed(() => props.state !== 'deactivate')
 </script>
 
 <template>
-  <div
-    class="hole"
-    :class="`hole--${state}`"
-    :style="{ '--acc': accent, '--acc-rgb': accentRgb, '--green': GREEN, '--red': RED }"
-  >
-    <div class="hole__ambient" aria-hidden="true" />
+  <div class="hole" :class="`hole--${state}`" :style="{ '--acc': accent, '--acc-rgb': accentRgb }">
+    <video
+      :key="src"
+      class="hole__video"
+      :src="src"
+      autoplay
+      :loop="loop"
+      muted
+      playsinline
+    />
+    <div class="hole__tint" aria-hidden="true" />
 
-    <!-- Pulten / konsolen -->
-    <div class="hole__desk" aria-hidden="true">
-      <!-- Hand-hålet + ringen -->
-      <div class="hole__port">
-        <span class="hole__ring hole__ring--outer" />
-        <span class="hole__ring hole__ring--inner" />
-        <span class="hole__bore" />
-        <span v-if="state === 'overvager'" class="hole__scan" />
-      </div>
-      <p class="hole__label">LÖGNDETEKTOR</p>
-    </div>
-
-    <!-- Overlay-texter -->
     <div class="hole__overlay">
       <p v-if="state === 'overvager'" class="hole__status hole__status--work">
         {{ t('door.overvager') }}<span class="hole__ell"><i>.</i><i>.</i><i>.</i></span>
@@ -65,112 +65,25 @@ const RED = '255, 90, 60'
   height: 100%;
   width: 100%;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background-color: var(--color-background);
 }
-.hole__ambient {
+.hole__video {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, rgba(var(--acc-rgb), 0.16), rgba(0, 0, 0, 0.9) 72%);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
-.hole--pulse .hole__ambient {
-  background: radial-gradient(ellipse at center, rgba(var(--green), 0.14), rgba(0, 0, 0, 0.9) 72%);
+/* Nekad: skifta den gröna ringen/glöden mot rött. */
+.hole--denied .hole__video {
+  filter: hue-rotate(-130deg) saturate(1.4);
+  animation: hole-deny 0.5s steps(2) 3;
 }
-.hole--granted .hole__ambient {
-  background: radial-gradient(ellipse at center, rgba(var(--green), 0.28), rgba(0, 0, 0, 0.88) 70%);
-}
-.hole--denied .hole__ambient {
-  background: radial-gradient(ellipse at center, rgba(var(--red), 0.26), rgba(0, 0, 0, 0.9) 70%);
-  animation: hole-deny 0.6s steps(2) 3;
-}
-.hole__desk {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 2.2rem 3rem 1.4rem;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #1a1d20, #0c0e10);
-  border: 1px solid rgba(var(--acc-rgb), 0.3);
-  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8), 0 10px 40px rgba(0, 0, 0, 0.6);
-}
-.hole__port {
-  position: relative;
-  width: clamp(7rem, 22vw, 12rem);
-  height: clamp(7rem, 22vw, 12rem);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.hole__bore {
-  position: absolute;
-  inset: 26%;
-  border-radius: 50%;
-  background: radial-gradient(circle at center, #000 55%, #0a0a0a 100%);
-  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.95);
-}
-.hole__ring {
-  position: absolute;
-  border-radius: 50%;
-}
-.hole__ring--outer {
-  inset: 0;
-  border: 4px solid var(--ring, rgba(var(--acc-rgb), 0.35));
-  box-shadow: 0 0 20px var(--glow, rgba(var(--acc-rgb), 0.25));
-}
-.hole__ring--inner {
-  inset: 13%;
-  border: 2px solid var(--ring, rgba(var(--acc-rgb), 0.4));
-  opacity: 0.8;
-}
-/* --- Tillstånd: ringfärg (LED-primitiv) --- */
-.hole--idle {
-  --ring: rgba(var(--acc-rgb), 0.3);
-  --glow: rgba(var(--acc-rgb), 0.18);
-}
-.hole--pulse {
-  --ring: rgba(var(--green), 0.9);
-  --glow: rgba(var(--green), 0.6);
-}
-.hole--pulse .hole__ring {
-  animation: hole-breathe 1.6s ease-in-out infinite;
-}
-.hole--overvager {
-  --ring: var(--acc);
-  --glow: rgba(var(--acc-rgb), 0.6);
-}
-.hole--granted {
-  --ring: rgba(var(--green), 1);
-  --glow: rgba(var(--green), 0.8);
-}
-.hole--granted .hole__ring {
-  animation: hole-breathe 1.4s ease-in-out infinite;
-}
-.hole--denied {
-  --ring: rgba(var(--red), 1);
-  --glow: rgba(var(--red), 0.8);
-}
-.hole--denied .hole__ring {
-  animation: hole-blink 0.4s steps(2) infinite;
-}
-.hole__scan {
+.hole__tint {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  border-top: 4px solid #fff;
-  opacity: 0.8;
-  animation: hole-spin 1s linear infinite;
-}
-.hole__label {
-  font-family: var(--font-mono);
-  letter-spacing: 0.3em;
-  font-size: 0.75rem;
-  color: var(--acc);
-  margin: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.5) 100%);
 }
 .hole__overlay {
   position: absolute;
@@ -179,7 +92,7 @@ const RED = '255, 90, 60'
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 8%;
+  padding-top: 3%;
   pointer-events: none;
 }
 .hole__status {
@@ -189,7 +102,7 @@ const RED = '255, 90, 60'
   margin: 0;
   text-align: center;
   padding: 0.3em 0.7em;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.6);
   border-radius: 10px;
 }
 .hole__status--work {
@@ -198,13 +111,13 @@ const RED = '255, 90, 60'
   animation: hole-workpulse 1.5s ease-in-out infinite;
 }
 .hole__status--granted {
-  color: rgb(var(--green));
-  text-shadow: 0 0 22px rgba(var(--green), 0.8);
+  color: var(--color-lag2, #7ad14f);
+  text-shadow: 0 0 22px rgba(122, 209, 79, 0.8);
   animation: hole-pop 0.5s var(--ease-out, ease-out) both;
 }
 .hole__status--denied {
-  color: rgb(var(--red));
-  text-shadow: 0 0 22px rgba(var(--red), 0.8);
+  color: var(--color-danger, #ff5a3c);
+  text-shadow: 0 0 22px rgba(255, 90, 60, 0.8);
   animation: hole-pop 0.5s var(--ease-out, ease-out) both;
 }
 .hole__ell {
@@ -218,21 +131,6 @@ const RED = '255, 90, 60'
 }
 .hole__ell i:nth-child(3) {
   animation-delay: 0.4s;
-}
-@keyframes hole-breathe {
-  50% {
-    opacity: 0.45;
-  }
-}
-@keyframes hole-blink {
-  50% {
-    opacity: 0.3;
-  }
-}
-@keyframes hole-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 @keyframes hole-workpulse {
   50% {
@@ -252,15 +150,13 @@ const RED = '255, 90, 60'
 }
 @keyframes hole-deny {
   50% {
-    opacity: 0.4;
+    opacity: 0.55;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hole__ring,
-  .hole__scan,
   .hole__status--work,
   .hole__ell i,
-  .hole--denied .hole__ambient {
+  .hole--denied .hole__video {
     animation: none;
   }
 }

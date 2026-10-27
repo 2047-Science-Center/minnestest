@@ -34,9 +34,14 @@ kalla skuggor, lätt dis, analog retro-teknik, grön-fosfor-CRT, svensk stencil-
 > KEY DETAIL — the HAND-PORT: a large circular opening set into an UPRIGHT VERTICAL PANEL
 > that rises just behind and above the row of gauges, FACING THE VIEWER HEAD-ON. A person
 > inserts their hand straight FORWARD (horizontally) into the dark round bore — it is NOT
-> a hole in the horizontal desktop and you do NOT reach downward. The port is ringed by a
-> brushed-steel bezel with embedded indicator LEDs, currently DORMANT and unlit, the bore
-> receding back into the panel.
+> a hole in the horizontal desktop and you do NOT reach downward. The port has a brushed-
+> steel bezel, the bore receding back into the panel.
+>
+> IMPORTANT — the LED RING: recessed just inside the mouth of the bore, set into the inner
+> wall, is a continuous RING OF SMALL INDIVIDUAL LED SEGMENTS (like a NeoPixel / WS2812 LED
+> ring) — currently DARK AND UNLIT, clearly visible as a circle of tiny dormant dots around
+> the inner rim. The very centre of the bore stays pure black. This ring is the only thing
+> that will light up later, so it must read as a distinct physical ring of little LEDs.
 >
 > Behind: the Valvet bunker — rough dark stone walls, a round vault door marked "VALVET"
 > with three crowns far back, warm tungsten strip light, faint haze. Photoreal, cinematic,
@@ -72,26 +77,31 @@ Gemensamt: **kameran helt låst, ingen kamerarörelse, inga händer, inga männi
 > nål-rörelse och CRT-vågen är **skärm-grädde** (LED:en behöver ej följa dem); det är
 > RINGENS färg + ljusstyrka som LED-stripen speglar. Undvik effekter en LED inte kan göra.
 
+> **LOKALISERA EFFEKTEN:** referera ENBART LED-ringen inne i hålet, och säg uttryckligen att
+> inget annat ändras. Nämn INTE att nålar/CRT/metall reagerar (det är det som får Runway att
+> spreja grönt överallt). Håll glöden instängd i ringen + den inre randen av hålet.
+
 **Klipp 1 — AKTIVERING / införande (~4 s, spelas en gång):**
-> Locked-off camera, no camera movement. The dormant hand-port comes alive: the ring LEDs
-> ignite SEQUENTIALLY around the ring (a bright green chase travelling once around) and
-> settle to a solid steady green. A soft green glow rises from inside the hole, the analog
-> needles twitch awake and the CRT line jumps into a live waveform, a wash of green light
-> spreads across the metal. Ends on a steady fully-lit green ring. Subtle haze. Photoreal,
-> cinematic. No hands, no people.
+> Locked-off camera, no movement. ONLY the ring of small LED segments recessed inside the
+> mouth of the hole changes: the individual LEDs ignite one after another around the ring (a
+> green chase travelling once around) and settle to a steady solid green. The light stays
+> strictly contained to that LED ring and the inner rim of the bore. Everything else — the
+> gauges, needles, polygraph drum, oscilloscope, the green metal panel, the room — stays
+> EXACTLY as in the source image, with absolutely NO other green light, glow or colour change
+> anywhere in the frame. No hands, no people.
 
 **Klipp 2 — PULSERING (~5 s, sömlös loop):**
-> Locked-off camera, no movement. Steady activated state: the solid green ring BREATHES —
-> brightening and dimming evenly in a calm rhythmic pulse (uniform around the ring) — a
-> small indicator lamp blinks steadily, the CRT waveform ripples gently, soft mist drifts.
-> Perfectly seamless loop, first and last frame identical. Calm, tense, alive. No hands,
+> Locked-off camera, no movement. ONLY the ring of LED segments inside the hole changes: the
+> green ring breathes, brightening and dimming evenly in a calm pulse, light contained to the
+> ring and the inner rim. Everything else is identical to the source image — no colour spill,
+> no other element reacts. Perfectly seamless loop, first and last frame identical. No hands,
 > no people.
 
 **Klipp 3 — AVAKTIVERING (~3 s, spelas en gång):**
-> Locked-off camera, no movement. The connection releases: the whole ring flashes to FULL
-> WHITE at once (a quick bright bloom that washes the frame), then the ring fades down to
-> off; needles settle flat, the CRT returns to a dim idle line. Ends fully dormant, matching
-> the powered-down base image. Photoreal, cinematic. No hands, no people.
+> Locked-off camera, no movement. ONLY the ring of LED segments inside the hole changes: the
+> ring flashes once to white, then fades down to off/dark. The flash stays contained to the
+> ring and the inner rim — it does NOT wash the whole frame. Everything else stays EXACTLY as
+> the source image, no other light or colour change. Ends dormant. No hands, no people.
 
 Reveal (kan lösas i kod ovanpå puls-klippet, rena LED-primitiv): **solid grön + lugn puls =
 klarade**; **röd blink = nekar**.
