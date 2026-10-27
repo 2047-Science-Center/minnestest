@@ -15,7 +15,11 @@ const emit = defineEmits<{ done: [] }>()
 const { t } = useI18n()
 const store = useMinnestestStore()
 
-const lines = [t('intro.l1'), t('intro.l2'), t('intro.l3'), t('intro.l4')].filter(Boolean)
+const lines = (
+  store.game === 'logndetektor'
+    ? [t('ld.intro.l1'), t('ld.intro.l2'), t('ld.intro.l3'), t('ld.intro.l4')]
+    : [t('intro.l1'), t('intro.l2'), t('intro.l3'), t('intro.l4')]
+).filter(Boolean)
 const videoSrc = asset('video/valv_intro_loop.mp4')
 
 const idx = ref(0)

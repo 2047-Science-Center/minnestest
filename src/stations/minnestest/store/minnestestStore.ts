@@ -20,13 +20,13 @@ import type { ResultPayload, ResultPerson } from '@/station-kit/adapters/result/
 
 import {
   config,
-  ROOMS,
-  TUTORIAL_ROOM,
+  GAMES,
+  PINNED_GAME,
   ROOM_COLORS,
-  VERDICT_CONFIG,
   METER,
   parForRoom,
   PILOT_GROUP,
+  type Game,
   type Room,
   type ColorDef,
 } from '@/config'
@@ -34,6 +34,7 @@ import { t } from '@/station-kit/i18n'
 
 export type Phase =
   | 'attract'
+  | 'gameSelect'
   | 'branchIntro'
   | 'intro'
   | 'goLive'
@@ -96,6 +97,10 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     members: [...PILOT_GROUP.members],
   })
 
+  /** Valt spel (låst via PINNED_GAME på en NUC, annars via väljaren). */
+  const game = ref<Game>(PINNED_GAME ?? 'manniskotest')
+  const gameDef = computed(() => GAMES[game.value])
+
   const roomIndex = ref(0)
   const isTutorial = ref(false)
   const activeParticipant = ref(0)
@@ -114,11 +119,15 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   const adapters = shallowRef<Adapters | null>(null)
 
   // --- Härledda ---
-  const room = computed<Room>(() => (isTutorial.value ? TUTORIAL_ROOM : ROOMS[roomIndex.value]))
-  const roomColor = computed<ColorDef>(() => ROOM_COLORS[room.value.color])
+  const room = computed<Room>(() =>
+    isTutorial.value ? gameDef.value.tutorial : gameDef.value.rooms[roomIndex.value],
+  )
+  const roomColor = computed<ColorDef>(() => ROOM_COLORS[room.value.color ?? 'bla'])
   const roomNr = computed(() => roomIndex.value + 1)
-  const roomMax = computed(() => ROOMS.length)
-  const isLastRoom = computed(() => roomIndex.value >= ROOMS.length - 1)
+  const roomMax = computed(() => gameDef.value.rooms.length)
+  const isLastRoom = computed(() => roomIndex.value >= gameDef.value.rooms.length - 1)
+  const talkSeconds = computed(() => gameDef.value.talkSeconds)
+  const reveal = computed(() => gameDef.value.reveal)
   const participants = computed(() => {
     const names = group.value.members
     return Array.from({ length: config.participants }, (_, i) => names[i] ?? t('p.generic', { n: i + 1 }))
@@ -131,6 +140,13 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   // --- Övergångar ---
   function begin(): void {
+    // Låst spel på denna NUC → hoppa över väljaren.
+    phase.value = PINNED_GAME ? 'branchIntro' : 'gameSelect'
+  }
+
+  function chooseGame(g: Game): void {
+    game.value = g
+    confidence.value = METER.start
     phase.value = 'branchIntro'
   }
 
@@ -255,7 +271,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
         .map((x) => `Deltagare ${x.i + 1}: ${x.a.transcript}`)
         .join('\n')
       const v = await adapters.value!.assess.assessStep(
-        VERDICT_CONFIG,
+        gameDef.value.verdictConfig,
         {
           step: roomNr.value,
           role: 'sakerhetsansvarig',
@@ -321,8 +337,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   function finish(granted: boolean): void {
     outcome.value = {
-      roomsCleared: granted ? ROOMS.length : roomIndex.value,
-      maxRooms: ROOMS.length,
+      roomsCleared: granted ? gameDef.value.rooms.length : roomIndex.value,
+      maxRooms: gameDef.value.rooms.length,
       granted,
       zone: zone.value,
       lastUtlatande: verdict.value?.utlatande ?? '',
@@ -378,6 +394,9 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   return {
     phase,
+    game,
+    reveal,
+    talkSeconds,
     group,
     roomIndex,
     isTutorial,
@@ -398,6 +417,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     zone,
     init,
     begin,
+    chooseGame,
     applyIdentity,
     listenIdentity,
     startBranch,

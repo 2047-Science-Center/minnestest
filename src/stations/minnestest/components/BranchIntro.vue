@@ -4,12 +4,18 @@
  * bakgrunden (video/mt-attract.mp4 om den finns; annars mörk botten). STARTA →
  * story-introt (cybersäkerhet/Valvet).
  */
+import { computed } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
 import { asset } from '@/config'
+import { useMinnestestStore } from '../store/minnestestStore'
 
 const emit = defineEmits<{ start: [] }>()
 const { t } = useI18n()
-const videoSrc = asset('video/mt-attract.mp4')
+const store = useMinnestestStore()
+const videoSrc = asset('video/valv_intro_loop.mp4')
+const isLd = computed(() => store.game === 'logndetektor')
+const title = computed(() => (isLd.value ? t('ld.title') : t('branch.title')))
+const sub = computed(() => (isLd.value ? t('ld.sub') : t('branch.sub')))
 </script>
 
 <template>
@@ -27,8 +33,8 @@ const videoSrc = asset('video/mt-attract.mp4')
     <div class="branch__scrim" aria-hidden="true" />
     <div class="branch__inner">
       <p class="branch__eyebrow">{{ t('app.subtitle') }}</p>
-      <h1 class="branch__title ink-strong">{{ t('branch.title') }}</h1>
-      <p class="branch__sub">{{ t('branch.sub') }}</p>
+      <h1 class="branch__title ink-strong">{{ title }}</h1>
+      <p class="branch__sub">{{ sub }}</p>
       <button class="crt-button crt-button--strong branch__start" @click="emit('start')">
         {{ t('branch.start') }} ▸
       </button>

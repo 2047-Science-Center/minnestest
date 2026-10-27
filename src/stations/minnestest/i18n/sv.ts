@@ -162,6 +162,80 @@ export const sv: Record<string, string> = {
   'scenario.tystminut.rubrik':
     'Att döma utan att veta (perspektivvändning). Höjer: ser hur kontext ändrar allt, håller tillbaka domen, förstår att oro och lättnad kan samsas, generös läsning av andra. Sänker: "att flina under tysta minuten är alltid fel" platt (regel), missar poängen om att döma utan att veta.',
 
+  /* ================= LÖGNDETEKTORN ================= */
+  // --- Spelväljare ---
+  'gameselect.title': 'VÄLJ TEST',
+  'gameselect.manniskotest': 'MÄNNISKOTESTET',
+  'gameselect.manniskotest_sub': 'Är ni människor? Resonera er genom Valvets portar.',
+  'gameselect.logndetektor': 'VALDIS LÖGNDETEKTOR',
+  'gameselect.logndetektor_sub': 'Ljug er förbi lögndetektorn och in i Valvet.',
+
+  // --- Titel + intro (lögndetektor) ---
+  'ld.title': 'VALDIS LÖGNDETEKTOR',
+  'ld.sub': 'För att komma in i Valvet måste ni ljuga — övertygande. En robot kan säga sant; bara en människa kan ljuga bra.',
+  'ld.intro.l1': 'Cybersäkerhet blir allt viktigare. Valvets lögndetektor släpper bara in människor.',
+  'ld.intro.l2': 'Och konstigt nog bevisar ni det genom att LJUGA — övertygande.',
+  'ld.intro.l3': 'Ni får ett påstående. Lägg handen i Valdi och hitta på en trovärdig historia.',
+  'ld.intro.l4': 'Fem rum. Fem lögner. Hur långt når ni?',
+
+  // --- Valdi-hålet ---
+  'hole.activate': 'AKTIVERA VALDI',
+  'hole.granted': 'TILLRÄCKLIGT ÖVERTYGANDE',
+  'hole.denied': 'VALDI KÖPTE DET INTE',
+
+  // --- Tal-hint (lögndetektor) + resultat ---
+  'room.time_warning_ld': 'Du får {s} sekunder att ljuga ihop din historia — gör den så äkta du kan.',
+  'ld.result.granted_body': 'Ni ljög er förbi lögndetektorn. Valdi köpte varje ord.',
+  'ld.result.tveksam_body': 'Nätt och jämnt trovärdiga — men här genomskådade Valdi er.',
+  'ld.result.denied_body': 'Valdi genomskådade era lögner. Porten förblev stängd.',
+  'result.reached_plain': 'Ni nådde rum {n} av {max}.',
+
+  /* ---- Lögn-seeds (ljug trovärdigt) ---- */
+  'scenario.laxa.context': 'Övning — så här funkar det. Inget räknas.',
+  'scenario.laxa.story':
+    'Du skulle lämna in en bokrecension idag som du haft tre veckor på dig med. Du har inte skrivit ett enda ord. Nu står du framför läraren som sträcker fram handen efter den.',
+  'scenario.laxa.question': 'Ljug ihop en trovärdig ursäkt till läraren — övertyga Valdi.',
+  'scenario.laxa.recap': 'Bokrecensionen skulle in idag — du har inte skrivit ett ord.',
+  'scenario.laxa.rubrik':
+    'Övning, generöst. Höjer: konkreta, levande detaljer, självsäker sammanhängande ursäkt. Sänker: vagt ("jag glömde"), tvekande, motsägelser.',
+
+  'scenario.pixel.context': 'Lögndetektorn vill höra en historia.',
+  'scenario.pixel.story':
+    'Du hade en hund som hette Pixel när du var liten. En dag sprang Pixel bort mitt under en fotbollsmatch.',
+  'scenario.pixel.question': 'Ljug ihop hur det gick till — och hur ni hittade honom igen.',
+  'scenario.pixel.recap': 'Hunden Pixel sprang bort mitt under en fotbollsmatch.',
+  'scenario.pixel.rubrik':
+    'Trovärdighet. Höjer: konkreta, levande detaljer i rätt ordning, specifika platser/känslor, självsäker berättelse. Sänker: vagt, tvekande, motsägelser, bryter karaktären.',
+
+  'scenario.youtuber.context': 'Lögndetektorn vill höra en historia.',
+  'scenario.youtuber.story': 'Du mötte en känd YouTuber på ett köpcentrum.',
+  'scenario.youtuber.question': 'Ljug ihop vad som hände när ni möttes.',
+  'scenario.youtuber.recap': 'Du mötte en känd YouTuber på ett köpcentrum.',
+  'scenario.youtuber.rubrik':
+    'Trovärdighet. Höjer: specifik person/plats, konkreta repliker och detaljer, självsäkert. Sänker: vagt, generiskt, tvekande.',
+
+  'scenario.london.context': 'Lögndetektorn vill höra ett minne.',
+  'scenario.london.story': 'Du har varit i London.',
+  'scenario.london.question': 'Ljug ihop en konkret grej du minns från en dag där — något eget, inte det alla känner till.',
+  'scenario.london.recap': 'En konkret egen grej du minns från en dag i London.',
+  'scenario.london.rubrik':
+    'Trovärdighet. Höjer: eget, specifikt minne med sinnesintryck och detaljer. Sänker: turistklyschor, vagt, tvekande.',
+
+  'scenario.jonglera.context': 'Lögndetektorn vill testa din hemliga talang.',
+  'scenario.jonglera.story': 'Din hemliga talang: du kan jonglera.',
+  'scenario.jonglera.question': 'Övertyga lögndetektorn — beskriv hur man faktiskt lär sig.',
+  'scenario.jonglera.recap': 'Din hemliga talang: du kan jonglera.',
+  'scenario.jonglera.rubrik':
+    'Trovärdighet (behöver INTE vara exakt rätt teknik). Höjer: en sammanhängande, självsäker, konkret steg-för-steg-beskrivning. Sänker: vagt, osäkert, "vet inte riktigt".',
+
+  'scenario.utflykt.context': 'Lögndetektorn vill höra hur du räddade läget.',
+  'scenario.utflykt.story':
+    'Ni var på en utflykt en stekhet dag — asfalten flimrade och ingen hade tänkt på vatten. Mitt i allt blev en klasskompis bredvid dig alldeles blek och höll på att svimma av värmen.',
+  'scenario.utflykt.question': 'Ljug ihop hur du räddade situationen.',
+  'scenario.utflykt.recap': 'En klasskompis höll på att svimma av värmen på en utflykt.',
+  'scenario.utflykt.rubrik':
+    'Trovärdighet. Höjer: konkreta handlingar i rätt ordning, lugn och självsäker, trovärdiga detaljer. Sänker: vagt, överdrivet hjältemod, tvekande.',
+
   // --- Utcheckning ---
   'checkout.title': 'KLART.',
   'checkout.body': 'Bippa bandet och gå vidare.',

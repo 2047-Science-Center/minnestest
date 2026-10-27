@@ -24,14 +24,23 @@ kalla skuggor, lätt dis, analog retro-teknik, grön-fosfor-CRT, svensk stencil-
 > the device, looking slightly down at it. No people, no hands in frame. Photoreal,
 > cinematic, shallow depth of field, 16:9.
 
-**Förslag 1 — Analog polygraf-pult (klassisk lögndetektor) — ✅ VALD:**
-> A heavy olive-green metal lie-detector console desk. At its center a recessed circular
-> HAND-PORT — a dark round hole ringed by concentric brushed-steel rings with embedded
-> indicator LEDs, currently DORMANT and unlit. Beside it an analog polygraph drum with
-> thin steel needles resting flat, round pressure gauges, toggle switches, and a small
-> green-phosphor CRT showing a flat idle line. The desk front is stencilled "LÖGNDETEKTOR"
-> in worn Swedish lettering. The Valvet bunker recedes into warm-lit haze behind. Quiet,
-> waiting, powered-down mood.
+**Förslag 1 — Analog polygraf-pult (klassisk lögndetektor) — ✅ VALD (hålet RAKT FRAM):**
+> POV standing at a heavy olive-green military polygraph lie-detector console in an
+> underground vault bunker. On the desktop: a row of four round analog gauges labelled
+> BLODTRYCK, PULS, ANDNING, HUDKONDUKTANS; to the left a paper polygraph drum with thin
+> steel needles; to the right a boxy Siemens oscilloscope showing a flat green trace.
+> "LÖGNDETEKTOR" stencilled on the cabinet front. 
+>
+> KEY DETAIL — the HAND-PORT: a large circular opening set into an UPRIGHT VERTICAL PANEL
+> that rises just behind and above the row of gauges, FACING THE VIEWER HEAD-ON. A person
+> inserts their hand straight FORWARD (horizontally) into the dark round bore — it is NOT
+> a hole in the horizontal desktop and you do NOT reach downward. The port is ringed by a
+> brushed-steel bezel with embedded indicator LEDs, currently DORMANT and unlit, the bore
+> receding back into the panel.
+>
+> Behind: the Valvet bunker — rough dark stone walls, a round vault door marked "VALVET"
+> with three crowns far back, warm tungsten strip light, faint haze. Photoreal, cinematic,
+> shallow depth of field, 16:9. No people, no hands in frame. Quiet, powered-down mood.
 
 **Förslag 2 — Valdi-altare (minimalt, rituellt):**
 > A dark monolithic pedestal rising from the bunker floor — a smooth gunmetal altar with

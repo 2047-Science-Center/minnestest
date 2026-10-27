@@ -12,21 +12,24 @@ import { useMinnestestStore } from '../store/minnestestStore'
 const { t } = useI18n()
 const store = useMinnestestStore()
 
+const isLd = computed(() => store.game === 'logndetektor')
 const o = computed(() => store.outcome)
-const reachedColor = computed(() => {
-  const idx = Math.min((o.value?.roomsCleared ?? 1) - 1, ROOMS.length - 1)
-  return t(`room.name.${ROOMS[Math.max(0, idx)].color}`)
+const reached = computed(() => {
+  const n = o.value?.roomsCleared ?? 0
+  const max = o.value?.maxRooms ?? store.roomMax
+  if (isLd.value) return t('result.reached_plain', { n, max })
+  const idx = Math.max(0, Math.min(n - 1, ROOMS.length - 1))
+  return t('result.reached', { n, max, color: t(`room.name.${ROOMS[idx].color ?? 'bla'}`) })
 })
-const headline = computed(() => {
-  if (!o.value) return ''
-  if (o.value.granted) return t('result.granted_title')
-  return t('result.denied_title')
-})
+const headline = computed(() =>
+  !o.value ? '' : o.value.granted ? t('result.granted_title') : t('result.denied_title'),
+)
 const body = computed(() => {
   if (!o.value) return ''
-  if (o.value.granted) return t('result.granted_body')
-  if (o.value.zone === 'tveksam') return t('result.tveksam_body')
-  return t('result.denied_body')
+  const p = isLd.value ? 'ld.result' : 'result'
+  if (o.value.granted) return t(`${p}.granted_body`)
+  if (o.value.zone === 'tveksam') return t(`${p}.tveksam_body`)
+  return t(`${p}.denied_body`)
 })
 </script>
 
@@ -35,9 +38,7 @@ const body = computed(() => {
     <div class="result__inner">
       <p class="result__eyebrow">{{ t('result.eyebrow') }}</p>
       <h1 class="result__headline">{{ headline }}</h1>
-      <p class="result__reached">
-        {{ t('result.reached', { n: o?.roomsCleared ?? 0, max: o?.maxRooms ?? ROOMS.length, color: reachedColor }) }}
-      </p>
+      <p class="result__reached">{{ reached }}</p>
       <p v-if="body" class="result__body ink-strong">{{ body }}</p>
       <p v-if="o?.lastUtlatande" class="result__utlatande">"{{ o.lastUtlatande }}"</p>
       <button class="crt-button crt-button--strong result__go" @click="store.resultDone()">

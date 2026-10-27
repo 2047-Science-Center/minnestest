@@ -1,0 +1,9 @@
+{
+  "id": "logndetektor-verdict",
+  "model": "gpt-5-mini",
+  "reasoningEffort": "low",
+  "maxOutputTokens": 800,
+  "jsonMode": true,
+  "scoreInstructionsFile": "instructions/logndetektor-verdict.sv.txt",
+  "type": "logndetektor-verdict"
+}

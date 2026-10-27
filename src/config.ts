@@ -73,8 +73,8 @@ export interface Room {
   id: string
   /** Scen-asset-bas (video + poster + ljudbild). */
   sceneBase: string
-  /** Rummets färgidentitet (driver accent + namn). */
-  color: RoomColor
+  /** Rummets färgidentitet (människotest = valvdörr-art). Utelämnas för lögndetektorn. */
+  color?: RoomColor
   /** Gateway-config för per-deltagar-bedömningen. */
   configId: string
 }
@@ -97,8 +97,58 @@ export const TUTORIAL_ROOM: Room = {
   configId: 'manniskotest',
 }
 
-/** Config för sammanvägningen (Valdis gemensamma utlåtande per rum). */
+/** Config för sammanvägningen (människotestets utlåtande per rum). */
 export const VERDICT_CONFIG = 'manniskotest-verdict'
+
+/* ------------------------------------------------------------------ *
+ * LÖGNDETEKTORN — 5 lögn-seeds + läxa-övning. Transkript-only, "ljug
+ * trovärdigt". Reveal = Valdi-hålet (ingen valvdörr/färg). Scener = ld_*.
+ * ------------------------------------------------------------------ */
+export const LD_ROOMS: Room[] = [
+  { id: 'pixel', sceneBase: 'ld_1_pixel', configId: 'logndetektor' },
+  { id: 'youtuber', sceneBase: 'ld_2_youtuber', configId: 'logndetektor' },
+  { id: 'london', sceneBase: 'ld_3_london', configId: 'logndetektor' },
+  { id: 'jonglera', sceneBase: 'ld_4_jonglera', configId: 'logndetektor' },
+  { id: 'utflykt', sceneBase: 'ld_5_utflykt', configId: 'logndetektor' },
+]
+export const LD_TUTORIAL: Room = { id: 'laxa', sceneBase: 'ld_laxa', configId: 'logndetektor' }
+
+/* ------------------------------------------------------------------ *
+ * SPELEN — valbart läge i samma app. Delad motor (3 deltagare, mätare, röst);
+ * skiljer sig i scenarier, regelverk, taltid och reveal-typ.
+ * ------------------------------------------------------------------ */
+export type Game = 'manniskotest' | 'logndetektor'
+
+export interface GameDef {
+  rooms: Room[]
+  tutorial: Room
+  /** Gateway-config för det sammanvägda utlåtandet. */
+  verdictConfig: string
+  /** Taltid per deltagare (sekunder). */
+  talkSeconds: number
+  /** Reveal-visual: valvdörr (människotest) eller Valdi-hålet (lögndetektor). */
+  reveal: 'door' | 'hole'
+}
+
+export const GAMES: Record<Game, GameDef> = {
+  manniskotest: {
+    rooms: ROOMS,
+    tutorial: TUTORIAL_ROOM,
+    verdictConfig: 'manniskotest-verdict',
+    talkSeconds: 25,
+    reveal: 'door',
+  },
+  logndetektor: {
+    rooms: LD_ROOMS,
+    tutorial: LD_TUTORIAL,
+    verdictConfig: 'logndetektor-verdict',
+    talkSeconds: 20,
+    reveal: 'hole',
+  },
+}
+
+/** Lås appen till ETT spel på en viss NUC (hoppar över väljaren). null = väljare. */
+export const PINNED_GAME: Game | null = (import.meta.env.VITE_GAME as Game) || null
 
 /* ------------------------------------------------------------------ *
  * Rum-färger — hex + rgb för glöd. Driver --color-primary/--mode-accent-rgb

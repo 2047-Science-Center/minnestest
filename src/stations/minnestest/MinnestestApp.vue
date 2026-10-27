@@ -16,6 +16,7 @@ import ModeCountdown from '@/station-kit/components/ModeCountdown.vue'
 import MediaSlot from './components/MediaSlot.vue'
 
 import { useMinnestestStore } from './store/minnestestStore'
+import GameSelect from './components/GameSelect.vue'
 import BranchIntro from './components/BranchIntro.vue'
 import IntroScreen from './components/IntroScreen.vue'
 import RoomCycle from './components/RoomCycle.vue'
@@ -49,7 +50,8 @@ onMounted(() => store.init())
     <template v-else>
       <div class="app__single">
         <CrtScreen>
-          <BranchIntro v-if="store.phase === 'branchIntro'" @start="store.startBranch()" />
+          <GameSelect v-if="store.phase === 'gameSelect'" />
+          <BranchIntro v-else-if="store.phase === 'branchIntro'" @start="store.startBranch()" />
           <IntroScreen v-else-if="store.phase === 'intro'" @done="store.introDone()" />
           <ModeCountdown
             v-else-if="store.phase === 'goLive'"

@@ -19,6 +19,7 @@ import { useMinnestestStore } from '../store/minnestestStore'
 import MicIcon from './MicIcon.vue'
 import ConfidenceMeter from './ConfidenceMeter.vue'
 import VaultDoor from './VaultDoor.vue'
+import ValdiHole from './ValdiHole.vue'
 
 const { t } = useI18n()
 const store = useMinnestestStore()
@@ -27,7 +28,7 @@ type Sub = 'scenario' | 'countdown' | 'talk' | 'handoff' | 'reveal'
 const sub = ref<Sub>('scenario')
 const revealPhase = ref<'overvager' | 'landed'>('overvager')
 
-const WINDOW_MS = config.talkSeconds * 1000
+const WINDOW_MS = store.talkSeconds * 1000
 const WARN_MS = config.warnAtSeconds * 1000
 
 const capture = useSpeechCapture({ windowMs: WINDOW_MS, lang: config.lang })
@@ -43,7 +44,13 @@ const story = computed(() => t(`scenario.${scenarioId.value}.story`))
 const question = computed(() => t(`scenario.${scenarioId.value}.question`))
 // Kort ingress i tal-steget som påminner om scenariot ("Max ställde in …").
 const recap = computed(() => t(`scenario.${scenarioId.value}.recap`))
-const roomName = computed(() => t(`room.name.${store.room.color}`))
+const timeHint = computed(() =>
+  isHole.value
+    ? t('room.time_warning_ld', { s: store.talkSeconds })
+    : t('room.time_warning', { s: store.talkSeconds }),
+)
+const roomName = computed(() => (store.room.color ? t(`room.name.${store.room.color}`) : ''))
+const isHole = computed(() => store.reveal === 'hole')
 
 // UI-chrome följer LÄGET (mint i övning, bärnsten i skarpt) — inte rumsfärgen.
 // Rummets egen färg bärs av dörr-arten (VaultDoor väljer art via store.room.color).
@@ -61,6 +68,12 @@ const pTotal = computed(() => config.participants)
 const countdownN = ref(config.countdownFrom)
 const handoffN = ref(config.handoffSeconds)
 let tickTimer: ReturnType<typeof setInterval> | null = null
+// Lögndetektorn: Valdi-hålet bippar lågt medan man talar.
+let pulseTimer: ReturnType<typeof setInterval> | null = null
+function stopPulse(): void {
+  if (pulseTimer) clearInterval(pulseTimer)
+  pulseTimer = null
+}
 
 // --- talk-tid ---
 const warned = ref(false)
@@ -78,6 +91,14 @@ const pending: Promise<void>[] = []
 const meterVal = ref<number>(store.confidence)
 const meterState = ref<'idle' | 'weighing' | 'landed'>('idle')
 const doorState = ref<'closed' | 'overvager' | 'open' | 'denied'>('closed')
+// Valdi-hålets tillstånd speglar dörr-tillståndet (open→grön, denied→röd).
+const holeState = computed<'idle' | 'overvager' | 'granted' | 'denied'>(() =>
+  doorState.value === 'open'
+    ? 'granted'
+    : doorState.value === 'closed'
+      ? 'idle'
+      : doorState.value,
+)
 const showChecks = ref(false)
 const showUtlatande = ref(false)
 const canProceed = ref(false)
@@ -149,6 +170,8 @@ function enterScenario(): void {
 function ready(): void {
   clearTick()
   store.stopSpeak()
+  // Lögndetektorn: "AKTIVERA VALDI" — hålet tänds (ljud) innan nedräkningen.
+  if (isHole.value) audio.cue('sfx/sfx-valdi-activate.mp3', 0.9)
   sub.value = 'countdown'
   countdownN.value = config.countdownFrom
   audio.play('blip')
@@ -168,6 +191,12 @@ function startTalk(): void {
   manualText.value = ''
   capture.reset()
   capture.start()
+  // Lögndetektorn: lågt puls-bipp medan man talar (Valdi är aktiv).
+  stopPulse()
+  if (isHole.value) {
+    audio.cue('sfx/sfx-valdi-pulse.mp3', 0.5)
+    pulseTimer = setInterval(() => audio.cue('sfx/sfx-valdi-pulse.mp3', 0.5), 3000)
+  }
 }
 
 function startHandoff(): void {
@@ -187,6 +216,9 @@ function startHandoff(): void {
 function lockTalk(): void {
   if (sub.value !== 'talk') return
   capture.stop()
+  stopPulse()
+  // Lögndetektorn: Valdi avaktiveras (vitt sken-ljud) när man släpper.
+  if (isHole.value) audio.cue('sfx/sfx-valdi-deactivate.mp3', 0.9)
   const text = collectedAnswer()
   // Pipelina bedömningen direkt (medan nästa pratar / medan Valdi väger).
   pending.push(store.assessParticipant(pIndex.value, text))
@@ -307,6 +339,7 @@ const storyLines = computed(() =>
 onMounted(() => enterScenario())
 onUnmounted(() => {
   clearTick()
+  stopPulse()
   clearRevealTimers()
   stopThinkStream()
   store.stopSpeak()
@@ -339,7 +372,7 @@ onUnmounted(() => {
     <section v-if="sub === 'scenario'" class="scenario">
       <div class="scenario__card">
         <p class="scenario__eyebrow">
-          {{ store.isTutorial ? t('room.tutorial_tag') : t('room.plate', { n: store.roomNr }) + ' · ' + roomName }}
+          {{ store.isTutorial ? t('room.tutorial_tag') : t('room.plate', { n: store.roomNr }) + (roomName ? ' · ' + roomName : '') }}
         </p>
         <p v-if="context" class="scenario__context">{{ context }}</p>
         <p
@@ -361,7 +394,7 @@ onUnmounted(() => {
           :style="{ animationDelay: 0.3 + (storyLines.length + 1) * 0.7 + 's' }"
           @click="ready()"
         >
-          {{ t('room.ready') }} ▸
+          {{ isHole ? t('hole.activate') : t('room.ready') }} ▸
         </button>
       </div>
     </section>
@@ -369,7 +402,7 @@ onUnmounted(() => {
     <!-- COUNTDOWN (inför en deltagare) -->
     <section v-else-if="sub === 'countdown'" class="cd">
       <p class="cd__who">{{ t('room.up_next', { name: pName, nr: pNr, total: pTotal }) }}</p>
-      <p class="cd__hint">{{ t('room.time_warning', { s: config.talkSeconds }) }}</p>
+      <p class="cd__hint">{{ timeHint }}</p>
       <div class="cd__num" :key="countdownN">{{ countdownN }}</div>
     </section>
 
@@ -377,7 +410,7 @@ onUnmounted(() => {
     <section v-else-if="sub === 'handoff'" class="cd">
       <p class="cd__done">✓ {{ t('room.handoff_done') }}</p>
       <p class="cd__who">{{ t('room.up_next', { name: pName, nr: pNr, total: pTotal }) }}</p>
-      <p class="cd__hint">{{ t('room.time_warning', { s: config.talkSeconds }) }}</p>
+      <p class="cd__hint">{{ timeHint }}</p>
       <div class="cd__num" :key="handoffN">{{ handoffN }}</div>
     </section>
 
@@ -414,11 +447,13 @@ onUnmounted(() => {
     <!-- REVEAL — porten + Valdi överväger → utslag -->
     <section v-else class="reveal">
       <div class="reveal__door">
+        <ValdiHole v-if="isHole" :state="holeState" :accent="acc" :accent-rgb="accRgb" />
         <VaultDoor
+          v-else
           :state="doorState"
           :accent="acc"
           :accent-rgb="accRgb"
-          :color="store.room.color"
+          :color="store.room.color ?? 'bla'"
           :room-nr="store.roomNr"
           :room-name="roomName"
           :tutorial="store.isTutorial"
