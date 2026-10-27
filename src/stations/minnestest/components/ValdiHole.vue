@@ -12,7 +12,7 @@ import { useI18n } from '@/station-kit/i18n'
 import { asset } from '@/config'
 
 const props = defineProps<{
-  state: 'idle' | 'pulse' | 'overvager' | 'granted' | 'deactivate' | 'denied'
+  state: 'idle' | 'pulse' | 'overvager' | 'granted' | 'deactivate' | 'denied' | 'talking'
   accent: string
   accentRgb: string
 }>()
@@ -27,8 +27,10 @@ const src = computed(() => {
       return asset('video/valdi_vit.mp4')
     case 'denied':
       return asset('video/valdi_rod.mp4')
+    case 'talking':
+      return asset('video/valdi_talar.mp4') // ringen still, oscilloskopet rör sig
     default:
-      return asset('video/valdi_pulse.mp4') // pulse / overvager / idle
+      return asset('video/valdi_pulse.mp4') // pulse / overvager / idle (amber vilo)
   }
 })
 const loop = computed(() => props.state !== 'deactivate')

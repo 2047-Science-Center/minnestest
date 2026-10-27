@@ -101,9 +101,11 @@ const holeState = computed<'idle' | 'overvager' | 'granted' | 'denied'>(() =>
 )
 // Kort "koppla ifrån"-beat (vit-klippet) när revealen börjar, innan övervägandet.
 const holeIntro = ref(false)
+// "Valdi pratar"-läge: oscilloskopet rör sig medan utlåtandet läses upp.
+const holeTalking = ref(false)
 const holeRevealState = computed<
-  'idle' | 'overvager' | 'granted' | 'deactivate' | 'denied'
->(() => (holeIntro.value ? 'deactivate' : holeState.value))
+  'idle' | 'overvager' | 'granted' | 'deactivate' | 'denied' | 'talking'
+>(() => (holeIntro.value ? 'deactivate' : holeTalking.value ? 'talking' : holeState.value))
 const showChecks = ref(false)
 const showUtlatande = ref(false)
 const canProceed = ref(false)
@@ -161,6 +163,8 @@ function enterScenario(): void {
   meterVal.value = store.confidence
   meterState.value = 'idle'
   doorState.value = 'closed'
+  holeIntro.value = false
+  holeTalking.value = false
   revealPhase.value = 'overvager'
   showChecks.value = false
   showUtlatande.value = false
@@ -302,6 +306,8 @@ function land(): void {
   // 5) Låt utslaget ("MÄNSKLIGT NOG" / ACCESS DENIED) stå ~3 s innan texten.
   later(() => {
     showUtlatande.value = true
+    // Lögndetektorn: ringen stillnar, oscilloskopet "pratar" medan rösten läser.
+    if (isHole.value) holeTalking.value = true
     // Valdi läser upp sitt korta utlåtande (ElevenLabs) — kul för gruppen.
     void store.speakNpc(verdict.value?.utlatande ?? '').finally(() => {
       canProceed.value = true
