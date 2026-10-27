@@ -142,10 +142,13 @@ function enterScenario(): void {
   pending.length = 0
   if (sceneBase.value) audio.bed(`ambience/${sceneBase.value}.mp3`, 0.18, 1200)
   else audio.bedStop(600)
+  // Valdi läser upp scenariot (ElevenLabs) medan texten dyker upp.
+  void store.speakNpc(`${story.value} ${question.value}`.trim())
 }
 
 function ready(): void {
   clearTick()
+  store.stopSpeak()
   sub.value = 'countdown'
   countdownN.value = config.countdownFrom
   audio.play('blip')
@@ -306,6 +309,7 @@ onUnmounted(() => {
   clearTick()
   clearRevealTimers()
   stopThinkStream()
+  store.stopSpeak()
   capture.stop()
   audio.bedStop(800)
 })

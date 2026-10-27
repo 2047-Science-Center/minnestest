@@ -1,43 +1,50 @@
 <script setup lang="ts">
 /**
- * Story-intro: Valvets innersta släpper bara in människor. Raderna visas EN i
- * taget — tonar in, hålls, tonar ut (ingen scroll) — framför en valvport som
- * öppnas och stängs, med kontrollrums-ljudbild. Sist dyker knappen upp.
+ * Story-intro: Valvet släpper bara in människor. Raderna visas EN i taget —
+ * Valdi läser upp meningen (ElevenLabs), den tonar in, och när uppläsningen är
+ * klar tonar den ut och nästa kommer. Allt framför en valvport som öppnas och
+ * stängs, med kontrollrums-ljudbild. Faller tillbaka på tajming om rösten är av.
  */
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
 import { asset } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
+import { useMinnestestStore } from '../store/minnestestStore'
 
 const emit = defineEmits<{ done: [] }>()
 const { t } = useI18n()
+const store = useMinnestestStore()
 
 const lines = [t('intro.l1'), t('intro.l2'), t('intro.l3'), t('intro.l4')].filter(Boolean)
 const videoSrc = asset('video/valv_intro_loop.mp4')
 
 const idx = ref(0)
 const showButton = ref(false)
-const LINE_MS = 3600
+const MIN_MS = 2600
 let timer: ReturnType<typeof setTimeout> | null = null
+let cancelled = false
 
-function advance(): void {
-  if (idx.value < lines.length - 1) {
-    idx.value += 1
-    timer = setTimeout(advance, LINE_MS)
-  } else {
-    // sista raden visas + tonar ut, sedan dyker knappen upp
-    timer = setTimeout(() => {
-      showButton.value = true
-    }, LINE_MS)
-  }
+async function run(i: number): Promise<void> {
+  idx.value = i
+  const t0 = Date.now()
+  await store.speakNpc(lines[i]).catch(() => {})
+  if (cancelled) return
+  const wait = Math.max(300, MIN_MS - (Date.now() - t0))
+  timer = setTimeout(() => {
+    if (cancelled) return
+    if (i < lines.length - 1) void run(i + 1)
+    else showButton.value = true
+  }, wait)
 }
 
 onMounted(() => {
   audio.bed('ambience/mt_intro.mp3', 0.16, 1200)
-  timer = setTimeout(advance, LINE_MS)
+  void run(0)
 })
 onUnmounted(() => {
+  cancelled = true
   if (timer) clearTimeout(timer)
+  store.stopSpeak()
   audio.bedStop(800)
 })
 </script>
@@ -60,10 +67,12 @@ onUnmounted(() => {
       <p class="intro__eyebrow">{{ t('intro.eyebrow') }}</p>
 
       <div class="intro__stage">
-        <p v-if="!showButton" :key="idx" class="intro__line">{{ lines[idx] }}</p>
-        <button v-else class="crt-button crt-button--strong intro__go" @click="emit('done')">
-          {{ t('intro.ready') }} ▸
-        </button>
+        <Transition name="iline" mode="out-in">
+          <p v-if="!showButton" :key="idx" class="intro__line">{{ lines[idx] }}</p>
+          <button v-else key="btn" class="crt-button crt-button--strong intro__go" @click="emit('done')">
+            {{ t('intro.ready') }} ▸
+          </button>
+        </Transition>
       </div>
     </div>
   </div>
@@ -131,40 +140,28 @@ onUnmounted(() => {
   text-shadow: 0 2px 18px rgba(0, 0, 0, 0.9);
   margin: 0;
   max-width: 24ch;
-  animation: intro-line 3.6s ease both;
-}
-@keyframes intro-line {
-  0% {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  14% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  82% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
 }
 .intro__go {
   font-size: 1.5rem;
   padding: 0.5em 1.5em;
-  animation: intro-btn 0.5s var(--ease-out, ease-out) both;
 }
-@keyframes intro-btn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
+/* Fade in/ut mellan rader (och till knappen). */
+.iline-enter-active,
+.iline-leave-active {
+  transition: opacity 0.5s ease, transform 0.5s var(--ease-out, ease-out);
+}
+.iline-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.iline-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 @media (prefers-reduced-motion: reduce) {
-  .intro__line {
-    animation: none;
+  .iline-enter-active,
+  .iline-leave-active {
+    transition: opacity 0.2s linear;
   }
 }
 </style>

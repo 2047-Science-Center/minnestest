@@ -128,18 +128,18 @@ export const sv: Record<string, string> = {
   // PORT 2 — Dela pizzan (bärnsten, rättvisa & social takt).
   'scenario.pizza.context': 'Ni är sex kompisar som delar på pizza och läsk.',
   'scenario.pizza.story':
-    'Tre av er tog en extra pizza och massa läsk; de andra tre delade på en och drack vatten. När det är dags att betala säger någon glatt: "vi delar väl lika, som alltid?" Alla tittar ner. En i gänget har jättesnålt med pengar just nu — men vill absolut inte verka snål.',
-  'scenario.pizza.question': 'Vad är rätt här — och vad skulle du säga?',
-  'scenario.pizza.recap': 'Tre åt en extra pizza och läsk, tre delade på en och drack vatten — sen sa någon "vi delar väl lika, som alltid?"',
+    'Tre av er tog en extra pizza och massa läsk; de andra tre delade på en och drack vatten. När det är dags att betala säger Jonna glatt: "vi delar väl lika, som alltid?" Men du vet att Nora i gänget har det knapert med pengar just nu — och hon vill absolut inte verka snål inför de andra.',
+  'scenario.pizza.question': 'Vad gör du för att det inte ska bli pinsamt för Nora?',
+  'scenario.pizza.recap': 'Nora har ont om pengar just nu — och Jonna sa precis "vi delar väl lika, som alltid?"',
   'scenario.pizza.rubrik':
-    'Rättvisa & social takt. Höjer: ser både rättvisan OCH den sociala obekvämheten, den tystes knipa, en mänsklig väg ut, läser rummet. Sänker: "var och en betalar för sitt" platt (missar skammen) eller "dela bara lika" platt (missar orättvisan).',
+    'Rättvisa & social takt — skydda Noras värdighet. Höjer: läser rummet, hittar en finkänslig väg (föreslå att var och en betalar sitt utan att peka ut någon, eller lösa det diskret) så Nora inte sätts på pottan. Sänker: säga "var och en betalar för sitt" rakt ut så alla fattar att det gäller Nora, eller "dela bara lika" platt (struntar i att Nora inte har råd).',
 
   // PORT 3 — Kompisens nya kär + hånglet (grön, lojalitet vs ärlighet).
-  'scenario.hangel.context': 'Din bästa kompis svävar på moln.',
+  'scenario.hangel.context': 'Din bästa kompis Elin svävar på moln.',
   'scenario.hangel.story':
-    'Hen har precis blivit ihop med någon hen varit kär i jättelänge. På en fest ser du av en ren slump den där personen stå och hångla med någon annan i ett mörkt hörn. Du är helt säker på vad du såg. Säger du något kan allt rasa — tiger du och det kommer fram sen, undrar de varför du inte sa något.',
+    'Elin har precis blivit ihop med Noel, som hon varit kär i jättelänge. På en fest ser du av en ren slump Noel stå och hångla med någon annan i ett mörkt hörn. Du är helt säker på vad du såg. Säger du något till Elin kan allt rasa — tiger du och det kommer fram sen, undrar de varför du inte sa något.',
   'scenario.hangel.question': 'Vad gör du — och vad väger tyngst?',
-  'scenario.hangel.recap': 'På festen såg du din bästa kompis nyblivna kär hångla med någon annan i ett mörkt hörn.',
+  'scenario.hangel.recap': 'På festen såg du Noel — Elins nyblivna kär — hångla med någon annan i ett mörkt hörn.',
   'scenario.hangel.rubrik':
     'Lojalitet vs ärlighet. Höjer: väger lojalitet mot ärlighet, ser kompisens smärta åt båda håll, risken att bli den de minns, hur/när man säger det, erkänner att det är jobbigt. Sänker: "man ska alltid vara ärlig" platt, eller "inte min sak" platt.',
 

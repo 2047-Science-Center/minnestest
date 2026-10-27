@@ -290,6 +290,12 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     }
   }
 
+  /** Avbryt pågående uppläsning (t.ex. när man klickar vidare). */
+  function stopSpeak(): void {
+    adapters.value?.speak.cancel()
+    speaking.value = false
+  }
+
   /** RoomCycle har visat port-utslaget → gå vidare. */
   function proceedRoom(): void {
     adapters.value?.speak.cancel()
@@ -401,6 +407,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     assessParticipant,
     computeVerdict,
     speakNpc,
+    stopSpeak,
     proceedRoom,
     resultDone,
     togglePause,
