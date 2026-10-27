@@ -5,7 +5,7 @@
  * klar tonar den ut och nästa kommer. Allt framför en valvport som öppnas och
  * stängs, med kontrollrums-ljudbild. Faller tillbaka på tajming om rösten är av.
  */
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
 import { asset } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
@@ -14,13 +14,17 @@ import { useMinnestestStore } from '../store/minnestestStore'
 const emit = defineEmits<{ done: [] }>()
 const { t } = useI18n()
 const store = useMinnestestStore()
+// Bakgrund: människotestet = valvporten (video), lögndetektorn = Valdi-pultens
+// stillbild.
+const isLd = computed(() => store.game === 'logndetektor')
+const videoSrc = asset('video/valv_intro_loop.mp4')
+const stillSrc = asset('media/valdi_intro.png')
 
 const lines = (
   store.game === 'logndetektor'
     ? [t('ld.intro.l1'), t('ld.intro.l2'), t('ld.intro.l3'), t('ld.intro.l4')]
     : [t('intro.l1'), t('intro.l2'), t('intro.l3'), t('intro.l4')]
 ).filter(Boolean)
-const videoSrc = asset('video/valv_intro_loop.mp4')
 
 const idx = ref(0)
 const showButton = ref(false)
@@ -55,7 +59,9 @@ onUnmounted(() => {
 
 <template>
   <div class="intro">
+    <img v-if="isLd" class="intro__bg" :src="stillSrc" alt="" aria-hidden="true" />
     <video
+      v-else
       :key="videoSrc"
       class="intro__bg"
       :src="videoSrc"

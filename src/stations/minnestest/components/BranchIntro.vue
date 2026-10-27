@@ -13,6 +13,7 @@ const emit = defineEmits<{ start: [] }>()
 const { t } = useI18n()
 const store = useMinnestestStore()
 const videoSrc = asset('video/valv_intro_loop.mp4')
+const stillSrc = asset('media/valdi_intro.png')
 const isLd = computed(() => store.game === 'logndetektor')
 const title = computed(() => (isLd.value ? t('ld.title') : t('branch.title')))
 const sub = computed(() => (isLd.value ? t('ld.sub') : t('branch.sub')))
@@ -20,7 +21,9 @@ const sub = computed(() => (isLd.value ? t('ld.sub') : t('branch.sub')))
 
 <template>
   <div class="branch">
+    <img v-if="isLd" class="branch__bg" :src="stillSrc" alt="" aria-hidden="true" />
     <video
+      v-else
       :key="videoSrc"
       class="branch__bg"
       :src="videoSrc"
