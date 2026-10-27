@@ -288,12 +288,16 @@ function land(): void {
     meterState.value = 'landed'
     meterVal.value = v.confAfter
   }, 300 + v.perChecks.length * 450 + 300)
-  // 3) Valvlåset frigörs strax före (bara när porten ska öppnas).
-  if (v.granted) later(() => audio.play('unlock'), doorAt - 250)
-  // 4) Porten avgör: tung valvdörr som öppnas, eller tung försegling + larm.
+  // 3) Valvlåset frigörs strax före (bara människotestets dörr, inte Valdi-hålet).
+  if (!isHole.value && v.granted) later(() => audio.play('unlock'), doorAt - 250)
+  // 4) Utslaget: människotest = tung valvdörr; lögndetektor = eget verdikt-ljud.
   later(() => {
     doorState.value = v.granted ? 'open' : 'denied'
-    audio.play(v.granted ? 'vaultopen' : 'vaultdenied')
+    if (isHole.value) {
+      audio.cue(v.granted ? 'sfx/sfx-ld-granted.mp3' : 'sfx/sfx-ld-denied.mp3', 1.0)
+    } else {
+      audio.play(v.granted ? 'vaultopen' : 'vaultdenied')
+    }
   }, doorAt)
   // 5) Låt utslaget ("MÄNSKLIGT NOG" / ACCESS DENIED) stå ~3 s innan texten.
   later(() => {

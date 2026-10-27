@@ -90,12 +90,17 @@ Gemensamt: **kameran helt låst, ingen kamerarörelse, inga händer, inga männi
 > EXACTLY as in the source image, with absolutely NO other green light, glow or colour change
 > anywhere in the frame. No hands, no people.
 
-**Klipp 2 — PULSERING (~5 s, sömlös loop):**
-> Locked-off camera, no movement. ONLY the ring of LED segments inside the hole changes: the
-> green ring breathes, brightening and dimming evenly in a calm pulse, light contained to the
-> ring and the inner rim. Everything else is identical to the source image — no colour spill,
-> no other element reacts. Perfectly seamless loop, first and last frame identical. No hands,
-> no people.
+**Klipp 2 — PULSERING / VILOLÄGE (~5 s, sömlös loop) — OBS: AMBER, inte grönt:**
+> Locked-off camera, no movement. The console sits in a calm RESTING / STANDBY state: ONLY the
+> ring of small LED segments recessed inside the mouth of the hole changes — it glows a dim, warm
+> AMBER and breathes very slowly and gently (a soft standby pulse). It is NOT green and NOT red.
+> The amber light stays strictly contained to that LED ring and the inner rim of the bore.
+> Everything else — gauges, needles, oscilloscope, the metal panel, the room — stays EXACTLY as in
+> the source image, with NO green light and no other colour change. Calm, waiting, understated.
+> Perfectly seamless loop, first and last frame identical. No hands, no people.
+>
+> (Viktigt: grön = KLARAT, röd = NEKAT, så pulsen/viloläget MÅSTE vara neutral amber — annars
+> förväxlas det med godkänt. Generera gärna från den neutralt/varmt tända grundbilden.)
 
 **Klipp 3 — AVAKTIVERING (~3 s, spelas en gång):**
 > Locked-off camera, no movement. ONLY the ring of LED segments inside the hole changes: the
