@@ -12,7 +12,7 @@ import { useI18n } from '@/station-kit/i18n'
 import { asset } from '@/config'
 
 const props = defineProps<{
-  state: 'idle' | 'pulse' | 'overvager' | 'granted' | 'deactivate' | 'denied' | 'talking'
+  state: 'idle' | 'pulse' | 'overvager' | 'granted' | 'warndown' | 'deactivate' | 'denied' | 'talking'
   accent: string
   accentRgb: string
 }>()
@@ -55,6 +55,9 @@ const loop = computed(() => props.state !== 'deactivate')
       </p>
       <p v-else-if="state === 'granted'" class="hole__status hole__status--granted">
         {{ t('hole.granted') }}
+      </p>
+      <p v-else-if="state === 'warndown'" class="hole__status hole__status--warn">
+        {{ t('hole.warndown') }}
       </p>
       <p v-else-if="state === 'denied'" class="hole__status hole__status--denied">
         {{ t('hole.denied') }}
@@ -113,6 +116,11 @@ const loop = computed(() => props.state !== 'deactivate')
 .hole__status--granted {
   color: var(--color-lag2, #7ad14f);
   text-shadow: 0 0 22px rgba(122, 209, 79, 0.8);
+  animation: hole-pop 0.5s var(--ease-out, ease-out) both;
+}
+.hole__status--warn {
+  color: #ffb43a;
+  text-shadow: 0 0 22px rgba(255, 180, 58, 0.7);
   animation: hole-pop 0.5s var(--ease-out, ease-out) both;
 }
 .hole__status--denied {

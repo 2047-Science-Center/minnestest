@@ -91,20 +91,20 @@ const pending: Promise<void>[] = []
 const meterVal = ref<number>(store.confidence)
 const meterState = ref<'idle' | 'weighing' | 'landed'>('idle')
 const doorState = ref<'closed' | 'overvager' | 'open' | 'denied'>('closed')
-// Valdi-hålets tillstånd speglar dörr-tillståndet (open→grön, denied→röd).
-const holeState = computed<'idle' | 'overvager' | 'granted' | 'denied'>(() =>
-  doorState.value === 'open'
-    ? 'granted'
-    : doorState.value === 'closed'
-      ? 'idle'
-      : doorState.value,
-)
+// Valdi-hålets utslag: grön = förtroende ÖKAR, amber = MINSKAR (men överlever),
+// röd = nekad. Så ringfärg + text säger samma sak (ingen motsägelse).
+const holeState = computed<'idle' | 'overvager' | 'granted' | 'warndown' | 'denied'>(() => {
+  if (doorState.value === 'overvager') return 'overvager'
+  if (doorState.value === 'denied') return 'denied'
+  if (doorState.value === 'open') return trend.value === 'down' ? 'warndown' : 'granted'
+  return 'idle'
+})
 // Kort "koppla ifrån"-beat (vit-klippet) när revealen börjar, innan övervägandet.
 const holeIntro = ref(false)
 // "Valdi pratar"-läge: oscilloskopet rör sig medan utlåtandet läses upp.
 const holeTalking = ref(false)
 const holeRevealState = computed<
-  'idle' | 'overvager' | 'granted' | 'deactivate' | 'denied' | 'talking'
+  'idle' | 'overvager' | 'granted' | 'warndown' | 'deactivate' | 'denied' | 'talking'
 >(() => (holeIntro.value ? 'deactivate' : holeTalking.value ? 'talking' : holeState.value))
 const showChecks = ref(false)
 const showUtlatande = ref(false)
@@ -118,13 +118,6 @@ const trend = computed<'up' | 'down' | 'same'>(() => {
   if (!v) return 'same'
   return v.confAfter > v.confBefore ? 'up' : v.confAfter < v.confBefore ? 'down' : 'same'
 })
-const trendText = computed(() =>
-  trend.value === 'up'
-    ? t('meter.trend_up')
-    : trend.value === 'down'
-      ? t('meter.trend_down')
-      : t('meter.trend_same'),
-)
 // Varning innan nästa scenario: förtroendet sjönk, man klarade sig men är i farozon.
 const showWarning = ref(false)
 const needWarning = computed(() => {
@@ -327,7 +320,9 @@ function land(): void {
   later(() => {
     doorState.value = v.granted ? 'open' : 'denied'
     if (isHole.value) {
-      audio.cue(v.granted ? 'sfx/sfx-ld-granted.mp3' : 'sfx/sfx-ld-denied.mp3', 1.0)
+      if (!v.granted) audio.cue('sfx/sfx-ld-denied.mp3', 1.0)
+      else if (trend.value === 'down') audio.play('deny') // överlevde men förtroendet sjönk
+      else audio.cue('sfx/sfx-ld-granted.mp3', 1.0)
     } else {
       audio.play(v.granted ? 'vaultopen' : 'vaultdenied')
     }
@@ -537,11 +532,6 @@ onUnmounted(() => {
             {{ store.participants[i] }} {{ ok ? '✓' : '✗' }}
           </span>
         </div>
-
-        <!-- Riktning (bara lögndetektorn): ökar/minskar, så ✗✗✗ inte förväxlas med förlust -->
-        <p v-if="isHole && showChecks && verdict" class="reveal__trend" :class="`reveal__trend--${trend}`">
-          {{ trendText }}
-        </p>
 
         <!-- Förtroendemätaren -->
         <ConfidenceMeter :value="meterVal" :state="meterState" />

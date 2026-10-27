@@ -33,10 +33,13 @@ const zoneClass = computed(() =>
 <template>
   <div class="cmeter" :class="[zoneClass, `cmeter--${state}`]">
     <div class="cmeter__track">
-      <!-- Tre zoner -->
+      <!-- Tre zoner med tydliga gränser -->
       <div class="cmeter__zone cmeter__zone--lose" :style="{ width: LOSE + '%' }" />
       <div class="cmeter__zone cmeter__zone--tveksam" :style="{ left: LOSE + '%', width: HIGH - LOSE + '%' }" />
       <div class="cmeter__zone cmeter__zone--hog" :style="{ left: HIGH + '%', width: 100 - HIGH + '%' }" />
+      <!-- Gränslinjer mellan zonerna -->
+      <div class="cmeter__div cmeter__div--lose" :style="{ left: LOSE + '%' }" />
+      <div class="cmeter__div cmeter__div--high" :style="{ left: HIGH + '%' }" />
       <!-- Scan medan Valdi väger -->
       <div v-if="state === 'weighing'" class="cmeter__scan" />
       <!-- Nål -->
@@ -44,6 +47,8 @@ const zoneClass = computed(() =>
         <span class="cmeter__dot" />
       </div>
     </div>
+    <!-- Nekas-gränsen (under 30 = åker ut) -->
+    <div class="cmeter__threshmark" :style="{ left: LOSE + '%' }">{{ t('meter.cutoff') }}</div>
     <div class="cmeter__labels">
       <span class="cmeter__label cmeter__label--lose">{{ t('meter.lose') }}</span>
       <span class="cmeter__label cmeter__label--tveksam">{{ t('meter.tveksam') }}</span>
@@ -54,6 +59,7 @@ const zoneClass = computed(() =>
 
 <style scoped>
 .cmeter {
+  position: relative;
   width: min(94%, 60ch);
   margin: 0 auto;
 }
@@ -70,15 +76,44 @@ const zoneClass = computed(() =>
   top: 0;
   bottom: 0;
 }
+/* Tydliga, platta zon-färger med hårda kanter. */
 .cmeter__zone--lose {
   left: 0;
-  background: linear-gradient(90deg, rgba(255, 90, 60, 0.3), rgba(255, 90, 60, 0.12));
+  background: rgba(255, 90, 60, 0.32);
 }
 .cmeter__zone--tveksam {
-  background: rgba(255, 207, 58, 0.12);
+  background: rgba(255, 180, 58, 0.22);
 }
 .cmeter__zone--hog {
-  background: linear-gradient(90deg, rgba(122, 209, 79, 0.12), rgba(122, 209, 79, 0.32));
+  background: rgba(122, 209, 79, 0.32);
+}
+/* Gränslinjer mellan zonerna. */
+.cmeter__div {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  z-index: 2;
+  transform: translateX(-1px);
+}
+.cmeter__div--high {
+  border-left: 2px solid rgba(122, 209, 79, 0.9);
+}
+/* Nekas-gränsen (30): kraftig röd linje — passerar nålen hit åker man ut. */
+.cmeter__div--lose {
+  border-left: 3px solid #ff5a3c;
+  box-shadow: 0 0 8px rgba(255, 90, 60, 0.8);
+}
+.cmeter__threshmark {
+  position: absolute;
+  top: -1.15rem;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--color-danger, #ff5a3c);
+  text-shadow: 0 0 6px rgba(255, 90, 60, 0.5);
+  white-space: nowrap;
 }
 .cmeter__scan {
   position: absolute;

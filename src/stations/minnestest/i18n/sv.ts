@@ -68,6 +68,7 @@ export const sv: Record<string, string> = {
   'meter.lose': 'INGET FÖRTROENDE',
   'meter.tveksam': 'TVEKSAM',
   'meter.hog': 'HÖGT FÖRTROENDE',
+  'meter.cutoff': 'NEKAS-GRÄNS ▾',
   // Riktning per runda (så ✗✗✗ inte förväxlas med total förlust).
   'meter.trend_up': 'VALDIS FÖRTROENDE ÖKAR ▲',
   'meter.trend_down': 'VALDIS FÖRTROENDE MINSKAR ▼',
@@ -189,7 +190,8 @@ export const sv: Record<string, string> = {
 
   // --- Valdi-hålet ---
   'hole.activate': 'AKTIVERA VALDI',
-  'hole.granted': 'TILLRÄCKLIGT ÖVERTYGANDE',
+  'hole.granted': 'VALDIS FÖRTROENDE ÖKAR ▲',
+  'hole.warndown': 'VALDIS FÖRTROENDE MINSKAR ▼',
   'hole.denied': 'VALDI KÖPTE DET INTE',
 
   // --- Tal-hint (lögndetektor) + resultat ---
