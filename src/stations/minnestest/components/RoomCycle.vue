@@ -11,7 +11,7 @@
  */
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
-import { config, asset, MODE_COLORS } from '@/config'
+import { config, asset, MODE_COLORS, METER } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import { useSpeechCapture } from '@/station-kit/capture/useSpeechCapture'
 
@@ -112,6 +112,34 @@ const canProceed = ref(false)
 const revealTimers: ReturnType<typeof setTimeout>[] = []
 const verdict = computed(() => store.verdict)
 
+// Riktning på förtroendet denna runda (så ✗✗✗ inte förväxlas med total förlust).
+const trend = computed<'up' | 'down' | 'same'>(() => {
+  const v = verdict.value
+  if (!v) return 'same'
+  return v.confAfter > v.confBefore ? 'up' : v.confAfter < v.confBefore ? 'down' : 'same'
+})
+const trendText = computed(() =>
+  trend.value === 'up'
+    ? t('meter.trend_up')
+    : trend.value === 'down'
+      ? t('meter.trend_down')
+      : t('meter.trend_same'),
+)
+// Varning innan nästa scenario: förtroendet sjönk, man klarade sig men är i farozon.
+const showWarning = ref(false)
+const needWarning = computed(() => {
+  const v = verdict.value
+  return Boolean(
+    isHole.value && // bara lögndetektorn — människotestet har redan tydlig öppen/stängd port
+      v &&
+      v.granted &&
+      v.confAfter < v.confBefore &&
+      v.confAfter < METER.highAt &&
+      !store.isTutorial &&
+      !store.isLastRoom,
+  )
+})
+
 // "VALDI ÖVERVÄGER" — en ström av begrepp Valdi "tänker på" (som en AI:s tankeström).
 const THINK_TERMS = [
   'empati', 'perspektiv', 'det osagda', 'tonfall', 'ärlighet', 'lojalitet', 'skam',
@@ -165,6 +193,7 @@ function enterScenario(): void {
   doorState.value = 'closed'
   holeIntro.value = false
   holeTalking.value = false
+  showWarning.value = false
   revealPhase.value = 'overvager'
   showChecks.value = false
   showUtlatande.value = false
@@ -320,6 +349,11 @@ function land(): void {
 }
 
 function proceed(): void {
+  // Förtroendet sjönk och man är i farozon → varna innan nästa scenario.
+  if (needWarning.value && !showWarning.value) {
+    showWarning.value = true
+    return
+  }
   store.proceedRoom()
 }
 
@@ -504,6 +538,11 @@ onUnmounted(() => {
           </span>
         </div>
 
+        <!-- Riktning (bara lögndetektorn): ökar/minskar, så ✗✗✗ inte förväxlas med förlust -->
+        <p v-if="isHole && showChecks && verdict" class="reveal__trend" :class="`reveal__trend--${trend}`">
+          {{ trendText }}
+        </p>
+
         <!-- Förtroendemätaren -->
         <ConfidenceMeter :value="meterVal" :state="meterState" />
 
@@ -519,6 +558,17 @@ onUnmounted(() => {
         </button>
       </div>
     </section>
+
+    <!-- Varning innan nästa scenario (förtroendet sjönk, farozon) -->
+    <div v-if="showWarning" class="warnov">
+      <div class="warnov__card">
+        <p class="warnov__title">{{ t('warning.title') }} ▼</p>
+        <p class="warnov__body">{{ t('warning.body') }}</p>
+        <button class="crt-button crt-button--strong" @click="proceed()">
+          {{ t('warning.continue') }}
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -866,6 +916,62 @@ onUnmounted(() => {
 }
 .reveal__go {
   margin-top: 0.2rem;
+}
+.reveal__trend {
+  font-family: var(--font-retro);
+  font-size: clamp(1.1rem, 2.8vw, 1.6rem);
+  letter-spacing: 0.06em;
+  margin: 0;
+  animation: r-in 0.45s var(--ease-out, ease-out) both;
+}
+.reveal__trend--up {
+  color: var(--color-lag2, #7ad14f);
+  text-shadow: 0 0 12px rgba(122, 209, 79, 0.5);
+}
+.reveal__trend--down {
+  color: var(--color-danger, #ff5a3c);
+  text-shadow: 0 0 12px rgba(255, 90, 60, 0.5);
+}
+.reveal__trend--same {
+  color: var(--color-ink-muted);
+}
+
+/* Varnings-overlay innan nästa scenario */
+.warnov {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.82);
+  animation: r-in 0.3s ease both;
+}
+.warnov__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  text-align: center;
+  width: min(92%, 48ch);
+  padding: 2rem 1.6rem;
+  border: 1px solid var(--color-danger, #ff5a3c);
+  border-radius: var(--radius, 12px);
+  background: var(--color-background-2);
+  box-shadow: 0 0 40px rgba(255, 90, 60, 0.25);
+}
+.warnov__title {
+  font-family: var(--font-retro);
+  font-size: clamp(1.6rem, 5vw, 2.6rem);
+  letter-spacing: 0.06em;
+  color: var(--color-danger, #ff5a3c);
+  margin: 0;
+}
+.warnov__body {
+  color: var(--color-ink-strong);
+  font-size: clamp(1.05rem, 2.4vw, 1.4rem);
+  line-height: 1.5;
+  margin: 0;
 }
 
 @keyframes r-in {

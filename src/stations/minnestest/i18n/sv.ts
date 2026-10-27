@@ -68,6 +68,15 @@ export const sv: Record<string, string> = {
   'meter.lose': 'INGET FÖRTROENDE',
   'meter.tveksam': 'TVEKSAM',
   'meter.hog': 'HÖGT FÖRTROENDE',
+  // Riktning per runda (så ✗✗✗ inte förväxlas med total förlust).
+  'meter.trend_up': 'VALDIS FÖRTROENDE ÖKAR ▲',
+  'meter.trend_down': 'VALDIS FÖRTROENDE MINSKAR ▼',
+  'meter.trend_same': 'VALDIS FÖRTROENDE OFÖRÄNDRAT',
+
+  // --- Varning innan nästa scenario (förtroendet sjönk, farozon) ---
+  'warning.title': 'VALDIS FÖRTROENDE MINSKAR',
+  'warning.body': 'Om ni inte ökar Valdis förtroende i nästa scenario nekas ni åtkomst till Valvet.',
+  'warning.continue': 'VI FÖRSTÅR ▸',
 
   // --- Sammanvägning (till modellen + fallback) ---
   'verdict.rubrik':
