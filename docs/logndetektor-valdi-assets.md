@@ -120,6 +120,19 @@ Gemensamt: **kameran helt låst, ingen kamerarörelse, inga händer, inga männi
 Filnamn: `valdi_rod.mp4` (samma mönster som grön/puls/vit). När du genererat den byter jag
 ut CSS-färgskiftet mot det riktiga klippet för nekat-läget.
 
+**Klipp 5 — VALDI PRATAR / oscilloskopet rör sig (~4 s, sömlös loop):**
+Spelas medan Valdi läser upp utlåtandet. INGEN ringblinkning — bara oscilloskopet.
+> Locked-off camera, no movement. The LED ring inside the hole stays completely STILL and does
+> NOT blink or change (a steady dim/dormant ring). ONLY the oscilloscope screen (the Siemens FG12
+> to the right) changes: its green trace comes alive and MOVES like a speaking voice waveform — a
+> lively green line jumping, scrolling and wiggling across the oscilloscope as if someone is
+> talking. The motion is contained to the oscilloscope screen. Everything else — the hole, the
+> ring, the gauges, needles, the metal panel, the room — stays EXACTLY as in the source image,
+> with no other change or light. Seamless loop. No hands, no people.
+
+Filnamn: `valdi_talar.mp4`. När du droppar den i `Assets/` kopplar jag in den som ett eget
+"Valdi pratar"-läge i revealen (medan rösten läser upp utlåtandet).
+
 ---
 
 ## C) Ljud (förslag)
