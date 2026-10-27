@@ -103,8 +103,17 @@ Gemensamt: **kameran helt låst, ingen kamerarörelse, inga händer, inga männi
 > ring and the inner rim — it does NOT wash the whole frame. Everything else stays EXACTLY as
 > the source image, no other light or colour change. Ends dormant. No hands, no people.
 
-Reveal (kan lösas i kod ovanpå puls-klippet, rena LED-primitiv): **solid grön + lugn puls =
-klarade**; **röd blink = nekar**.
+**Klipp 4 — NEKAD / röd (~3 s, spelas en gång):**
+> Locked-off camera, no movement. ONLY the ring of small LED segments recessed inside the
+> mouth of the hole changes: the LEDs flash in a harsh RED — blinking firmly a few times
+> like a rejection alarm, then holding a steady deep red. The light stays strictly contained
+> to that LED ring and the inner rim of the bore. Everything else — the gauges, needles,
+> polygraph drum, oscilloscope, the green metal panel, the room — stays EXACTLY as in the
+> source image, with absolutely NO other red light, glow or colour change anywhere in the
+> frame. No hands, no people.
+
+Filnamn: `valdi_rod.mp4` (samma mönster som grön/puls/vit). När du genererat den byter jag
+ut CSS-färgskiftet mot det riktiga klippet för nekat-läget.
 
 ---
 

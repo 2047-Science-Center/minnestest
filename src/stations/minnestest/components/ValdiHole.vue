@@ -25,8 +25,10 @@ const src = computed(() => {
       return asset('video/valdi_gron.mp4')
     case 'deactivate':
       return asset('video/valdi_vit.mp4')
+    case 'denied':
+      return asset('video/valdi_rod.mp4')
     default:
-      return asset('video/valdi_pulse.mp4') // pulse / overvager / idle / denied
+      return asset('video/valdi_pulse.mp4') // pulse / overvager / idle
   }
 })
 const loop = computed(() => props.state !== 'deactivate')
@@ -74,11 +76,7 @@ const loop = computed(() => props.state !== 'deactivate')
   height: 100%;
   object-fit: cover;
 }
-/* Nekad: skifta den gröna ringen/glöden mot rött. */
-.hole--denied .hole__video {
-  filter: hue-rotate(-130deg) saturate(1.4);
-  animation: hole-deny 0.5s steps(2) 3;
-}
+/* Nekad: eget rött klipp (valdi_rod) — ingen färgskiftning behövs. */
 .hole__tint {
   position: absolute;
   inset: 0;
