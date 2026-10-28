@@ -9,7 +9,9 @@ PartOf=graphical-session.target
 [Service]
 Type=simple
 ExecStart=@REPO@/deploy/nuc/kiosk.sh
-Restart=always
+# on-failure (inte always): "Avsluta"-knappen (window.close → ren exit) avslutar
+# faktiskt appen och tystnar; bara en KRASCH startar om kiosken.
+Restart=on-failure
 RestartSec=3
 
 [Install]
