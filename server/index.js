@@ -176,6 +176,54 @@ app.post('/speak', async (req, res) => {
   }
 })
 
+/**
+ * /lek — lek-läget (lila) efter skarpt. XY-VANTUPPGIFTER.md 2A/2C.
+ *   { kind: 'fraga', question, transcript } → { svar }          (Fråga VALdi, telefonsidan)
+ *   { kind: 'drift', topic, transcript }    → { drift, rad }    (Håll tråden, lögnsidan)
+ * Inga namn eller personuppgifter skickas hit; inget loggas eller sparas.
+ */
+function clip(s, n) {
+  return String(s ?? '').replace(/\s+/g, ' ').trim().slice(0, n)
+}
+app.post('/lek', async (req, res) => {
+  const started = Date.now()
+  try {
+    const { kind } = req.body ?? {}
+    if (kind === 'fraga') {
+      const cfg = loadConfig('lek-fraga')
+      const input = [
+        `FRÅGA: ${clip(req.body.question, 200) || '—'}`,
+        'DELTAGAREN BERÄTTADE:',
+        '"""',
+        clip(req.body.transcript, 1500) || '(tyst — inget hördes)',
+        '"""',
+        'Svara med ETT giltigt JSON-objekt enligt schemat.',
+      ].join('\n')
+      const raw = await callModelJson(cfg.model, cfg._score, input, cfg)
+      const svar = clip(raw?.svar, 600)
+      if (!svar) throw new Error('tomt svar')
+      return res.json({ svar, meta: { latencyMs: Date.now() - started } })
+    }
+    if (kind === 'drift') {
+      const cfg = loadConfig('lek-drift')
+      const input = [
+        `ÄMNE: ${clip(req.body.topic, 200) || '—'}`,
+        'DET SENASTE PERSONEN SA:',
+        '"""',
+        clip(req.body.transcript, 1200) || '(tyst)',
+        '"""',
+        'Svara med ETT giltigt JSON-objekt enligt schemat.',
+      ].join('\n')
+      const raw = await callModelJson(cfg.model, cfg._score, input, cfg)
+      return res.json({ drift: raw?.drift === true, rad: clip(raw?.rad, 200), meta: { latencyMs: Date.now() - started } })
+    }
+    return res.status(400).json({ error: 'okänd kind' })
+  } catch (err) {
+    console.error('[gateway] /lek fel:', err?.message || err)
+    return res.status(500).json({ error: String(err?.message || err) })
+  }
+})
+
 // --- Servera den byggda appen (kiosk-drift: EN process, samma origin) ---
 const DIST = path.join(__dirname, '..', 'dist')
 if (fs.existsSync(path.join(DIST, 'index.html'))) {

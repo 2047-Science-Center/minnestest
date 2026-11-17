@@ -13,6 +13,9 @@ import { ROLLVAL, ROTATION, ENTRE, SIDE_GAME, thisSide, type Game } from '@/conf
 import { audio } from '@/station-kit/audio/AudioEngine'
 import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
 import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
+import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
+import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
+import MinnestestLek from './lek/MinnestestLek.vue'
 
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
 import AttractScreen from '@/station-kit/components/AttractScreen.vue'
@@ -51,6 +54,13 @@ const entre = initEntre({ stationN: ROTATION.stationN, config: ENTRE, mqttUrl: r
 const mySide = thisSide()
 entre.setScreen({ side: mySide, leader: mySide !== 'B' })
 const entreDone = computed(() => entre.state.step === 'klar')
+
+// --- Lek-läget (lila, efter done): en lek per sida — XY-VANTUPPGIFTER.md 2A/2C.
+//     Namnen = den här sidans personer ur entrén. ?lek=1 visar leken direkt. ---
+const lekPreview = lekPreviewFromUrl()
+const lekNames = computed(() =>
+  entre.personer.value.filter((p) => mySide == null || p.side === mySide).map((p) => p.name),
+)
 
 function onEntreStart(): void {
   audio.unlock()
@@ -150,7 +160,10 @@ watch(
     <PauseOverlay v-if="store.paused" />
 
     <!-- Rotationen: väntar / lek (overlay; "Testgrupp X — tryck" visas av entrén) -->
-    <RotationScreens station-title="Människotestet" />
+    <RotationScreens station-title="Människotestet">
+      <template #lek><MinnestestLek :side="mySide" :names="lekNames" /></template>
+    </RotationScreens>
+    <LekStandalone v-if="lekPreview"><MinnestestLek :side="mySide" :names="lekNames" /></LekStandalone>
   </div>
 </template>
 

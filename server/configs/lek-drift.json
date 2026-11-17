@@ -1,0 +1,9 @@
+{
+  "id": "lek-drift",
+  "model": "gpt-5-mini",
+  "reasoningEffort": "minimal",
+  "maxOutputTokens": 200,
+  "jsonMode": true,
+  "scoreInstructionsFile": "instructions/lek-drift.sv.txt",
+  "type": "lek-drift"
+}
