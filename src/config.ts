@@ -11,6 +11,9 @@
  * (nycklar i gatewayns .env). Fronten pratar aldrig direkt med OpenAI/ElevenLabs.
  */
 
+import type { RollvalConfig } from './station-kit/rollval/types'
+import type { EntreConfig, SideId } from './station-kit/entre/types'
+
 export type Mode = 'pilot' | 'production'
 /** Rummens färgidentitet (så man kan säga "det gula rummet"). */
 export type RoomColor = 'bla' | 'gul' | 'gron' | 'rod' | 'guld'
@@ -52,9 +55,23 @@ export const config = {
   /** Drift-adresser. */
   production: {
     wsUrl: '',
-    mqttUrl: 'ws://127.0.0.1:9001',
+    /** Tom → VITE_MQTT_URL (riggen: ws://192.168.10.10:9001) → dev-default ws://127.0.0.1:9001. */
+    mqttUrl: '',
   },
 } as const
+
+/**
+ * ROTATION (xy-arkitektur/XY-ROTATION.md, SOM.md 2026-11-17): regi skickar
+ * station<N>/group → "Testgrupp X — tryck för att börja" → tutorial → skarp →
+ * done → lek. Av i piloten (demo/Pages oförändrade); på i drift. Överstyrs
+ * med ?rotation=1|0 / ?mqtt=ws://… i kiosk-URL:en eller VITE_ROTATION /
+ * VITE_MQTT_URL vid bygget. Ingen IP i koden.
+ */
+export const ROTATION = {
+  stationN: STATION_N,
+  enabled: config.mode === 'production',
+  mqttUrl: config.production.mqttUrl || 'ws://127.0.0.1:9001', // dev-default; env/URL går före
+}
 
 /** Bygger en url till en fil i public/ som funkar oavsett bas-sökväg. */
 export function asset(path: string): string {
@@ -220,3 +237,117 @@ export const PILOT_GROUP = {
   id: '07',
   members: ['Deltagare 1', 'Deltagare 2', 'Deltagare 3'],
 } as const
+
+/* ------------------------------------------------------------------ *
+ * ROLLVAL — nytt touchskärms-flöde FÖRE stationens eget flöde (Lager A).
+ * Besökaren ser ett "en dag i livet"-klipp per roll och väljer roll på
+ * skärmen. Skippbart via ROLLVAL_ENABLED. Inramning: förmågor värda att
+ * vara bra på — IMPLICIT, copyn nämner aldrig "framtidsyrke" eller AI.
+ *
+ * Rollerna speglar appens två sidor: Äkthetsgranskare = människotestet
+ * ("är det en äkta människa?"), Sanningsanalytiker = lögndetektorn
+ * ("är det sant?").
+ *
+ * INGA riktiga klipp finns än → tydligt märkta PLACEHOLDER-klipp i
+ * minnestest/Assets/ (prefix roll_). Strukturerat som TVÅ klippset så det är
+ * redo när de riktiga klippen kommer: byt filerna (behåll namnen) eller
+ * uppdatera filnamnen nedan.
+ * ------------------------------------------------------------------ */
+
+/** Sätt false för att hoppa över hela rollvalet (appen kör utan det). */
+export const ROLLVAL_ENABLED = true
+
+/** Aktivt klippset. Testet kör ETT fast set (set 1 = placeholders); det andra
+ *  setet finns kvar i config. 'alternate' = växla per körning. */
+export const ROLLVAL_START_SET: number | 'alternate' = 0
+
+/** Placeholder-rollklipp i minnestest/Assets/ (prefix roll_, url via Vite). */
+const ROLLVAL_CLIPS = import.meta.glob('../Assets/roll_*.mp4', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>
+
+function rollvalClip(file: string): string {
+  // Vite-globens nycklar är NFD (macOS dekomponerar å/ä/ö); våra literaler är
+  // NFC. Normalisera båda till NFC före jämförelsen.
+  const target = ('/' + file).normalize('NFC')
+  const hit = Object.entries(ROLLVAL_CLIPS).find(([k]) => k.normalize('NFC').endsWith(target))
+  return hit?.[1] ?? ''
+}
+
+export const ROLLVAL: RollvalConfig = {
+  stationTitle: 'Människotestet',
+  intro: 'Två sätt att se igenom det som inte stämmer. Titta på hur en dag ser ut — välj sedan vilken du vill kliva in i.',
+  question: 'Vilken av dem känns som du?',
+  roles: [
+    {
+      id: 'akthetsgranskare',
+      name: 'Äkthetsgranskare',
+      tagline: 'Den som känner igen det äkta.',
+      description: 'Mitt i allt som härmar och kopierar är förmågan att känna igen det genuina — en riktig människa, en äkta reaktion — ovärderlig. Litar inte blint, prövar.',
+    },
+    {
+      id: 'sanningsanalytiker',
+      name: 'Sanningsanalytiker',
+      tagline: 'Den som ser skillnad på sant och påhittat.',
+      description: 'Lyssnar, väger och genomskådar. Att kunna avgöra om något faktiskt stämmer är en av de svåraste och viktigaste förmågor man kan bli bra på.',
+    },
+  ],
+  clipSets: [
+    { akthetsgranskare: rollvalClip('roll_akthetsgranskare_set1.mp4'), sanningsanalytiker: rollvalClip('roll_sanningsanalytiker_set1.mp4') },
+    { akthetsgranskare: rollvalClip('roll_akthetsgranskare_set2.mp4'), sanningsanalytiker: rollvalClip('roll_sanningsanalytiker_set2.mp4') },
+  ],
+}
+
+/* ------------------------------------------------------------------ *
+ * ENTRÉN (station-kit/entre, gemensam för st1–3): attract med testgrupp +
+ * sidindelning → rollval-klippen → valet (person för person / RFID) →
+ * ombalansering → "gå till sida A/B". SIDA = ROLL, fast här. TVÅ NUC:ar, en per sida:
+ *   sida A = Människotestet (rollvalets Äkthetsgranskare)
+ *   sida B = Lögndetektorn  (rollvalets Sanningsanalytiker)
+ * NUC:ens sida: ?sida=A|B i kiosk-URL:en, annars ur VITE_GAME (PINNED_GAME) via
+ * SIDE_GAME, annars delad vy (en skärm för hela gruppen, pilot → sida A:s spel).
+ * Sida A-NUC:en leder (lottar). De två NUC:arna synkar entrén över appens transport
+ * (?net=<relä> — utan relä når rösterna inte den andra NUC:en).
+ * Röstläge: 'skarm' tills banden finns; ?rost=rfid|skarm i URL:en går före.
+ * ------------------------------------------------------------------ */
+
+/** Vilket spel som körs på vilken sida (ROLE_TO_GAME i appen måste stämma med rollerna nedan). */
+export const SIDE_GAME: Record<SideId, Game> = { A: 'manniskotest', B: 'logndetektor' }
+
+export const ENTRE: EntreConfig = {
+  stationTitle: 'Människotestet',
+  roles: [
+    { letter: 'A', rollvalRoleId: 'akthetsgranskare', name: 'Äkthetsgranskare' },
+    { letter: 'B', rollvalRoleId: 'sanningsanalytiker', name: 'Sanningsanalytiker' },
+  ],
+  sides: {
+    A: { id: 'A', label: 'Människotestet' },
+    B: { id: 'B', label: 'Lögndetektorn' },
+  },
+  voteMode: 'skarm',
+  /** 3D-översikten från three.js-tråden (xy-entre-3d → public/entre/). Saknas → 2D-vyn. */
+  illustrationUrl: `${import.meta.env.BASE_URL}entre/sidor-3d.html`,
+  clips: ROLLVAL_ENABLED,
+  clipSet: ROLLVAL_START_SET,
+  clipSetCount: ROLLVAL.clipSets.length,
+  pilotRoster: [
+    { band_id: 'PILOT01', name: 'Liam', gender: 'man' },
+    { band_id: 'PILOT02', name: 'Jonna', gender: 'kvinna' },
+    { band_id: 'PILOT03', name: 'Andreas', gender: 'man' },
+    { band_id: 'PILOT04', name: 'Maja', gender: 'kvinna' },
+    { band_id: 'PILOT05', name: 'Omar', gender: 'man' },
+    { band_id: 'PILOT06', name: 'Saga', gender: 'kvinna' },
+  ],
+}
+
+/** Den här NUC:ens sida (null = delad vy). */
+export function thisSide(): SideId | null {
+  if (typeof window !== 'undefined') {
+    const p = new URLSearchParams(window.location.search).get('sida')?.toUpperCase()
+    if (p === 'A' || p === 'B') return p
+  }
+  if (PINNED_GAME) return SIDE_GAME.A === PINNED_GAME ? 'A' : 'B'
+  return null
+}

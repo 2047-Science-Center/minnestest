@@ -31,6 +31,7 @@ import {
   type ColorDef,
 } from '@/config'
 import { t } from '@/station-kit/i18n'
+import { tagResult } from '@/station-kit/rotation/rotation'
 
 export type Phase =
   | 'attract'
@@ -118,6 +119,9 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   const adapters = shallowRef<Adapters | null>(null)
 
+  /** Entréns lottade personer på DEN HÄR sidan (null = pilot-gruppen, gammalt beteende). */
+  const roster = ref<{ band_id: string; chosen_role: 'A' | 'B'; assigned_role: 'A' | 'B' }[] | null>(null)
+
   // --- Härledda ---
   const room = computed<Room>(() =>
     isTutorial.value ? gameDef.value.tutorial : gameDef.value.rooms[roomIndex.value],
@@ -136,6 +140,19 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   function init(): void {
     if (!adapters.value) adapters.value = createAdapters()
+  }
+
+  /** Entrén (station-kit/entre) klar → gruppens namn + roller på den här sidan. */
+  function setRoster(
+    id: string,
+    persons: { band_id: string; name: string; chosen_role: 'A' | 'B'; assigned_role: 'A' | 'B' }[],
+  ): void {
+    roster.value = persons.map(({ band_id, chosen_role, assigned_role }) => ({ band_id, chosen_role, assigned_role }))
+    if (persons.length) group.value = { id, members: persons.map((p) => p.name) }
+  }
+  /** Skärm↔skärm-transporten (entrén delar röster/lottning mellan NUC:arna). */
+  function transport() {
+    return adapters.value?.transport ?? null
   }
 
   // --- Övergångar ---
@@ -371,25 +388,30 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     resetRoom()
     outcome.value = null
     group.value = { id: PILOT_GROUP.id, members: [...PILOT_GROUP.members] }
+    roster.value = null
   }
 
   // --- Resultat-söm (AVSTÄNGD i pilot = MockResultSink) ---
   function sendResult(): void {
     const value = outcome.value?.roomsCleared ?? 0
-    const personer: ResultPerson[] = group.value.members.map((name, i) => ({
-      band_id: `${group.value.id}-${i + 1}-${name}`,
-      chosen_role: 'A',
-      assigned_role: 'A',
-      role_presented_as: null,
-      result_value: value,
-    }))
+    // Entrén gav riktiga band_id + valt/tilldelat roll; utan entré: pilotgruppen (gammalt).
+    const personer: ResultPerson[] = roster.value
+      ? roster.value.map((p) => ({ ...p, role_presented_as: null, result_value: value }))
+      : group.value.members.map((name, i) => ({
+          band_id: `${group.value.id}-${i + 1}-${name}`,
+          chosen_role: 'A',
+          assigned_role: 'A',
+          role_presented_as: null,
+          result_value: value,
+        }))
+    const sum = (r: 'A' | 'B') => personer.filter((p) => p.assigned_role === r).reduce((s, p) => s + p.result_value, 0)
     const payload: ResultPayload = {
       grupp: group.value.id,
-      rollresultat_A: personer.reduce((s, p) => s + p.result_value, 0),
-      rollresultat_B: 0,
+      rollresultat_A: sum('A'),
+      rollresultat_B: sum('B'),
       personer,
     }
-    adapters.value?.result.send(payload)
+    adapters.value?.result.send(tagResult(payload))
   }
 
   return {
@@ -418,6 +440,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     init,
     begin,
     chooseGame,
+    setRoster,
+    transport,
     applyIdentity,
     listenIdentity,
     startBranch,
