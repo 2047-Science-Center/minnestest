@@ -49,9 +49,12 @@ const ROLE_TO_GAME: Record<string, Game> = {
 //     TVÅ NUC:ar: sida A = Människotestet, sida B = Lögndetektorn (config ENTRE/SIDE_GAME);
 //     NUC:ens sida ur ?sida= / VITE_GAME. Skarpt börjar vid goLive; resultatskärmen klar
 //     (→ checkout) = done + lek; lämnar gruppen 'running' → stationen återställs. ---
-const rotation = initRotation(rotationOptions(ROTATION))
-const entre = initEntre({ stationN: ROTATION.stationN, config: ENTRE, mqttUrl: rotationOptions(ROTATION).mqttUrl })
+//     DELAD station (SOM.md 2026-11-18): varje sida (NUC) har en egen done-nyckel → sidan går
+//     till lek när DESS spel är klart; regi väntar in båda (rotation.done_nycklar). Delad vy
+//     (pilot, ingen sida) = hela stationen som förut.
 const mySide = thisSide()
+const rotation = initRotation(rotationOptions({ ...ROTATION, side: mySide }))
+const entre = initEntre({ stationN: ROTATION.stationN, config: ENTRE, mqttUrl: rotationOptions(ROTATION).mqttUrl })
 entre.setScreen({ side: mySide, leader: mySide !== 'B' })
 const entreDone = computed(() => entre.state.step === 'klar')
 
