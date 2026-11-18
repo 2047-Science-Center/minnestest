@@ -393,6 +393,10 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   // --- Resultat-söm (AVSTÄNGD i pilot = MockResultSink) ---
   function sendResult(): void {
+    adapters.value?.result.send(tagResult(buildResultPayload()))
+  }
+  /** station<N>/result-payloaden (gruppform §5.3) — entréns band_id + vald/tilldelad roll. */
+  function buildResultPayload(): ResultPayload {
     const value = outcome.value?.roomsCleared ?? 0
     // Entrén gav riktiga band_id + valt/tilldelat roll; utan entré: pilotgruppen (gammalt).
     const personer: ResultPerson[] = roster.value
@@ -411,7 +415,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
       rollresultat_B: sum('B'),
       personer,
     }
-    adapters.value?.result.send(tagResult(payload))
+    return payload
   }
 
   return {
@@ -442,6 +446,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     chooseGame,
     setRoster,
     transport,
+    buildResultPayload,
     applyIdentity,
     listenIdentity,
     startBranch,

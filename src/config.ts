@@ -318,10 +318,21 @@ export const SIDE_GAME: Record<SideId, Game> = { A: 'manniskotest', B: 'logndete
 
 export const ENTRE: EntreConfig = {
   stationTitle: 'Människotestet',
+  // XY-PLATSER (2026-11-18): A = Människotestet, 3 telefonlurar = max 3; överskottet till
+  // lögndetektorn (en mikrofon, turordning: 1 vid mikrofonen, resten i kö).
   roles: [
-    { letter: 'A', rollvalRoleId: 'akthetsgranskare', name: 'Äkthetsgranskare' },
-    { letter: 'B', rollvalRoleId: 'sanningsanalytiker', name: 'Sanningsanalytiker' },
+    { letter: 'A', rollvalRoleId: 'akthetsgranskare', name: 'Äkthetsgranskare', titel: 'Människotestet', max: 3, plats: 'A.lur' },
+    {
+      letter: 'B',
+      rollvalRoleId: 'sanningsanalytiker',
+      name: 'Sanningsanalytiker',
+      subRoles: [
+        { id: 'mikrofon', name: 'Vid mikrofonen', count: 1, plats: 'B.mikrofon' },
+        { id: 'ko', name: 'I kö', plats: 'B.ko' },
+      ],
+    },
   ],
+  station3d: 'minne',
   sides: {
     A: { id: 'A', label: 'Människotestet' },
     B: { id: 'B', label: 'Lögndetektorn' },
