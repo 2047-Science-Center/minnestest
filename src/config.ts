@@ -304,8 +304,29 @@ function rollvalClip(file: string): string {
   return hit?.[1] ?? ''
 }
 
+/** Vilket spel som körs på vilken sida (ROLE_TO_GAME i appen måste stämma med ENTRE.roles). */
+export const SIDE_GAME: Record<SideId, Game> = { A: 'manniskotest', B: 'logndetektor' }
+
+/**
+ * STATIONENS NAMN PER SIDA (Josef 2026-11-19: Människotestet och Lögndetektorn är två stationer på två NUC:ar).
+ * Följer thisSide(): sida B = "Lögndetektorn", sida A och den delade vyn = "Människotestet". Används överallt där
+ * stationens namn visas (ENTRE/ROLLVAL.stationTitle → ankomstvyns mitt, incheckningen, rotationens skärmar).
+ */
+export const STATION_TITLE: string = thisSide() === 'B' ? 'Lögndetektorn' : 'Människotestet'
+
+/**
+ * ATTRACT-BILD PER SIDA (förberedd, Josef har inte valt bilder än → null = ingen bild, som i dag).
+ * Lägg bilden i public/attract/ och sätt sökvägen, t.ex. A: 'attract/manniskotestet.jpg'.
+ * attractBild() ger den här NUC:ens bild (thisSide(); delad vy = A). Inte inkopplad i någon vy än.
+ */
+export const ATTRACT_BILD: Record<SideId, string | null> = { A: null, B: null }
+export function attractBild(): string | null {
+  const p = ATTRACT_BILD[thisSide() ?? 'A']
+  return p ? asset(p) : null
+}
+
 export const ROLLVAL: RollvalConfig = {
-  stationTitle: 'Människotestet',
+  stationTitle: STATION_TITLE,
   intro: 'Två sätt att se igenom det som inte stämmer. Titta på hur en dag ser ut — välj sedan vilken du vill kliva in i.',
   question: 'Vilken av dem känns som du?',
   roles: [
@@ -341,11 +362,8 @@ export const ROLLVAL: RollvalConfig = {
  * Röstläge: styrs av BANDLOST (ovan); voteMode gäller bara om BANDLOST inte skickas in. ?rost=rfid|skarm går före.
  * ------------------------------------------------------------------ */
 
-/** Vilket spel som körs på vilken sida (ROLE_TO_GAME i appen måste stämma med rollerna nedan). */
-export const SIDE_GAME: Record<SideId, Game> = { A: 'manniskotest', B: 'logndetektor' }
-
 export const ENTRE: EntreConfig = {
-  stationTitle: 'Människotestet',
+  stationTitle: STATION_TITLE,
   // XY-PLATSER (2026-11-18): A = Människotestet, 3 telefonlurar = max 3; överskottet till
   // lögndetektorn (en mikrofon, turordning: 1 vid mikrofonen, resten i kö).
   roles: [
@@ -368,8 +386,10 @@ export const ENTRE: EntreConfig = {
   voteMode: 'skarm',
   /** 3D-översikten från three.js-tråden (xy-entre-3d → public/entre/). Saknas → 2D-vyn. */
   illustrationUrl: `${import.meta.env.BASE_URL}entre/sidor-3d.html`,
-  /** Stationsintrot (hype-klipp ~5–6 s) efter "Ställ er på rätt sida". Saknas filen → hoppas över. */
-  introClip: `${import.meta.env.BASE_URL}media/stationsintro/manniskotestet.mp4`,
+  /** Stationsintrot (hype-klipp ~5–6 s) efter "Ställ er på rätt sida". Saknas filen → hoppas över.
+   *  Två stationer på två NUC:ar (Josef 2026-11-19): eget klipp per sida (thisSide()).
+   *  Sida B = logndetektorn.mp4. Sida A och den delade vyn = manniskotestet.mp4. */
+  introClip: `${import.meta.env.BASE_URL}media/stationsintro/${thisSide() === 'B' ? 'logndetektorn' : 'manniskotestet'}.mp4`,
   /** Rollsekvensen efter introt (inga klick): brygga → kort A → klipp A → brygga → kort B → klipp B → valet.
    *  Rollnamn/valvfärg enligt station-kit/stationsintro/README.md (Josef 2026-11-19). */
   rollkort: { A: 'ÄKTHETSGRANSKARE', B: 'SANNINGSANALYTIKER', valvfarg: '#ff5a3c', sprak: config.lang === 'no' ? 'no' : 'sv' },

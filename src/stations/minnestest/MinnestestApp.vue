@@ -9,7 +9,7 @@
  */
 import { onMounted, computed, watch } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
-import { config, ROLLVAL, ROTATION, ENTRE, BANDLOST, LJUS, SIDE_GAME, STATION_N, thisSide, type Game } from '@/config'
+import { config, ROLLVAL, ROTATION, ENTRE, STATION_TITLE, BANDLOST, LJUS, SIDE_GAME, STATION_N, thisSide, type Game } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
 import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
@@ -58,6 +58,8 @@ const ROLE_TO_GAME: Record<string, Game> = {
 //     till lek när DESS spel är klart; regi väntar in båda (rotation.done_nycklar). Delad vy
 //     (pilot, ingen sida) = hela stationen som förut.
 const mySide = thisSide()
+// Fönstertiteln följer sidan (två stationer på två NUC:ar): "Lögndetektorn — X&Y" / "Människotestet — X&Y".
+if (typeof document !== 'undefined') document.title = `${STATION_TITLE} — X&Y`
 const rotation = initRotation(rotationOptions({ ...ROTATION, side: mySide }))
 const entre = initEntre({
   stationN: ROTATION.stationN,
@@ -226,7 +228,7 @@ watch(
     <PauseOverlay v-if="store.paused" />
 
     <!-- Rotationen: väntar / lek (overlay; "Testgrupp X — tryck" visas av entrén) -->
-    <RotationScreens station-title="Människotestet">
+    <RotationScreens :station-title="STATION_TITLE">
       <template #lek><MinnestestLek :side="mySide" :names="lekNames" /></template>
     </RotationScreens>
     <LekStandalone v-if="lekPreview"><MinnestestLek :side="mySide" :names="lekNames" /></LekStandalone>
@@ -234,7 +236,7 @@ watch(
     <LjusRemsa />
     <!-- Regis filmer (trailern) över allt, bara i filmens fas -->
     <!-- Incheckningen: "Ta ditt band" medan regi står i incheckningen -->
-    <IncheckningScreen station-title="Människotestet" :side-labels="{ A: ENTRE.sides?.A?.label, B: ENTRE.sides?.B?.label }" />
+    <IncheckningScreen :station-title="STATION_TITLE" :side-labels="{ A: ENTRE.sides?.A?.label, B: ENTRE.sides?.B?.label }" />
     <FilmOverlay />
   </div>
 </template>
