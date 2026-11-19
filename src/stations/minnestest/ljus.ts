@@ -14,31 +14,70 @@ import type { SideId } from '@/station-kit/entre/types'
 import type { Phase } from './store/minnestestStore'
 
 /**
- * Kanon-ljud → appens AudioEngine. Stationsspecifika ljud (valdi-activate/pulse/deactivate,
- * ld-granted/denied, unlock/vaultopen/vaultdenied) spelas kvar av appen själv; gesterna för
- * de händelserna går då med {tyst: true}.
+ * Kanon-ljud med egen fil i public/Sound/sfx/ — P1–P6 i XY-FEEDBACK-LJUS-LJUD §8 plus
+ * `resultat` (d10-klar-resultat). Källa: xy-simulator/media/ljud/xy-ljud/sfx/feedback/
+ * (README där: prompt, längd, LUFS). `neutral` = l9 finns redan som Sfx 'positive'.
+ */
+export const LJUD_FIL: Partial<Record<LjudNamn, string>> = {
+  inom: 'sfx-inom.mp3',
+  over: 'sfx-over.mp3',
+  forlust: 'sfx-forlust.mp3',
+  klar: 'sfx-klar-lek.mp3',
+  sista: 'sfx-sista.mp3',
+  stanger: 'sfx-stanger.mp3',
+  resultat: 'sfx-resultat.mp3',
+}
+
+/**
+ * Kanon-ljud → appens AudioEngine (för ljud med LJUD_FIL: reserv om filen inte kan spelas).
+ * Stationsspecifika ljud (valdi-activate/pulse/deactivate, ld-granted/denied,
+ * unlock/vaultopen/vaultdenied) spelas kvar av appen själv; gesterna för de händelserna går
+ * då med {tyst: true}.
  */
 export const LJUD: Record<LjudNamn, Sfx> = {
   kvitto: 'bipstart',
   'kvitto-fel': 'deny',
   ratt: 'confirm',
   fel: 'deny',
-  inom: 'confirm', // TODO P1 i XY-FEEDBACK-LJUS-LJUD §8 (generiskt `inom` saknas)
-  over: 'deny', // TODO P2 i XY-FEEDBACK-LJUS-LJUD §8 (generiskt `over` saknas)
+  inom: 'confirm',
+  over: 'deny',
   varning: 'tick',
-  sista: 'tickfinal', // TODO P5 i XY-FEEDBACK-LJUS-LJUD §8 (`sista` lyfts in från stresstestet)
+  sista: 'tickfinal',
   start: 'live',
   vinst: 'win',
-  forlust: 'nobuy', // TODO P3 i XY-FEEDBACK-LJUS-LJUD §8 (generisk förlust-stinger saknas)
-  neutral: 'nobuy',
-  klar: 'positive', // TODO P4 i XY-FEEDBACK-LJUS-LJUD §8 (övergång till lila lek saknas)
+  forlust: 'nobuy',
+  neutral: 'positive', // = l9-stinger-neutral
+  klar: 'positive',
   resultat: 'popup',
   oppnar: 'hatch',
-  stanger: 'lockin', // TODO P6 i XY-FEEDBACK-LJUS-LJUD §8 (`stanger` lyfts in från stresstestet)
+  stanger: 'lockin',
+}
+
+const filer = new Map<string, HTMLAudioElement>()
+
+/** Spela en fil ur public/Sound/sfx/ på motorns volym; nekas/saknas den → reserv-Sfx. */
+function spelaFil(fil: string, reserv: Sfx): void {
+  if (audio.muted) return
+  try {
+    let el = filer.get(fil)
+    if (!el) {
+      el = new Audio(import.meta.env.BASE_URL + 'Sound/sfx/' + fil)
+      el.preload = 'auto'
+      filer.set(fil, el)
+    }
+    const kopia = el.cloneNode() as HTMLAudioElement
+    kopia.volume = audio.volume
+    const p = kopia.play()
+    if (p) p.catch(() => audio.play(reserv))
+  } catch {
+    audio.play(reserv)
+  }
 }
 
 export function spela(l: LjudNamn): void {
-  audio.play(LJUD[l])
+  const fil = LJUD_FIL[l]
+  if (fil) spelaFil(fil, LJUD[l])
+  else audio.play(LJUD[l])
 }
 
 /**
