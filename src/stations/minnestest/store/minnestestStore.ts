@@ -120,7 +120,9 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   const adapters = shallowRef<Adapters | null>(null)
 
   /** Entréns lottade personer på DEN HÄR sidan (null = pilot-gruppen, gammalt beteende). */
-  const roster = ref<{ band_id: string; chosen_role: 'A' | 'B'; assigned_role: 'A' | 'B' }[] | null>(null)
+  const roster = ref<
+    { band_id: string; chosen_role: 'A' | 'B'; assigned_role: 'A' | 'B'; role_presented_as: 'manlig' | 'kvinnlig' | null }[] | null
+  >(null)
 
   // --- Härledda ---
   const room = computed<Room>(() =>
@@ -145,9 +147,20 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   /** Entrén (station-kit/entre) klar → gruppens namn + roller på den här sidan. */
   function setRoster(
     id: string,
-    persons: { band_id: string; name: string; chosen_role: 'A' | 'B'; assigned_role: 'A' | 'B' }[],
+    persons: {
+      band_id: string
+      name: string
+      chosen_role: 'A' | 'B'
+      assigned_role: 'A' | 'B'
+      role_presented_as?: 'manlig' | 'kvinnlig' | null
+    }[],
   ): void {
-    roster.value = persons.map(({ band_id, chosen_role, assigned_role }) => ({ band_id, chosen_role, assigned_role }))
+    roster.value = persons.map(({ band_id, chosen_role, assigned_role, role_presented_as }) => ({
+      band_id,
+      chosen_role,
+      assigned_role,
+      role_presented_as: role_presented_as ?? null,
+    }))
     if (persons.length) group.value = { id, members: persons.map((p) => p.name) }
   }
   /** Skärm↔skärm-transporten (entrén delar röster/lottning mellan NUC:arna). */
@@ -400,7 +413,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     const value = outcome.value?.roomsCleared ?? 0
     // Entrén gav riktiga band_id + valt/tilldelat roll; utan entré: pilotgruppen (gammalt).
     const personer: ResultPerson[] = roster.value
-      ? roster.value.map((p) => ({ ...p, role_presented_as: null, result_value: value }))
+      ? roster.value.map((p) => ({ ...p, result_value: value }))
       : group.value.members.map((name, i) => ({
           band_id: `${group.value.id}-${i + 1}-${name}`,
           chosen_role: 'A',
