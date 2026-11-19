@@ -368,8 +368,10 @@ export const ENTRE: EntreConfig = {
   voteMode: 'skarm',
   /** 3D-översikten från three.js-tråden (xy-entre-3d → public/entre/). Saknas → 2D-vyn. */
   illustrationUrl: `${import.meta.env.BASE_URL}entre/sidor-3d.html`,
-  /** Stationsintrot (hype-klipp ~5–6 s) efter "Ställ er på rätt sida". Saknas filen → hoppas över. */
-  introClip: `${import.meta.env.BASE_URL}media/stationsintro/manniskotestet.mp4`,
+  /** Stationsintrot (hype-klipp ~5–6 s) efter "Ställ er på rätt sida". Saknas filen → hoppas över.
+   *  Delad station, två NUC:ar: samma klipp men olika sluttitel per sida (thisSide()).
+   *  Sida B = LÖGNDETEKTORN. Sida A och den delade vyn = MÄNNISKOTESTET. */
+  introClip: `${import.meta.env.BASE_URL}media/stationsintro/${thisSide() === 'B' ? 'logndetektorn' : 'manniskotestet'}.mp4`,
   clips: ROLLVAL_ENABLED,
   clipSet: ROLLVAL_START_SET,
   clipSetCount: ROLLVAL.clipSets.length,
