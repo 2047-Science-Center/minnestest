@@ -13,4 +13,5 @@ coverage
 server/.env
 
 # Källbilder/-klipp (stora, hör ej hemma i repot)
-Assets/
+/Assets/*
+!/Assets/roll_*.mp4
