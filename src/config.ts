@@ -315,11 +315,15 @@ export const SIDE_GAME: Record<SideId, Game> = { A: 'manniskotest', B: 'logndete
 export const STATION_TITLE: string = thisSide() === 'B' ? 'Lögndetektorn' : 'Människotestet'
 
 /**
- * ATTRACT-BILD PER SIDA (förberedd, Josef har inte valt bilder än → null = ingen bild, som i dag).
- * Lägg bilden i public/attract/ och sätt sökvägen, t.ex. A: 'attract/manniskotestet.jpg'.
- * attractBild() ger den här NUC:ens bild (thisSide(); delad vy = A). Inte inkopplad i någon vy än.
+ * ATTRACT-BILD PER NUC/SIDA (Josef 2026-11-19, två bilder i st2) bakom "Ställ er på rätt sida".
+ * Källa xy-produktion/attract/ut/: variant st2-b (valvdörren) → sida A Människotestet,
+ * variant st2-a (konsolen, "LÖGNDETEKTOR") → sida B Lögndetektorn. OBS: bildvarianternas a/b ≠ sidorna A/B —
+ * filerna heter därför efter stationen. attractBild() ger den här NUC:ens bild (thisSide(); delad vy = A).
  */
-export const ATTRACT_BILD: Record<SideId, string | null> = { A: null, B: null }
+export const ATTRACT_BILD: Record<SideId, string | null> = {
+  A: 'attract/manniskotestet-valvdorr.jpg',
+  B: 'attract/logndetektorn-konsol.jpg',
+}
 export function attractBild(): string | null {
   const p = ATTRACT_BILD[thisSide() ?? 'A']
   return p ? asset(p) : null
@@ -364,6 +368,8 @@ export const ROLLVAL: RollvalConfig = {
 
 export const ENTRE: EntreConfig = {
   stationTitle: STATION_TITLE,
+  /** Attract-bilden bakom ankomstvyn: valvdörren (A) / konsolen (B), se ATTRACT_BILD. */
+  attractBild: attractBild(),
   // XY-PLATSER (2026-11-18): A = Människotestet, 3 telefonlurar = max 3; överskottet till
   // lögndetektorn (en mikrofon, turordning: 1 vid mikrofonen, resten i kö).
   roles: [
