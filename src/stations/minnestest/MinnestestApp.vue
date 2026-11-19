@@ -17,6 +17,7 @@ import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
 import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
 import MinnestestLek from './lek/MinnestestLek.vue'
 import { initLjus, ljusOptions, LjusRemsa } from '@/station-kit/ljus'
+import { initFilm, filmOptions, FilmOverlay } from '@/station-kit/film'
 import { spela, egnaSegment, segmentFor, basLage } from './ljus'
 
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
@@ -76,6 +77,10 @@ const ljus = initLjus(
     spela,
   }),
 )
+
+// --- Regis filmer (station-kit/film, SOM.md "Filmer i riggen"): trailern helskärm i båda
+//     fönstren medan regi står i trailerfasen, sedan tillbaka till stationen. ---
+initFilm(filmOptions({ enabled: config.mode === 'production', mqttUrl: rotationOptions(ROTATION).mqttUrl }))
 
 // --- Lek-läget (lila, efter done): en lek per sida — XY-VANTUPPGIFTER.md 2A/2C.
 //     Namnen = den här sidans personer ur entrén. ?lek=1 visar leken direkt. ---
@@ -198,6 +203,8 @@ watch(
     <LekStandalone v-if="lekPreview"><MinnestestLek :side="mySide" :names="lekNames" /></LekStandalone>
     <!-- Ljusets förhandsvisning (bara med ?ljus=visa) -->
     <LjusRemsa />
+    <!-- Regis filmer (trailern) över allt, bara i filmens fas -->
+    <FilmOverlay />
   </div>
 </template>
 
