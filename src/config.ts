@@ -11,6 +11,7 @@
  * (nycklar i gatewayns .env). Fronten pratar aldrig direkt med OpenAI/ElevenLabs.
  */
 
+import { bandlostFran } from '@/station-kit/band/band'
 import type { RollvalConfig } from './station-kit/rollval/types'
 import type { EntreConfig, SideId } from './station-kit/entre/types'
 
@@ -72,6 +73,15 @@ export const ROTATION = {
   enabled: config.mode === 'production',
   mqttUrl: config.production.mqttUrl || 'ws://127.0.0.1:9001', // dev-default; env/URL går före
 }
+
+/**
+ * BANDLÖST LÄGE (station-kit/band, xy-arkitektur/XY-BANDLOST-OCH-ANKOMST.md, SOM.md "bandlöst läge (v49)"):
+ * på = allt banden gör görs på skärmen (rollvalet: en person i taget). Av = RFID-läsarna
+ * (station<N>/rfidnej = roll A, rfidja = roll B). Default PÅ inför v49 (läsarna är inte klara).
+ * Överstyrs med ?bandlost=1|0 i kiosk-URL:en eller VITE_BANDLOST=1|0 vid bygget.
+ * ?rost=rfid|skarm (en enskild skärm) och facilitatormenyn går fortfarande före.
+ */
+export const BANDLOST: boolean = bandlostFran(true, import.meta.env.VITE_BANDLOST as string | undefined)
 
 /**
  * LJUS (station-kit/ljus, XY-FEEDBACK-LJUS-LJUD §1.2/§5.2, SOM.md "Stationsljus"):
@@ -328,7 +338,7 @@ export const ROLLVAL: RollvalConfig = {
  * SIDE_GAME, annars delad vy (en skärm för hela gruppen, pilot → sida A:s spel).
  * Sida A-NUC:en leder (lottar). De två NUC:arna synkar entrén över appens transport
  * (?net=<relä> — utan relä når rösterna inte den andra NUC:en).
- * Röstläge: 'skarm' tills banden finns; ?rost=rfid|skarm i URL:en går före.
+ * Röstläge: styrs av BANDLOST (ovan); voteMode gäller bara om BANDLOST inte skickas in. ?rost=rfid|skarm går före.
  * ------------------------------------------------------------------ */
 
 /** Vilket spel som körs på vilken sida (ROLE_TO_GAME i appen måste stämma med rollerna nedan). */
