@@ -9,7 +9,7 @@
  */
 import { onMounted, computed, watch } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
-import { config, ROLLVAL, ROTATION, ENTRE, LJUS, SIDE_GAME, STATION_N, thisSide, type Game } from '@/config'
+import { config, ROLLVAL, ROTATION, ENTRE, BANDLOST, LJUS, SIDE_GAME, STATION_N, thisSide, type Game } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
 import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
@@ -57,7 +57,12 @@ const ROLE_TO_GAME: Record<string, Game> = {
 //     (pilot, ingen sida) = hela stationen som förut.
 const mySide = thisSide()
 const rotation = initRotation(rotationOptions({ ...ROTATION, side: mySide }))
-const entre = initEntre({ stationN: ROTATION.stationN, config: ENTRE, mqttUrl: rotationOptions(ROTATION).mqttUrl })
+const entre = initEntre({
+  stationN: ROTATION.stationN,
+  config: ENTRE,
+  mqttUrl: rotationOptions(ROTATION).mqttUrl,
+  bandlost: BANDLOST,
+})
 entre.setScreen({ side: mySide, leader: mySide !== 'B' })
 const entreDone = computed(() => entre.state.step === 'klar')
 
