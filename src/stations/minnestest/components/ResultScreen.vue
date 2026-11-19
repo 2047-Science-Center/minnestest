@@ -3,14 +3,28 @@
  * Slutskärm: hur långt gruppen nådde (vilket rum / färg), slutzon och Valdis
  * sista utlåtande. ÖPPNAD HELA VÄGEN → välkomna in; TVEKSAM → nätt och jämnt;
  * ACCESS DENIED → porten förblev stängd.
+ *
+ * Ljus + ljud (XY-FEEDBACK-LJUS-LJUD §6): utfallet på EGEN sida (beviljad = vinst, nekad =
+ * forlust, håller tills rutan lämnas) + 'resultat'-ljudet när rutan visas. Minst 8 s innan
+ * knappen går att trycka; auto-vidare efter 45 s = samma som knappen (→ checkout → done).
  */
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
-import { ROOMS } from '@/config'
+import { ROOMS, thisSide } from '@/config'
+import { useLjus, useResultatTid } from '@/station-kit/ljus'
 import { useMinnestestStore } from '../store/minnestestStore'
+import { segmentFor } from '../ljus'
 
 const { t } = useI18n()
 const store = useMinnestestStore()
+const ljus = useLjus()
+const rt = useResultatTid({ onAuto: () => store.resultDone() })
+
+onMounted(() => {
+  ljus.ljud('resultat')
+  ljus.utfall(o.value?.granted ? 'vinst' : 'forlust', [segmentFor(store.game, thisSide())])
+  rt.start()
+})
 
 const isLd = computed(() => store.game === 'logndetektor')
 const o = computed(() => store.outcome)
@@ -41,7 +55,11 @@ const body = computed(() => {
       <p class="result__reached">{{ reached }}</p>
       <p v-if="body" class="result__body ink-strong">{{ body }}</p>
       <p v-if="o?.lastUtlatande" class="result__utlatande">"{{ o.lastUtlatande }}"</p>
-      <button class="crt-button crt-button--strong result__go" @click="store.resultDone()">
+      <button
+        class="crt-button crt-button--strong result__go"
+        :disabled="!rt.kanGaVidare.value"
+        @click="store.resultDone()"
+      >
         {{ t('result.to_checkout') }} ▸
       </button>
     </div>

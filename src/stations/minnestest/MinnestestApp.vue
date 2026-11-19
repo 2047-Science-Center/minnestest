@@ -9,13 +9,15 @@
  */
 import { onMounted, computed, watch } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
-import { ROLLVAL, ROTATION, ENTRE, SIDE_GAME, thisSide, type Game } from '@/config'
+import { config, ROLLVAL, ROTATION, ENTRE, LJUS, SIDE_GAME, STATION_N, thisSide, type Game } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
 import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
 import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
 import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
 import MinnestestLek from './lek/MinnestestLek.vue'
+import { initLjus, ljusOptions, LjusRemsa } from '@/station-kit/ljus'
+import { spela, egnaSegment, segmentFor, basLage } from './ljus'
 
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
 import AttractScreen from '@/station-kit/components/AttractScreen.vue'
@@ -57,6 +59,23 @@ const rotation = initRotation(rotationOptions({ ...ROTATION, side: mySide }))
 const entre = initEntre({ stationN: ROTATION.stationN, config: ENTRE, mqttUrl: rotationOptions(ROTATION).mqttUrl })
 entre.setScreen({ side: mySide, leader: mySide !== 'B' })
 const entreDone = computed(() => entre.state.step === 'klar')
+
+// --- Ljuset (station-kit/ljus, XY-FEEDBACK-LJUS-LJUD §5.2). DELAD station: varje sidas NUC
+//     skriver bara SINA segment (A | B + valdi) med {ersatt:false}; delad vy = alla segment.
+//     Sidans bas följer rotationen (eller appens faser när rotationen är av); done → 'klar'. ---
+const ljus = initLjus(
+  ljusOptions({
+    stationN: STATION_N,
+    enabled: config.mode === 'production',
+    mqttUrl: rotationOptions(ROTATION).mqttUrl,
+    valv: LJUS.valv,
+    segment: LJUS.segment,
+    skrivare: true,
+    egna: egnaSegment(mySide),
+    delad: mySide != null,
+    spela,
+  }),
+)
 
 // --- Lek-läget (lila, efter done): en lek per sida — XY-VANTUPPGIFTER.md 2A/2C.
 //     Namnen = den här sidans personer ur entrén. ?lek=1 visar leken direkt. ---
@@ -114,6 +133,16 @@ watch(
     if (p === 'checkout') rotation.finishSkarp()
   },
 )
+// Sidans bas (bara egen sida). Skarpt klart → lek: 'klar'-gesten (sätter själv lila bas).
+watch(
+  [() => basLage(rotation.state, store.phase, store.isTutorial), () => rotation.state.phase],
+  ([lage, rp], old) => {
+    const seg = segmentFor(store.game, mySide)
+    if (rp === 'lek' && old?.[1] === 'running') ljus.gest('klar', [seg])
+    else ljus.lage(lage, [seg])
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -167,6 +196,8 @@ watch(
       <template #lek><MinnestestLek :side="mySide" :names="lekNames" /></template>
     </RotationScreens>
     <LekStandalone v-if="lekPreview"><MinnestestLek :side="mySide" :names="lekNames" /></LekStandalone>
+    <!-- Ljusets förhandsvisning (bara med ?ljus=visa) -->
+    <LjusRemsa />
   </div>
 </template>
 

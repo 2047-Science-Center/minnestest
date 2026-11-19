@@ -11,8 +11,11 @@
  */
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
-import { config, asset, MODE_COLORS, METER } from '@/config'
+import { config, asset, MODE_COLORS, METER, thisSide } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
+import { useLjus } from '@/station-kit/ljus'
+import { useRotation } from '@/station-kit/rotation/rotation'
+import { segmentFor, basLage, ringFranHal, ringSteg, utslag, type RingTillstand } from '../ljus'
 import { useSpeechCapture } from '@/station-kit/capture/useSpeechCapture'
 
 import { useMinnestestStore } from '../store/minnestestStore'
@@ -23,6 +26,16 @@ import ValdiHole from './ValdiHole.vue'
 
 const { t } = useI18n()
 const store = useMinnestestStore()
+const rotation = useRotation()
+
+// --- Ljuset (XY-FEEDBACK-LJUS-LJUD §5.2): gester på EGEN sida (A | B); VALdi-ringen = `valdi`
+//     (bara lögndetektorn). Hålets/portens egna ljud spelar appen → gesterna går tysta. ---
+const ljus = useLjus()
+const seg = computed(() => segmentFor(store.game, thisSide()))
+/** Sidans bas tillbaka (efter förra rummets utslag / överväger). */
+function aterstallBas(): void {
+  ljus.lage(basLage(rotation.state, store.phase, store.isTutorial), [seg.value])
+}
 
 type Sub = 'scenario' | 'countdown' | 'talk' | 'handoff' | 'reveal'
 const sub = ref<Sub>('scenario')
@@ -192,6 +205,7 @@ function enterScenario(): void {
   showUtlatande.value = false
   canProceed.value = false
   pending.length = 0
+  aterstallBas()
   if (sceneBase.value) audio.bed(`ambience/${sceneBase.value}.mp3`, 0.18, 1200)
   else audio.bedStop(600)
   // Valdi läser upp scenariot (ElevenLabs) medan texten dyker upp.
@@ -203,6 +217,8 @@ function ready(): void {
   store.stopSpeak()
   // Lögndetektorn: "AKTIVERA VALDI" — hålet tänds (ljud) innan nedräkningen.
   if (isHole.value) audio.cue('sfx/sfx-valdi-activate.mp3', 0.9)
+  // Ljus: B = VALdi hörde dig (kvitto på ringen), A = kvitto på sidan. Ljuden ovan/nedan behålls.
+  ljus.gest('kvitto', [isHole.value ? 'valdi' : seg.value], { tyst: true })
   sub.value = 'countdown'
   countdownN.value = config.countdownFrom
   audio.play('blip')
@@ -234,6 +250,7 @@ function startHandoff(): void {
   sub.value = 'handoff'
   handoffN.value = config.handoffSeconds
   audio.play('confirm')
+  ljus.gest('kvitto', [seg.value], { tyst: true }) // turen går vidare (confirm + blip behålls)
   tickTimer = setInterval(() => {
     handoffN.value -= 1
     if (handoffN.value > 0) audio.play('blip')
@@ -248,6 +265,7 @@ function lockTalk(): void {
   if (sub.value !== 'talk') return
   capture.stop()
   stopPulse()
+  ljus.varning(0, [seg.value]) // taltiden slut → tillbaka till skarp bas
   // Lögndetektorn: Valdi avaktiveras (vitt sken-ljud) när man släpper.
   if (isHole.value) audio.cue('sfx/sfx-valdi-deactivate.mp3', 0.9)
   const text = collectedAnswer()
@@ -267,7 +285,10 @@ watch(
     if (sub.value !== 'talk' || ms == null) return
     if (!warned.value && ms <= WARN_MS) {
       warned.value = true
-      audio.play('deny')
+      ljus.varning(2, [seg.value])
+      // Kanon 'varning' (var 'deny' = samma som "fel"). Sida B: INGA feedbackljud medan
+      // mikrofonen är öppen (§3.1) — där bara ljus.
+      if (!isHole.value) ljus.ljud('varning')
     }
     if (ms <= 0) lockTalk()
   },
@@ -282,6 +303,8 @@ async function enterReveal(): Promise<void> {
     later(() => (holeIntro.value = false), 1600)
   }
   startThinkStream()
+  // VALdi överväger: A = amber andning på sidan (B: ringen, se ring-watchen).
+  if (!isHole.value) ljus.lage('vila', [seg.value])
   meterState.value = 'weighing'
   meterVal.value = store.confidence
   // Scenens ljudbild → lågt valvbrum under porten.
@@ -306,8 +329,13 @@ function land(): void {
   const doorAt = 300 + v.perChecks.length * 450 + 1500
   // 1) Per-deltagare ✓/✗ (pling per spelare).
   showChecks.value = true
+  // Ljus: rätt/fel på egen sida, tyst (confirm/deny behålls). 450 ms-takten är kortare än
+  // gesterna (rätt 600 / fel 900 ms) → modulens prioritet släpper en överlappande gest.
   v.perChecks.forEach((ok, i) => {
-    later(() => audio.play(ok ? 'confirm' : 'deny'), 300 + i * 450)
+    later(() => {
+      audio.play(ok ? 'confirm' : 'deny')
+      ljus.gest(ok ? 'ratt' : 'fel', [seg.value], { tyst: true, sparrMs: 0 })
+    }, 300 + i * 450)
   })
   // 2) Förtroendemätaren rör sig (en gång) på gruppens snitt.
   later(() => {
@@ -319,6 +347,10 @@ function land(): void {
   // 4) Utslaget: människotest = tung valvdörr; lögndetektor = eget verdikt-ljud.
   later(() => {
     doorState.value = v.granted ? 'open' : 'denied'
+    // Ljus på sidan (tyst — portens/hålets egna ljud nedan behålls): A vinst/forlust, B rätt/–/fel.
+    const u = utslag(store.reveal, v.granted, trend.value)
+    if (u && 'utfall' in u) ljus.utfall(u.utfall, [seg.value], { tyst: true })
+    else if (u) ljus.gest(u.gest, [seg.value], { tyst: true })
     if (isHole.value) {
       if (!v.granted) audio.cue('sfx/sfx-ld-denied.mp3', 1.0)
       else if (trend.value === 'down') audio.play('deny') // överlevde men förtroendet sjönk
@@ -347,6 +379,8 @@ function proceed(): void {
   // Förtroendet sjönk och man är i farozon → varna innan nästa scenario.
   if (needWarning.value && !showWarning.value) {
     showWarning.value = true
+    ljus.varning(1, [seg.value]) // farozon (bara B)
+    ljus.ljud('varning')
     return
   }
   store.proceedRoom()
@@ -384,8 +418,26 @@ const storyLines = computed(() =>
     .filter(Boolean),
 )
 
+// VALdi-ringen (bara lögndetektorn) speglar hålets tillstånd: mik öppen = lyssnar, sedan
+// revealens ValdiHole-state. Tyst: hålets egna ljud (activate/pulse/deactivate/granted/denied).
+const ring = computed<RingTillstand>(() =>
+  sub.value === 'talk' ? 'lyssnar' : sub.value === 'reveal' ? ringFranHal(holeRevealState.value) : 'vila',
+)
+watch(
+  ring,
+  (till, fran) => {
+    if (!isHole.value) return
+    for (const s of ringSteg(fran ?? null, till)) {
+      if ('lage' in s) ljus.lage(s.lage, ['valdi'])
+      else ljus.gest(s.gest, ['valdi'], { tyst: true })
+    }
+  },
+  { immediate: true },
+)
+
 onMounted(() => enterScenario())
 onUnmounted(() => {
+  ljus.varning(0, [seg.value])
   clearTick()
   stopPulse()
   clearRevealTimers()

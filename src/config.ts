@@ -73,6 +73,24 @@ export const ROTATION = {
   mqttUrl: config.production.mqttUrl || 'ws://127.0.0.1:9001', // dev-default; env/URL går före
 }
 
+/**
+ * LJUS (station-kit/ljus, XY-FEEDBACK-LJUS-LJUD §1.2/§5.2, SOM.md "Stationsljus"):
+ * station2/underglow (bas, retained) + station2/feedback (gester). DELAD station: varje
+ * sidas NUC skriver bara SINA segment — A = Människotestet (3 lurar), B = Lögndetektorn
+ * (mik + kö) + `valdi` (VALdi-ringen på B-sidan). Pixelintervallen är BÄNK-värden
+ * (Josefs 60 px-slinga: A = första halvan, B = andra halvan); riktiga intervall = Eriks
+ * mätning. `valdi` ligger bortom 60 px och klipps på bänken. Av i piloten (följer
+ * config.mode); ?ljus=1|0|visa / VITE_LJUS överstyr.
+ */
+export const LJUS = {
+  valv: 'teknolog' as const,
+  segment: {
+    A: [0, 29],
+    B: [30, 59],
+    valdi: [60, 75],
+  } as Record<string, [number, number]>,
+}
+
 /** Bygger en url till en fil i public/ som funkar oavsett bas-sökväg. */
 export function asset(path: string): string {
   return encodeURI(import.meta.env.BASE_URL + path.replace(/^\/+/, ''))
