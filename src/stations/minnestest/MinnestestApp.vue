@@ -13,6 +13,7 @@ import { config, ROLLVAL, ROTATION, ENTRE, STATION_TITLE, BANDLOST, LJUS, SIDE_G
 import { audio } from '@/station-kit/audio/AudioEngine'
 import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
 import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
+import { initResultat, resultatOptions } from '@/station-kit/resultat'
 import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
 import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
 import MinnestestLek from './lek/MinnestestLek.vue'
@@ -61,6 +62,11 @@ const mySide = thisSide()
 // Fönstertiteln följer sidan (två stationer på två NUC:ar): "Lögndetektorn — X&Y" / "Människotestet — X&Y".
 if (typeof document !== 'undefined') document.title = `${STATION_TITLE} — X&Y`
 const rotation = initRotation(rotationOptions({ ...ROTATION, side: mySide }))
+// Resultatet ut (station-kit/resultat): på när rotationen är på, överstyrs med ?result=1|0 / VITE_RESULT.
+{
+  const rot = rotationOptions(ROTATION)
+  initResultat(resultatOptions({ stationN: ROTATION.stationN, enabled: rot.enabled, mqttUrl: rot.mqttUrl }))
+}
 const entre = initEntre({
   stationN: ROTATION.stationN,
   config: ENTRE,

@@ -26,12 +26,14 @@ import {
   METER,
   parForRoom,
   PILOT_GROUP,
+  thisSide,
   type Game,
   type Room,
   type ColorDef,
 } from '@/config'
 import { t } from '@/station-kit/i18n'
 import { tagResult } from '@/station-kit/rotation/rotation'
+import { skickaResultat } from '@/station-kit/resultat'
 
 export type Phase =
   | 'attract'
@@ -75,6 +77,11 @@ export interface GameOutcome {
   granted: boolean
   zone: Zone
   lastUtlatande: string
+  /** Svar som VALdi godkände (✓) i de skarpa rummen, och alla svar som gavs (avslutet, §2.3). */
+  svarGodkanda: number
+  svarTotalt: number
+  /** Förtroendet när spelet tog slut (0–100) — lögndetektorns bedömning. */
+  slutFortroende: number
 }
 
 function filled<T>(n: number, v: T): T[] {
@@ -112,6 +119,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   const answers = ref<(ParticipantAnswer | null)[]>(filled(config.participants, null))
   const verdict = ref<RoomVerdict | null>(null)
   const outcome = ref<GameOutcome | null>(null)
+  const svarGodkanda = ref(0)
+  const svarTotalt = ref(0)
 
   const assessing = ref(false)
   const speaking = ref(false)
@@ -204,6 +213,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   /** Övningen klar → tydlig "nu gäller det"-nedräkning → skarpa rummen. */
   function startLive(): void {
+    svarGodkanda.value = 0
+    svarTotalt.value = 0
     isTutorial.value = false
     roomIndex.value = 0
     confidence.value = METER.start
@@ -288,6 +299,11 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     const poangMean =
       got.length > 0 ? got.reduce((s, x) => s + x.a.poang, 0) / got.length : 0
     const perChecks = answers.value.map((a) => (a ? a.poang >= METER.passMark : false))
+    // Avslutets siffra: godkända svar av alla som gavs, bara skarpa rum.
+    if (!isTutorial.value) {
+      svarGodkanda.value += got.filter((x) => x.a.poang >= METER.passMark).length
+      svarTotalt.value += got.length
+    }
 
     // Nål-rörelse: (medel − par) × k, clampat.
     const par = parForRoom(roomIndex.value)
@@ -372,6 +388,9 @@ export const useMinnestestStore = defineStore('minnestest', () => {
       granted,
       zone: zone.value,
       lastUtlatande: verdict.value?.utlatande ?? '',
+      svarGodkanda: svarGodkanda.value,
+      svarTotalt: svarTotalt.value,
+      slutFortroende: confidence.value,
     }
     phase.value = 'result'
     sendResult()
@@ -406,7 +425,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
 
   // --- Resultat-söm (AVSTÄNGD i pilot = MockResultSink) ---
   function sendResult(): void {
-    adapters.value?.result.send(tagResult(buildResultPayload()))
+    // En gång per sida (varje sida = egen NUC, eget fönster = ledare). station-kit/resultat.
+    skickaResultat(tagResult(buildResultPayload()), { ledare: true, reserv: adapters.value?.result })
   }
   /** station<N>/result-payloaden (gruppform §5.3) — entréns band_id + vald/tilldelad roll. */
   function buildResultPayload(): ResultPayload {
@@ -423,6 +443,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
         }))
     const sum = (r: 'A' | 'B') => personer.filter((p) => p.assigned_role === r).reduce((s, p) => s + p.result_value, 0)
     const payload: ResultPayload = {
+      // Delad station: vilken sida/vilket spel (SOM.md station<N>/result `side`).
+      side: thisSide() ?? undefined,
       grupp: group.value.id,
       rollresultat_A: sum('A'),
       rollresultat_B: sum('B'),
