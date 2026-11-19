@@ -132,6 +132,8 @@ function onEntreDone(): void {
       // DB: chosen_role är NOT NULL — den som inte hann välja (facilitatorns "Lotta nu") loggas som sin tilldelade roll.
       chosen_role: p.chosen_role ?? p.assigned_role,
       assigned_role: p.assigned_role,
+      // Klippsetet ur DB (station<N>/group set_id + female_role) → hur den valda rollen presenterades.
+      role_presented_as: entre.presentedAs(p),
     }))
   const g = rotation.state.group
   store.setRoster(g != null ? `testgrupp-${g}` : store.group.id, persons)

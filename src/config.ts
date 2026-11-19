@@ -371,6 +371,8 @@ export const ENTRE: EntreConfig = {
   clips: ROLLVAL_ENABLED,
   clipSet: ROLLVAL_START_SET,
   clipSetCount: ROLLVAL.clipSets.length,
+  /** DB:ns set_id per klippset-index (SOM.md "Klippset per grupp"): platshållarklipp roll_*_set1/set2 — kontrollera mot presentation_sets (st2: set 1 = kvinnlig B, set 2 = kvinnlig A) när de riktiga klippen finns. */
+  clipSetIds: [1, 2],
   pilotRoster: [
     { band_id: 'PILOT01', name: 'Liam', gender: 'man' },
     { band_id: 'PILOT02', name: 'Jonna', gender: 'kvinna' },
