@@ -9,7 +9,7 @@
  */
 import { onMounted, computed, watch } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
-import { config, ROLLVAL, ROTATION, ENTRE, BANDLOST, LJUS, SIDE_GAME, STATION_N, thisSide, type Game } from '@/config'
+import { config, ROLLVAL, ROTATION, ENTRE, STATION_TITLE, BANDLOST, LJUS, SIDE_GAME, STATION_N, thisSide, type Game } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
 import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
@@ -18,6 +18,8 @@ import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
 import MinnestestLek from './lek/MinnestestLek.vue'
 import { initLjus, ljusOptions, LjusRemsa } from '@/station-kit/ljus'
 import { initFilm, filmOptions, FilmOverlay } from '@/station-kit/film'
+import { initIncheckning, incheckningOptions } from '@/station-kit/incheckning/incheckning'
+import IncheckningScreen from '@/station-kit/incheckning/IncheckningScreen.vue'
 import { spela, egnaSegment, segmentFor, basLage } from './ljus'
 
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
@@ -56,6 +58,8 @@ const ROLE_TO_GAME: Record<string, Game> = {
 //     till lek när DESS spel är klart; regi väntar in båda (rotation.done_nycklar). Delad vy
 //     (pilot, ingen sida) = hela stationen som förut.
 const mySide = thisSide()
+// Fönstertiteln följer sidan (två stationer på två NUC:ar): "Lögndetektorn — X&Y" / "Människotestet — X&Y".
+if (typeof document !== 'undefined') document.title = `${STATION_TITLE} — X&Y`
 const rotation = initRotation(rotationOptions({ ...ROTATION, side: mySide }))
 const entre = initEntre({
   stationN: ROTATION.stationN,
@@ -94,6 +98,18 @@ initFilm(
     sida: mySide,
   }),
 )
+// --- Incheckningen (station-kit/incheckning, SOM.md "Incheckningen vid stationerna"): medan regi står i
+//     incheckningen visar stationen gruppen som börjar här ("Ta ditt band") → "Alla har sina band på sig"
+//     → station<N>/incheckad. Regi går till trailern när alla stationer kvitterat. ---
+initIncheckning(
+  incheckningOptions({
+    stationN: ROTATION.stationN,
+    enabled: config.mode === 'production',
+    mqttUrl: rotationOptions(ROTATION).mqttUrl,
+    bandlost: BANDLOST,
+    side: mySide,
+  }),
+)
 
 // --- Lek-läget (lila, efter done): en lek per sida — XY-VANTUPPGIFTER.md 2A/2C.
 //     Namnen = den här sidans personer ur entrén. ?lek=1 visar leken direkt. ---
@@ -118,6 +134,8 @@ function onEntreDone(): void {
       // DB: chosen_role är NOT NULL — den som inte hann välja (facilitatorns "Lotta nu") loggas som sin tilldelade roll.
       chosen_role: p.chosen_role ?? p.assigned_role,
       assigned_role: p.assigned_role,
+      // Klippsetet ur DB (station<N>/group set_id + female_role) → hur den valda rollen presenterades.
+      role_presented_as: entre.presentedAs(p),
     }))
   const g = rotation.state.group
   store.setRoster(g != null ? `testgrupp-${g}` : store.group.id, persons)
@@ -210,13 +228,15 @@ watch(
     <PauseOverlay v-if="store.paused" />
 
     <!-- Rotationen: väntar / lek (overlay; "Testgrupp X — tryck" visas av entrén) -->
-    <RotationScreens station-title="Människotestet">
+    <RotationScreens :station-title="STATION_TITLE">
       <template #lek><MinnestestLek :side="mySide" :names="lekNames" /></template>
     </RotationScreens>
     <LekStandalone v-if="lekPreview"><MinnestestLek :side="mySide" :names="lekNames" /></LekStandalone>
     <!-- Ljusets förhandsvisning (bara med ?ljus=visa) -->
     <LjusRemsa />
     <!-- Regis filmer (trailern) över allt, bara i filmens fas -->
+    <!-- Incheckningen: "Ta ditt band" medan regi står i incheckningen -->
+    <IncheckningScreen :station-title="STATION_TITLE" :side-labels="{ A: ENTRE.sides?.A?.label, B: ENTRE.sides?.B?.label }" />
     <FilmOverlay />
   </div>
 </template>
