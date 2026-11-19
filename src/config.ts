@@ -402,8 +402,11 @@ export const ENTRE: EntreConfig = {
   clips: ROLLVAL_ENABLED,
   clipSet: ROLLVAL_START_SET,
   clipSetCount: ROLLVAL.clipSets.length,
-  /** DB:ns set_id per klippset-index (SOM.md "Klippset per grupp"): platshållarklipp roll_*_set1/set2 — kontrollera mot presentation_sets (st2: set 1 = kvinnlig B, set 2 = kvinnlig A) när de riktiga klippen finns. */
-  clipSetIds: [1, 2],
+  /** DB:ns set_id per klippset-index (SOM.md "Klippset per grupp"). Kontrollerat 2026-11-19 mot HyperFrames-klippen
+   *  (xy-simulator/media/video/teknologerna-influencer/render/ = Assets/roll_*): set1-filerna = Äkthetsgranskare
+   *  KVINNA (A) + Sanningsanalytiker man → kvinnlig A = DB set 2 (st2 A); set2-filerna = Äkthetsgranskare man +
+   *  Sanningsanalytiker KVINNA (B) → DB set 1 (st2 B). OBS omvänt mot filnamnen, som i Undersökningen. */
+  clipSetIds: [2, 1],
   pilotRoster: [
     { band_id: 'PILOT01', name: 'Liam', gender: 'man' },
     { band_id: 'PILOT02', name: 'Jonna', gender: 'kvinna' },
