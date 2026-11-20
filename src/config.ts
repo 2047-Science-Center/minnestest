@@ -14,6 +14,7 @@
 import { bandlostFran } from '@/station-kit/band/band'
 import type { RollvalConfig } from './station-kit/rollval/types'
 import type { EntreConfig, SideId } from './station-kit/entre/types'
+import type { OverlayData } from './station-kit/undertext/undertext'
 
 export type Mode = 'pilot' | 'production'
 /** Rummens färgidentitet (så man kan säga "det gula rummet"). */
@@ -304,6 +305,23 @@ function rollvalClip(file: string): string {
   return hit?.[1] ?? ''
 }
 
+/** Textlager (overlay.json) + rollvalsporträtt bredvid varje klipp i Assets/ (XY-TEXTLAGER). */
+const ROLLVAL_OVERLAYS = import.meta.glob('../Assets/roll_*.overlay.json', { eager: true, import: 'default' }) as Record<string, unknown>
+const ROLLVAL_PORTRATTER = import.meta.glob('../Assets/roll_*.portratt.jpg', { eager: true, query: '?url', import: 'default' }) as Record<string, string>
+
+function globHit<T>(map: Record<string, T>, file: string): T | undefined {
+  const target = ('/' + file).normalize('NFC')
+  return Object.entries(map).find(([k]) => k.normalize('NFC').endsWith(target))?.[1]
+}
+/** Overlay-data för ett klipp: "roll_x_setN.mp4" → "roll_x_setN.overlay.json". */
+function clipOverlay(file: string): OverlayData | null {
+  return (globHit(ROLLVAL_OVERLAYS, file.replace(/\.mp4$/i, '.overlay.json')) as OverlayData | undefined) ?? null
+}
+/** Rollvalsporträtt för ett klipp: "roll_x_setN.mp4" → "roll_x_setN.portratt.jpg". */
+function clipPortratt(file: string): string {
+  return globHit(ROLLVAL_PORTRATTER, file.replace(/\.mp4$/i, '.portratt.jpg')) ?? ''
+}
+
 /** Vilket spel som körs på vilken sida (ROLE_TO_GAME i appen måste stämma med ENTRE.roles). */
 export const SIDE_GAME: Record<SideId, Game> = { A: 'manniskotest', B: 'logndetektor' }
 
@@ -353,6 +371,17 @@ export const ROLLVAL: RollvalConfig = {
   ],
 }
 
+/** Textlager (overlay.json) per klippset, parallellt med ROLLVAL.clipSets — undertexten på de textfria klippen. */
+export const ROLLVAL_OVERLAY_SETS: Array<Record<string, OverlayData | null>> = [
+  { akthetsgranskare: clipOverlay('roll_akthetsgranskare_set1.mp4'), sanningsanalytiker: clipOverlay('roll_sanningsanalytiker_set1.mp4') },
+  { akthetsgranskare: clipOverlay('roll_akthetsgranskare_set2.mp4'), sanningsanalytiker: clipOverlay('roll_sanningsanalytiker_set2.mp4') },
+]
+/** Rollvalsporträtt per klippset (personen som spelar rollen i setet), parallellt med ROLLVAL.clipSets. */
+export const ROLLVAL_PORTRATT_SETS: Array<Record<string, string>> = [
+  { akthetsgranskare: clipPortratt('roll_akthetsgranskare_set1.mp4'), sanningsanalytiker: clipPortratt('roll_sanningsanalytiker_set1.mp4') },
+  { akthetsgranskare: clipPortratt('roll_akthetsgranskare_set2.mp4'), sanningsanalytiker: clipPortratt('roll_sanningsanalytiker_set2.mp4') },
+]
+
 /* ------------------------------------------------------------------ *
  * ENTRÉN (station-kit/entre, gemensam för st1–3): attract med testgrupp +
  * sidindelning → rollval-klippen → valet (person för person / RFID) →
@@ -399,6 +428,9 @@ export const ENTRE: EntreConfig = {
   /** Rollsekvensen efter introt (inga klick): brygga → kort A → klipp A → brygga → kort B → klipp B → valet.
    *  Rollnamn/valvfärg enligt station-kit/stationsintro/README.md (Josef 2026-11-19). */
   rollkort: { A: 'ÄKTHETSGRANSKARE', B: 'SANNINGSANALYTIKER', valvfarg: '#ff5a3c', sprak: config.lang === 'no' ? 'no' : 'sv' },
+  /** De två sidorna (olika NUC:ar) väntar in varandra och spelar introt + rollsekvensen i takt över
+   *  broker-synken (station<N>/skarmsynk, SOM.md); varje NUC visar sitt eget stationsintro. Josef 2026-11-20. */
+  synkIntro: true,
   clips: ROLLVAL_ENABLED,
   clipSet: ROLLVAL_START_SET,
   clipSetCount: ROLLVAL.clipSets.length,

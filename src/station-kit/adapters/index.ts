@@ -8,6 +8,7 @@ import { config } from '@/config'
 import type { Transport } from './transport/Transport'
 import { BroadcastChannelTransport } from './transport/BroadcastChannelTransport'
 import { WebSocketTransport } from './transport/WebSocketTransport'
+import { MqttTransport } from './transport/MqttTransport'
 
 import type { Lights } from './lights/Lights'
 import { ScreenLights } from './lights/ScreenLights'
@@ -60,10 +61,14 @@ function createTransport(): Transport {
       return new WebSocketTransport(`${proto}//${window.location.host}${relayPath}`, room)
     }
   }
-  // Drift med explicit wsUrl → WebSocket-relä (flera enheter). Utan wsUrl
-  // (lokal enkel-dator-drift) faller vi tillbaka på BroadcastChannel.
+  // Drift med explicit wsUrl → WebSocket-relä (flera enheter).
   if (config.mode === 'production' && config.production.wsUrl) {
     return new WebSocketTransport(config.production.wsUrl, room)
+  }
+  // Drift utan WS-relä: station 2:s två sidor sitter på olika NUC:ar → skärm↔skärm-synk
+  // går över riggens broker (station<N>/skarmsynk, SOM.md). BroadcastChannel når bara samma dator.
+  if (config.mode === 'production') {
+    return new MqttTransport(config.stationN)
   }
   return new BroadcastChannelTransport(`minnestest-station${config.stationN}`)
 }

@@ -15,3 +15,5 @@ server/.env
 # Källbilder/-klipp (stora, hör ej hemma i repot)
 /Assets/*
 !/Assets/roll_*.mp4
+!/Assets/roll_*.overlay.json
+!/Assets/roll_*.portratt.jpg
