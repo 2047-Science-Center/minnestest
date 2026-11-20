@@ -1,0 +1,112 @@
+{
+  "klipp": "roll_akthetsgranskare_set1",
+  "fil": "roll_akthetsgranskare_set1.mp4",
+  "duration_s": 28.287,
+  "sprak": [
+    "sv",
+    "no"
+  ],
+  "_no_status": "UTKAST - ersätts av Josefs norska översättning",
+  "_undertext_status": "Exakt ur HyperFrames-källan (projekt-A-set1/index.html): text och tider är källans egna, inte ögonmått.",
+  "_set_obs": "Filnamnet behålls. Set-kopplingen roll↔fil sköts i minnestest-config (entré-sessionen, fd94a35). Titeln avser klippets innehåll.",
+  "titel": {
+    "sv": "Äkthetsgranskare",
+    "no": "Ekthetskontrollør"
+  },
+  "portratt": "roll_akthetsgranskare_set1.portratt.jpg",
+  "undertext": [
+    {
+      "t": 0.2,
+      "slut": 2.739,
+      "sv": "Okej så. Gör er redo med mig inför jobbet.",
+      "no": "Ok, da. Gjør dere klare med meg før jobben."
+    },
+    {
+      "t": 2.859,
+      "slut": 6.473,
+      "sv": "Mitt jobb? Jag pratar i telefon. Med någon som inte tror på mig.",
+      "no": "Jobben min? Jeg snakker i telefonen. Med noen som ikke tror på meg."
+    },
+    {
+      "t": 6.593,
+      "slut": 12.261,
+      "sv": "Fem rum. Varje dörr har en lur. Och på andra sidan sitter ett säkerhetssystem som har hört allt.",
+      "no": "Fem rom. Hver dør har et telefonrør. Og på den andre siden sitter et sikkerhetssystem som har hørt alt."
+    },
+    {
+      "t": 12.381,
+      "slut": 17.684,
+      "sv": "Jag berättar hur regn luktar på varm asfalt. Om gången jag tappade en sko i en sjö.",
+      "no": "Jeg forteller hvordan regn lukter på varm asfalt. Om gangen jeg mistet en sko i et vann."
+    },
+    {
+      "t": 17.804,
+      "slut": 20.202,
+      "sv": "Ju mer levande jag är, desto längre kommer jag.",
+      "no": "Jo mer levende jeg er, desto lenger kommer jeg."
+    },
+    {
+      "t": 20.322,
+      "slut": 21.483,
+      "sv": "Och sen…",
+      "no": "Og så …"
+    },
+    {
+      "t": 21.922,
+      "slut": 25.663,
+      "sv": "Det går inte att fejka. Det är därför jag behövs.",
+      "no": "Det går ikke an å fake det. Det er derfor jeg trengs."
+    },
+    {
+      "t": 25.664,
+      "slut": 28.118,
+      "sv": "Ärligt, bästa jobbet.",
+      "no": "Ærlig talt, beste jobben."
+    }
+  ],
+  "textrutor": [
+    {
+      "t": 0.28,
+      "slut": 2.859,
+      "sv": "grwm: en dag som äkthetsgranskare 📞",
+      "no": "grwm: en dag som ekthetskontrollør 📞",
+      "typ": "ruta"
+    },
+    {
+      "t": 6.673,
+      "slut": 12.381,
+      "sv": "5 rum. 5 samtal.",
+      "no": "5 rom. 5 samtaler.",
+      "typ": "ruta"
+    },
+    {
+      "t": 12.461,
+      "slut": 17.804,
+      "sv": "regel 1: inga standardsvar ✨",
+      "no": "regel 1: ingen standardsvar ✨",
+      "typ": "ruta"
+    },
+    {
+      "t": 17.884,
+      "slut": 20.322,
+      "sv": "konkret. konstigt. eget.",
+      "no": "konkret. rart. eget.",
+      "typ": "ruta"
+    },
+    {
+      "t": 17.954,
+      "slut": 20.322,
+      "sv": "lyssnar…",
+      "no": "lytter …",
+      "typ": "etikett-wave"
+    },
+    {
+      "t": 20.522,
+      "slut": 21.922,
+      "sv": "rum 5 / 5 ✓",
+      "no": "rom 5 / 5 ✓",
+      "typ": "kort"
+    }
+  ],
+  "_textrutor": "Valfritt spår: klippets egna textrutor/etiketter (influencer-stil), sv/no. Används om overlay-lagret ska visa dem."
+}

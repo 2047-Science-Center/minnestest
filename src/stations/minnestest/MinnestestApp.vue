@@ -9,7 +9,7 @@
  */
 import { onMounted, computed, watch } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
-import { config, ROLLVAL, ROTATION, ENTRE, STATION_TITLE, BANDLOST, LJUS, SIDE_GAME, STATION_N, thisSide, type Game } from '@/config'
+import { config, ROLLVAL, ROLLVAL_OVERLAY_SETS, ROLLVAL_PORTRATT_SETS, ROTATION, ENTRE, STATION_TITLE, BANDLOST, LJUS, SIDE_GAME, STATION_N, thisSide, type Game } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
 import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
@@ -192,7 +192,7 @@ watch(
     <!-- Entrén: attract (testgrupp + sidindelning) → rollval → valet → utfall -->
     <div v-if="!entreDone" class="app__single">
       <CrtScreen>
-        <Entre :rollval="ROLLVAL" @start="onEntreStart" @done="onEntreDone">
+        <Entre :rollval="ROLLVAL" :overlay-sets="ROLLVAL_OVERLAY_SETS" :portratt-sets="ROLLVAL_PORTRATT_SETS" @start="onEntreStart" @done="onEntreDone">
           <template #attract="{ start }">
             <div class="attract-wrap">
               <div class="attract-wrap__bg" aria-hidden="true">
