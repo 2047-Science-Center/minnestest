@@ -17,6 +17,7 @@ import { createAdapters, type Adapters } from '@/station-kit/adapters'
 import type { IdentityGroup } from '@/station-kit/adapters/identity/Identity'
 import type { PriorStep } from '@/station-kit/adapters/assess/Assess'
 import type { ResultPayload, ResultPerson } from '@/station-kit/adapters/result/ResultSink'
+import { valdiMattFor, type Tur } from './valdiMatt'
 
 import {
   config,
@@ -118,6 +119,8 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   const paused = ref(false)
 
   const adapters = shallowRef<Adapters | null>(null)
+  /** Skarpa rummens svar per deltagare (VALdi-måtten i station<N>/result). Övningen räknas inte. */
+  const turer = ref<(Tur | null)[][]>([])
 
   /** Entréns lottade personer på DEN HÄR sidan (null = pilot-gruppen, gammalt beteende). */
   const roster = ref<
@@ -208,6 +211,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     roomIndex.value = 0
     confidence.value = METER.start
     resetRoom()
+    turer.value = []
     phase.value = 'goLive'
   }
 
@@ -323,6 +327,9 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     const granted = isTutorial.value ? true : confAfter > METER.loseAt
     confidence.value = confAfter
     verdict.value = { utlatande, poangMean, perChecks, confBefore, confAfter, granted }
+    if (!isTutorial.value) {
+      turer.value.push(answers.value.map((a) => (a ? { poang: a.poang, transcript: a.transcript } : null)))
+    }
   }
 
   async function speakNpc(text: string): Promise<void> {
@@ -400,6 +407,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     confidence.value = METER.start
     resetRoom()
     outcome.value = null
+    turer.value = [] // transkripten lever bara för körningen (XY-VALDI-BEDOMNING §8)
     group.value = { id: PILOT_GROUP.id, members: [...PILOT_GROUP.members] }
     roster.value = null
   }
@@ -411,10 +419,14 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   /** station<N>/result-payloaden (gruppform §5.3) — entréns band_id + vald/tilldelad roll. */
   function buildResultPayload(): ResultPayload {
     const value = outcome.value?.roomsCleared ?? 0
+    // VALdi-måtten per person (SOM.md "Mått per person för VALdi"): deltagare i = roster[i].
+    const valdi = (i: number) =>
+      valdiMattFor(i, { game: game.value, turer: turer.value, outcome: outcome.value, namn: group.value.members })
     // Entrén gav riktiga band_id + valt/tilldelat roll; utan entré: pilotgruppen (gammalt).
     const personer: ResultPerson[] = roster.value
-      ? roster.value.map((p) => ({ ...p, result_value: value }))
+      ? roster.value.map((p, i) => ({ ...p, result_value: value, ...valdi(i) }))
       : group.value.members.map((name, i) => ({
+          ...valdi(i),
           band_id: `${group.value.id}-${i + 1}-${name}`,
           chosen_role: 'A',
           assigned_role: 'A',
