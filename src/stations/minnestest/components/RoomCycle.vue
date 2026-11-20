@@ -375,6 +375,25 @@ function land(): void {
   }, doorAt + 3000 + 6000)
 }
 
+/**
+ * Sista utslaget (nekad, eller beviljad i sista rummet) går vidare till resultatet av sig självt
+ * efter AUTO_TILL_RESULTAT_MS — "SE RESULTAT" får aldrig bli en återvändsgränd före done
+ * (XY-RESULTAT-OCH-VINST §1.2/§2.1). Facilitatorns paus skjuter upp det.
+ */
+const AUTO_TILL_RESULTAT_MS = 12_000
+const tillResultat = computed(() => {
+  const v = verdict.value
+  return !!v && !store.isTutorial && (!v.granted || store.isLastRoom)
+})
+watch(canProceed, (ok) => {
+  if (!ok || !tillResultat.value) return
+  const auto = () => {
+    if (store.paused) later(auto, 2000)
+    else if (canProceed.value && tillResultat.value) proceed()
+  }
+  later(auto, AUTO_TILL_RESULTAT_MS)
+})
+
 function proceed(): void {
   // Förtroendet sjönk och man är i farozon → varna innan nästa scenario.
   if (needWarning.value && !showWarning.value) {
