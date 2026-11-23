@@ -69,16 +69,17 @@ for _ in $(seq 1 60); do
 done
 
 # --- Starta Chrome i helskärm ---
-#   INTE --kiosk: appens "Avsluta"-knapp (window.close, nere till vänster) ska
-#   kunna stänga fönstret tillbaka till skrivbordet. --start-fullscreen + --app
-#   ger ändå ett rent helskärmsfönster utan flikar/adressfält.
+# KIOSK=1 (standard) = riktigt kioskläge: --kiosk + --app → ingen "lämna helskärm"-knapp
+# vid långtryck, inga fönsterkanter. Ut: håll övre vänstra hörnet 4 s (appens kioskExit)
+# eller Alt+F4. KIOSK=0 = som förut (--start-fullscreen), för justeringar.
+if [ "${KIOSK:-1}" = 1 ]; then FULLSCREEN_FLAG=--kiosk; else FULLSCREEN_FLAG=--start-fullscreen; fi
 #   --use-fake-ui-for-media-stream  → auto-godkänn mikrofonen (riktig mic, ingen dialog)
 #   --autoplay-policy=...           → attract-ljud + uppläst NPC-röst utan gest
-#   --ozone-platform=x11            → --start-fullscreen funkar även på Wayland (XWayland)
+#   --ozone-platform=x11            → helskärm funkar även på Wayland (XWayland)
 OZONE="${OZONE:-x11}"
 exec "$BROWSER" \
   "--ozone-platform=$OZONE" \
-  --start-fullscreen \
+  "$FULLSCREEN_FLAG" --disable-pinch \
   --user-data-dir="$PROFILE_DIR" \
   --use-fake-ui-for-media-stream \
   --autoplay-policy=no-user-gesture-required \
