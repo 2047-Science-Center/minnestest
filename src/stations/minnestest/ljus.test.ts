@@ -10,7 +10,7 @@ describe('station 2 ljus — sidor och bas', () => {
     expect(segmentFor('manniskotest')).toBe('A')
     expect(segmentFor('logndetektor')).toBe('B')
     expect(segmentFor('manniskotest', 'B')).toBe('B')
-    expect(egnaSegment('A')).toEqual(['A'])
+    expect(egnaSegment('A')).toEqual(['A', 'A.lur1', 'A.lur2', 'A.lur3'])
     expect(egnaSegment('B')).toEqual(['B', 'valdi'])
     expect(egnaSegment(null)).toBeUndefined()
   })

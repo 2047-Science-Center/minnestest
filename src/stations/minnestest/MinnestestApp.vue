@@ -263,6 +263,7 @@ watch(
     <ExternSpel
       v-else-if="store.phase === 'extern' && externUrl"
       :url="externUrl"
+      :egna="egnaSegment(mySide)"
       :namn="externNamn"
       :grupp="store.group.id"
       :mqtt-url="rotationOptions(ROTATION).mqttUrl || null"

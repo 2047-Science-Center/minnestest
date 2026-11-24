@@ -97,6 +97,11 @@ export const LJUS = {
   valv: 'teknolog' as const,
   segment: {
     A: [0, 29],
+    /* Lampan under varje lur (Människa eller maskin: "din tur" i spelarens färg). Samma slinga som A —
+       PLATSHÅLLARE inuti A tills slingan mäts upp (Josef 2026-11-24: mappas i detalj sen). */
+    'A.lur1': [3, 7],
+    'A.lur2': [12, 16],
+    'A.lur3': [21, 25],
     B: [30, 59],
     valdi: [60, 75],
   } as Record<string, [number, number]>,

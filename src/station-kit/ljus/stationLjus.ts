@@ -13,6 +13,7 @@
  *   1. initLjus(ljusOptions({ stationN, enabled, mqttUrl, valv, segment, skrivare, spela })) vid start.
  *   2. Rotationens fas/läge → ljus.lage(lageFranRotation(phase, mode)); appens egna lägen → ljus.lage(…).
  *   3. Händelser → ljus.gest('ratt' | 'fel' | 'kvitto' | …, ['B']) — ljud + blink på rätt segment.
+ *      Egen färg på ett segment (ovanpå läget) → ljus.farg({color, effekt}, ['A.lur2']); null släpper.
  *   4. Utfall → ljus.utfall('vinst' | 'forlust' | 'forlorarsida' | 'oavgjort', ids).
  *   5. <LjusRemsa /> i appens rot → förhandsvisning med ?ljus=visa (utan hårdvara).
  *
@@ -74,6 +75,8 @@ const state = reactive({
   regiFas: null as string | null,
   /** Läge per segment (null = följ regi/vila). */
   lage: {} as Record<string, Lage | null>,
+  /** Egen färg per segment ovanpå läget (t.ex. lampan under den aktiva luren i spelarens färg). null = läget gäller. */
+  farg: {} as Record<string, Look | null>,
   /** Uträknad bas per segment (det som ritas). */
   bas: {} as Record<string, Look>,
   /** Pågående gest per segment (för förhandsvisning + spärr). */
@@ -101,7 +104,10 @@ function egna(): string[] {
 
 function lookFor(id: string): Look {
   if (state.hitta && Date.now() < state.hitta.until) return { color: state.hitta.color, effekt: 'static' }
-  const l = state.lage[id]
+  const f = state.farg[id]
+  if (f) return f
+  // Delsegment (t.ex. `A.lur2`) utan eget läge följer sitt huvudsegment (`A`).
+  const l = state.lage[id] ?? (id.includes('.') ? state.lage[id.split('.')[0]] : null)
   if (l) return lageLook(l, id)
   return regiLook(state.regiFas, opts!.valv) ?? lageLook('vila', id)
 }
@@ -135,6 +141,16 @@ function publiceraBas(force = false): void {
 function lage(l: Lage | null, ids?: string[]): void {
   if (!opts) return
   for (const id of ids ?? egna()) if (id in opts!.segment) state.lage[id] = l
+  publiceraBas()
+}
+
+/**
+ * Egen färg/effekt på segment (default: egna), ovanpå läget — t.ex. lampan under den lur som har
+ * turen, i spelarens färg (st2 `A.lur1–3`). null = tillbaka till segmentets läge.
+ */
+function farg(look: Look | null, ids?: string[]): void {
+  if (!opts) return
+  for (const id of ids ?? egna()) if (id in opts!.segment) state.farg[id] = look
   publiceraBas()
 }
 
@@ -246,6 +262,7 @@ function onMessage(topic: string, raw: string): void {
 const api = {
   state: readonly(state),
   lage,
+  farg,
   gest,
   utfall,
   varning,
@@ -335,6 +352,7 @@ export function __resetLjusForTest(): void {
   state.connected = false
   state.regiFas = null
   state.lage = {}
+  state.farg = {}
   state.bas = {}
   state.fx = {}
   state.segment = {}

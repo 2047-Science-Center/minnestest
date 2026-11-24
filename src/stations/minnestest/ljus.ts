@@ -92,7 +92,7 @@ export function segmentFor(game: Game, side: SideId | null = null): Segment {
 
 /** Segment den här NUC:en äger. null (delad vy) = alla. */
 export function egnaSegment(side: SideId | null): string[] | undefined {
-  if (side === 'A') return ['A']
+  if (side === 'A') return ['A', 'A.lur1', 'A.lur2', 'A.lur3']
   if (side === 'B') return ['B', 'valdi']
   return undefined
 }

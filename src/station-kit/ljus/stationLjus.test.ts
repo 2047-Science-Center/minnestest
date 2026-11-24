@@ -205,3 +205,21 @@ describe('sidfärgerna (spikade 2026-11-19: A varmvitt, B magenta)', () => {
     expect(SIDFARG.B.skarm).toBe('#ff3cc8')
   })
 })
+
+describe('farg (egen färg per segment)', () => {
+  it('lägger en egen färg ovanpå läget och släpper den med null', async () => {
+    const { initLjus, __resetLjusForTest } = await import('./stationLjus')
+    __resetLjusForTest()
+    const sent: { topic: string; body: string }[] = []
+    const client = { publish: (topic: string, body: string) => sent.push({ topic, body }), subscribe() {}, on() {} }
+    const l = initLjus({ stationN: 2, enabled: true, mqttUrl: '', valv: 'teknolog', segment: { A: [0, 29], 'A.lur1': [2, 6] } }, client)
+    l.lage('skarp')
+    l.farg({ color: '#5aa0ff', effekt: 'puls' }, ['A.lur1'])
+    let body = JSON.parse(sent.filter((s) => s.topic === 'station2/underglow').at(-1)!.body)
+    expect(body.segments.find((s: { id: string }) => s.id === 'A.lur1')).toMatchObject({ color: '#5aa0ff', effekt: 'puls' })
+    expect(body.segments.find((s: { id: string }) => s.id === 'A').color).toBe('#ff9500')
+    l.farg(null, ['A.lur1'])
+    body = JSON.parse(sent.filter((s) => s.topic === 'station2/underglow').at(-1)!.body)
+    expect(body.segments.find((s: { id: string }) => s.id === 'A.lur1').color).toBe('#ff9500')
+  })
+})
