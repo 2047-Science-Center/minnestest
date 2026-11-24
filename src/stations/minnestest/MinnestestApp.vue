@@ -12,7 +12,9 @@ import { useI18n } from '@/station-kit/i18n'
 import { config, ROLLVAL, ROLLVAL_OVERLAY_SETS, ROLLVAL_PORTRATT_SETS, ROTATION, ENTRE, STATION_TITLE, BANDLOST, LJUS, SIDE_GAME, STATION_N, thisSide, type Game } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
-import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
+import { initRotation, rotationOptions, DEFAULT_ORDER } from '@/station-kit/rotation/rotation'
+import { kortFil } from '@/station-kit/spellage/spellage'
+import SpellageKort from '@/station-kit/spellage/SpellageKort.vue'
 import { initResultat, resultatOptions } from '@/station-kit/resultat'
 import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
 import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
@@ -135,8 +137,28 @@ function onEntreStart(): void {
   audio.unlock()
   store.begin()
 }
-/** Entrén klar → den här sidans spel + gruppens namn/roller på den här sidan. */
+/* Spellägeskortet (MOT VALDI, xy-produktion/spellage §9): efter rollvalets utfall, innan sidans spel öppnas.
+ * Sidorna spelar var för sig (delad station), så ingen väntan och ingen synk mellan NUC:arna: varje sida
+ * spelar sitt eget kort (`<fran>-st2A.mp4` / `-st2B.mp4`) med rösten i sin egen högtalare. Saknas filen → direkt vidare. */
+const kortAt = ref<number | null>(null)
+const kortSrc = computed(
+  () =>
+    `${import.meta.env.BASE_URL}media/spellage/${kortFil(ROTATION.stationN, rotation.state.round, DEFAULT_ORDER).replace('.mp4', `${mySide ?? 'A'}.mp4`)}`,
+)
+let efterKort: (() => void) | null = null
+function kortKlart(): void {
+  kortAt.value = null
+  const f = efterKort
+  efterKort = null
+  f?.()
+}
+
+/** Entrén klar → spellägeskortet → den här sidans spel + gruppens namn/roller på den här sidan. */
 function onEntreDone(): void {
+  efterKort = startaSidansSpel
+  kortAt.value = Date.now()
+}
+function startaSidansSpel(): void {
   const side = mySide ?? 'A'
   const role = ENTRE.roles.find((r) => r.letter === side)!
   const persons = entre.personer.value
@@ -177,7 +199,11 @@ watch(
 watch(
   () => store.phase,
   (p) => {
-    if (p === 'attract') entre.reset()
+    if (p === 'attract') {
+      entre.reset()
+      kortAt.value = null
+      efterKort = null
+    }
   },
 )
 watch(
@@ -223,6 +249,13 @@ watch(
             </div>
           </template>
         </Entre>
+      </CrtScreen>
+    </div>
+
+    <!-- Spellägeskortet (MOT VALDI), före sidans spel -->
+    <div v-else-if="kortAt != null" class="app__single">
+      <CrtScreen>
+        <SpellageKort :src="kortSrc" :start-at="kortAt" :leader="true" @done="kortKlart" @skip="kortKlart" />
       </CrtScreen>
     </div>
 
