@@ -7,7 +7,7 @@
  * attract → branchIntro (titel) → intro (story) → room (ÖVNING) → goLive
  *          → room ×5 → result → checkout
  */
-import { onMounted, computed, watch } from 'vue'
+import { onMounted, computed, ref, watch } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
 import { config, ROLLVAL, ROLLVAL_OVERLAY_SETS, ROLLVAL_PORTRATT_SETS, ROTATION, ENTRE, STATION_TITLE, BANDLOST, LJUS, SIDE_GAME, STATION_N, thisSide, type Game } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
@@ -39,6 +39,8 @@ import ResultScreen from './components/ResultScreen.vue'
 import FacilitatorControls from './components/FacilitatorControls.vue'
 import PauseOverlay from './components/PauseOverlay.vue'
 import CheckoutScreen from './components/CheckoutScreen.vue'
+import ExternSpel from './components/ExternSpel.vue'
+import { externSpelUrl } from './externSpel'
 
 const { t } = useI18n()
 const store = useMinnestestStore()
@@ -59,6 +61,11 @@ const ROLE_TO_GAME: Record<string, Game> = {
 //     till lek när DESS spel är klart; regi väntar in båda (rotation.done_nycklar). Delad vy
 //     (pilot, ingen sida) = hela stationen som förut.
 const mySide = thisSide()
+// --- Station 2:s nya spel (Josef 2026-11-24, SOM.md "Station 2 från 2026-11-24"): efter entrén öppnas sidans
+//     spel-app i helskärm — sida A Människa eller maskin, sida B Lögndetektorn — på samma dator. Skalet (den här
+//     appen) behåller entrén, rotationen, resultatet, ljuset, filmerna och leken. ?spel=gammalt = rumsspelen. ---
+const externUrl = typeof window !== 'undefined' ? externSpelUrl(mySide, window.location) : null
+const externNamn = ref<string[]>([])
 // Fönstertiteln följer sidan (två stationer på två NUC:ar): "Lögndetektorn — X&Y" / "Människotestet — X&Y".
 if (typeof document !== 'undefined') document.title = `${STATION_TITLE} — X&Y`
 const rotation = initRotation(rotationOptions({ ...ROTATION, side: mySide }))
@@ -145,6 +152,11 @@ function onEntreDone(): void {
     }))
   const g = rotation.state.group
   store.setRoster(g != null ? `testgrupp-${g}` : store.group.id, persons)
+  if (externUrl) {
+    externNamn.value = persons.map((p) => p.name)
+    store.startExtern()
+    return
+  }
   const game = ROLE_TO_GAME[role.rollvalRoleId] ?? SIDE_GAME[side]
   store.chooseGame(game)
 }
@@ -173,6 +185,13 @@ watch(
   (p) => {
     if (p === 'goLive') rotation.markSkarp()
     if (p === 'checkout') rotation.finishSkarp()
+  },
+)
+// Externt spel: spelet säger när skarpa delen börjar (isTutorial → false) → station<N>/mode skarp.
+watch(
+  () => store.phase === 'extern' && !store.isTutorial,
+  (skarp) => {
+    if (skarp) rotation.markSkarp()
   },
 )
 // Sidans bas (bara egen sida). Skarpt klart → lek: 'klar'-gesten (sätter själv lila bas).
@@ -206,6 +225,17 @@ watch(
         </Entre>
       </CrtScreen>
     </div>
+
+    <!-- Station 2:s nya spel (helskärm): resultatet tillbaka via postMessage → result + checkout -->
+    <ExternSpel
+      v-else-if="store.phase === 'extern' && externUrl"
+      :url="externUrl"
+      :namn="externNamn"
+      :grupp="store.group.id"
+      :mqtt-url="rotationOptions(ROTATION).mqttUrl || null"
+      @skarp="store.externSkarp()"
+      @klar="store.externKlar($event)"
+    />
 
     <template v-else>
       <div class="app__single">

@@ -35,6 +35,7 @@ import {
 import { t } from '@/station-kit/i18n'
 import { tagResult } from '@/station-kit/rotation/rotation'
 import { skickaResultat } from '@/station-kit/resultat'
+import { resultValueAv, type ExternPerson } from '../externSpel'
 
 export type Phase =
   | 'attract'
@@ -45,6 +46,8 @@ export type Phase =
   | 'room'
   | 'result'
   | 'checkout'
+  /** Station 2:s nya spel (Människa eller maskin / Lögndetektorn) i helskärm — se externSpel.ts. */
+  | 'extern'
 
 /** Zon på förtroendemätaren. */
 export type Zone = 'lose' | 'tveksam' | 'hog'
@@ -131,6 +134,9 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   /** Skarpa rummens svar per deltagare (VALdi-måtten i station<N>/result). Övningen räknas inte. */
   const turer = ref<(Tur | null)[][]>([])
 
+  /** Det externa spelets resultat per person (null = de gamla rumsspelen). */
+  const externPersoner = ref<ExternPerson[] | null>(null)
+
   /** Entréns lottade personer på DEN HÄR sidan (null = pilot-gruppen, gammalt beteende). */
   const roster = ref<
     { band_id: string; chosen_role: 'A' | 'B'; assigned_role: 'A' | 'B'; role_presented_as: 'manlig' | 'kvinnlig' | null }[] | null
@@ -184,6 +190,25 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   function begin(): void {
     // Låst spel på denna NUC → hoppa över väljaren.
     phase.value = PINNED_GAME ? 'branchIntro' : 'gameSelect'
+  }
+
+  /** Entrén klar → sidans externa spel tar över (det börjar i sin egen övning). */
+  function startExtern(): void {
+    externPersoner.value = null
+    isTutorial.value = true
+    phase.value = 'extern'
+  }
+  /** Spelet: skarpa delen börjar (→ rotation.markSkarp i appen). */
+  function externSkarp(): void {
+    if (phase.value === 'extern') isTutorial.value = false
+  }
+  /** Spelet: resultatet visat → station<N>/result + checkout (→ done + lek i appen). */
+  function externKlar(personer: ExternPerson[]): void {
+    if (phase.value !== 'extern') return
+    externPersoner.value = personer
+    isTutorial.value = false
+    sendResult()
+    phase.value = 'checkout'
   }
 
   function chooseGame(g: Game): void {
@@ -429,6 +454,7 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     turer.value = [] // transkripten lever bara för körningen (XY-VALDI-BEDOMNING §8)
     group.value = { id: PILOT_GROUP.id, members: [...PILOT_GROUP.members] }
     roster.value = null
+    externPersoner.value = null
   }
 
   // --- Resultat-söm (AVSTÄNGD i pilot = MockResultSink) ---
@@ -438,20 +464,27 @@ export const useMinnestestStore = defineStore('minnestest', () => {
   }
   /** station<N>/result-payloaden (gruppform §5.3) — entréns band_id + vald/tilldelad roll. */
   function buildResultPayload(): ResultPayload {
+    const ext = externPersoner.value
+    // Externt spel: personens rad ur spelet (index = turordningen skalet skickade namnen i).
+    const extFor = (i: number) => ext?.find((p) => p.index === i)
     const value = outcome.value?.roomsCleared ?? 0
     // VALdi-måtten per person (SOM.md "Mått per person för VALdi"): deltagare i = roster[i].
-    const valdi = (i: number) =>
-      valdiMattFor(i, { game: game.value, turer: turer.value, outcome: outcome.value, namn: group.value.members })
+    const valdi = (i: number) => {
+      if (!ext) return valdiMattFor(i, { game: game.value, turer: turer.value, outcome: outcome.value, namn: group.value.members })
+      const p = extFor(i)
+      return p ? { ...(p.plats ? { plats: p.plats } : {}), matt: p.matt, ...(p.utdrag ? { utdrag: p.utdrag } : {}) } : {}
+    }
+    const varde = (i: number) => (ext ? resultValueAv(extFor(i)) : value)
     // Entrén gav riktiga band_id + valt/tilldelat roll; utan entré: pilotgruppen (gammalt).
     const personer: ResultPerson[] = roster.value
-      ? roster.value.map((p, i) => ({ ...p, result_value: value, ...valdi(i) }))
+      ? roster.value.map((p, i) => ({ ...p, result_value: varde(i), ...valdi(i) }))
       : group.value.members.map((name, i) => ({
           ...valdi(i),
           band_id: `${group.value.id}-${i + 1}-${name}`,
           chosen_role: 'A',
           assigned_role: 'A',
           role_presented_as: null,
-          result_value: value,
+          result_value: varde(i),
         }))
     const sum = (r: 'A' | 'B') => personer.filter((p) => p.assigned_role === r).reduce((s, p) => s + p.result_value, 0)
     const payload: ResultPayload = {
@@ -491,6 +524,9 @@ export const useMinnestestStore = defineStore('minnestest', () => {
     init,
     begin,
     chooseGame,
+    startExtern,
+    externSkarp,
+    externKlar,
     setRoster,
     transport,
     buildResultPayload,

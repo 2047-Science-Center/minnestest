@@ -114,6 +114,7 @@ export function basLage(
     case 'intro':
       return 'tutorial'
     case 'room':
+    case 'extern':
       return isTutorial ? 'tutorial' : 'skarp'
     case 'goLive':
     case 'result':
