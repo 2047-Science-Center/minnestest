@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Startar FLYKTEN i kiosk på NUC:ens skärm — EN skärm, EN Chrome-instans.
+# Station 2 med båda sidorna på EN NUC (SIDA=AB): två fönster, ett per skärm — se st2-kiosk.sh.
 #
 # VIKTIGT: Talfångsten (Web Speech) fungerar bara i OFFICIELL Google Chrome på
 # Linux (Chromium saknar Googles röst-API-nyckel och gör då tyst ingenting), och
@@ -56,9 +57,15 @@ if [ -n "${AUDIO_SINK:-}" ] && command -v pactl >/dev/null 2>&1; then
   pactl set-default-sink "$AUDIO_SINK" || echo "kiosk.sh: kunde inte sätta ljud-ut '$AUDIO_SINK'." >&2
 fi
 
-# --- Station 2 sida A: de tre lurarnas mikar → EN virtuell mik (st2-ljud.sh, om LUR_A1–3 är satta) ---
-if [ -n "${LUR_A1:-}" ] && command -v pactl >/dev/null 2>&1; then
+# --- Station 2: varje lur som egen namngiven enhet (XY-lur-A1/A2/B, st2-ljud.sh), om LUR_* är satta ---
+if [ -n "${LUR_A1:-}${LUR_B:-}" ] && command -v pactl >/dev/null 2>&1; then
   "$HERE/st2-ljud.sh" koppla || echo "kiosk.sh: kunde inte koppla lurarna (kör deploy/nuc/st2-ljud.sh lista)." >&2
+fi
+
+# --- Station 2 på EN NUC med två skärmar: SIDA=AB → två kioskfönster (st2-kiosk.sh) ---
+if [ "$SIDA" = AB ]; then
+  . "$HERE/st2-kiosk.sh"
+  exit $?
 fi
 
 # --- Touch → skärm-mappning (om konfigurerad) ---

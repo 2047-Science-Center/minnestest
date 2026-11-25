@@ -22,8 +22,9 @@ export function externSpelUrl(side: SideId | null, loc: { search: string; protoc
   return `${loc.protocol}//${loc.hostname}:${SPEL_PORT[side]}/`
 }
 
-/** Parametrar som skalet skickar vidare till spelet (test/rigg). */
-export const VIDAREBEFORDRA = ['lur', 'text', 'snabb', 'mock', 'debug', 'sensor', 'halmax', 'hal', 'ovning', 'aterkalla', 'fall'] as const
+/** Parametrar som skalet skickar vidare till spelet (test/rigg). lur/lurar/lurnamn = lurarnas etiketter
+ *  (deploy/nuc/st2-ljud.sh: XY-lur-A1/A2/B) — sida A lyssnar per tur på den aktiva spelarens lur. */
+export const VIDAREBEFORDRA = ['lur', 'lurar', 'lurnamn', 'text', 'snabb', 'mock', 'debug', 'sensor', 'halmax', 'hal', 'ovning', 'aterkalla', 'fall'] as const
 
 /** Spelets adress med gruppen + skalets origin. */
 export function spelSrc(o: { url: string; namn: string[]; grupp: string | null; skalOrigin: string; mqttUrl: string | null; search: string }): string {

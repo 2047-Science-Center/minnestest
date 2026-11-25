@@ -58,7 +58,7 @@ onBeforeUnmount(() => window.removeEventListener('message', onMessage))
 </script>
 
 <template>
-  <iframe class="extern" :src="src" allow="microphone; autoplay; fullscreen" title="Stationens spel" />
+  <iframe class="extern" :src="src" allow="microphone; autoplay; fullscreen; speaker-selection" title="Stationens spel" />
 </template>
 
 <style scoped>
