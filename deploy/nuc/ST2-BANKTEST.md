@@ -6,13 +6,15 @@
 
 Varje fönster ska **bara höra sina egna lurar**, och allt ljud ska komma **i telefonlurarna** och inte i skärmarna.
 
-**Lurarna** sitter i hubben på NUC:en:
+**Lurarna:**
 
-| Lur | Uttag i hubben | Hör till |
+| Lur | Sitter i | Hör till |
 |---|---|---|
-| Lur 1 (A1) | uttag 2 | Människa eller maskin, spelare 1 |
-| Lur 2 (A2) | uttag 4 | Människa eller maskin, spelare 2 |
-| Lur B | uttag 3 | Lögndetektorn |
+| A1 | hubbens uttag 2 | Människa eller maskin, spelare 1 |
+| A2 | hubbens uttag 4 | Människa eller maskin, spelare 2 |
+| B | **direkt i NUC:en**, inte i hubben | Lögndetektorn |
+
+Hubben klarar bara två lurar. Med en tredje tar USB-bandbredden slut, och då försvinner en lur.
 
 > **Rör inte kablarna** medan NUC:en är på. En dongel med glapp kan frysa all USB, och då måste NUC:en stängas av
 > med strömknappen.
@@ -23,7 +25,9 @@ Varje fönster ska **bara höra sina egna lurar**, och allt ljud ska komma **i t
 2. Stäng andra stationer som startat på skärmarna (Alt+F4).
 
 ## Starta
-Dubbelklicka på **Station 2 test** på skrivbordet. Det går också att köra i en terminal:
+Testet startar av sig självt när NUC:en startar. Har du stängt det: dubbelklicka på **Station 2 test** på skrivbordet.
+Saknas en lur startar det inte, och terminalen säger vilken lur det gäller. Stäng då av NUC:en, kontrollera kontakten
+och starta igen. Det går också att köra i en terminal:
 ```bash
 bash ~/minnestest/deploy/nuc/st2-test.sh
 ```

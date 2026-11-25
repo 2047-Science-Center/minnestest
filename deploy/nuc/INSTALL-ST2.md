@@ -114,6 +114,16 @@ bash deploy/nuc/st2-spel.sh status A
 ```
 
 ## Steg 7: Sida och lurar (`kiosk.env`)
+> **LÅST HÅRDVARA (bänktest 2026-11-25): högst TVÅ lurdonglar i hubben.** JieLi-donglarna är full-speed USB, och
+> hubben har bara cirka 1 350 byte per ms för ljud. Tre donglar med in och ut går inte (cirka 1 460 byte i 24 bitar,
+> cirka 1 180 byte i 16 bitar, på gränsen). Kärnan säger då `Not enough bandwidth` och kopplar till slut bort en
+> dongel, och dess ljud hamnar i skärmen. Därför sitter **A1 och A2 i hubben och B-luren direkt i en egen port på
+> NUC:en** (inte port 6 eller 7). Flytta donglar bara när NUC:en är avstängd.
+>
+> En gång per NUC: `bash ~/minnestest/deploy/nuc/st2-ljud.sh format`. Den lägger en WirePlumber-regel som ger
+> 16 bitar ut och stänger av strömminnet. Utan regeln flyttar WirePlumber "Google Chrome"-ljudet dit det spelade
+> senast, och båda fönstren heter så.
+
 🖥️ KÖR:
 ```bash
 nano ~/minnestest/deploy/nuc/kiosk.env
@@ -204,8 +214,12 @@ bash ~/minnestest/deploy/nuc/st2-test.sh
 ```bash
 bash ~/minnestest/deploy/nuc/st2-test.sh stopp
 ```
-Den startar spelservrarna som vanliga processer om de inte redan kör som tjänster, kopplar lurarna och öppnar
+Den kontrollerar först att alla lurar finns på USB (`st2-ljud.sh koll`) och startar inte om någon saknas. Sedan
+startar den spelservrarna som vanliga processer om de inte redan kör som tjänster, kopplar lurarna och öppnar
 fönstren. Stäng ett fönster med Alt+F4. Loggarna finns i `/tmp/st2-*.log`.
+
+**Samma läge efter en hård omstart:** `bash ~/minnestest/deploy/nuc/st2-test.sh autostart` gör att testet startar
+av sig självt vid inloggningen. Ta bort det med `st2-test.sh ingen-autostart`.
 
 ## Uppdatera senare
 🖥️ KÖR:

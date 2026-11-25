@@ -17,12 +17,17 @@
 #   bash deploy/nuc/st2-ljud.sh koppla    # skapa XY-lur-* ur LUR_A1/LUR_A2/LUR_A3/LUR_B i kiosk.env
 #   bash deploy/nuc/st2-ljud.sh status    # vad som är kopplat
 #   bash deploy/nuc/st2-ljud.sh loss      # ta bort XY-lur-* (och en gammal xy_mik_A-mix)
-#   bash deploy/nuc/st2-ljud.sh format    # EN GÅNG per NUC: lurarnas utgång i 16 bit (USB-bandbredden, se nedan)
+#   bash deploy/nuc/st2-ljud.sh format    # EN GÅNG per NUC: WirePlumber-regeln (16 bit ut + inget strömminne, se nedan)
+#   bash deploy/nuc/st2-ljud.sh koll      # finns alla lurar i kiosk.env på USB (in + ut)? Annars felkod + vilken
 #
 # USB-BANDBREDD (bänktest 2026-11-25): tre JieLi-donglar i samma hubb är full-speed (12 Mbit/s) och delar hubbens
 # tidsbudget. Med alla tre in+ut igång i 24 bit fick den sista utgången "set_hw_params: Enheten är full" (ENOSPC)
-# → ingen ljud i den luren. Donglarna klarar S16_LE ut (Altset 2): "format" lägger en WirePlumber-regel
-# (~/.config/wireplumber/main.lua.d/51-xy-lurar.lua, ingen sudo) och startar om ljudet. Ta bort filen = ångra.
+# → inget ljud i den luren, och kärnan kopplade till slut bort donglen ("Not enough bandwidth" → USB disconnect).
+# Per dongel reserveras ut 288 B (24 bit) / 192 B (16 bit) + in 192 B + HID 8 B per ms; hubbens tak ≈ 1350 B.
+# Tre i 24 bit ≈ 1460 = för mycket. Tre i 16 bit ≈ 1180 = på gränsen. LÅST LÄGE: högst TVÅ donglar i hubben,
+# B-luren direkt i en egen port på NUC:en (egen bandbredd). "format" lägger WirePlumber-regeln
+# (~/.config/wireplumber/main.lua.d/51-xy-lurar.lua, ingen sudo): S16_LE ut (Altset 2) + restore-target av
+# (annars flyttar WirePlumber "Google Chrome"-ljud dit det senast spelade — båda fönstren heter så). Ta bort filen = ångra.
 #
 # kiosk.env: en unik bit av USB-PORTEN per lur, t.ex. LUR_A1=usb-0:2.2: (se "lista"). Volym:
 #   LUR_VOL_UT=100%  (JieLi-donglarna startar på 40 %, för lågt i luren)   LUR_VOL_IN=50%
@@ -132,11 +137,32 @@ table.insert(alsa_monitor.rules, {
   matches = { { { "node.name", "matches", "alsa_output.usb-JieLi_Technology_USB_Audio*" } } },
   apply_properties = { ["audio.format"] = "S16LE" },
 })
+-- Inget strömminne: ljudet går dit kiosken säger (PULSE_SINK / setSinkId), inte dit "Google Chrome" spelade senast.
+stream_defaults.properties["restore-target"] = false
 LUA
   echo "st2-ljud: skrev $f — startar om ljudet (pipewire + wireplumber)."
   systemctl --user restart wireplumber pipewire pipewire-pulse
   sleep 3
   pactl list short sinks 2>/dev/null | grep -i jieli || true
+}
+
+# Alla lurar i kiosk.env finns på USB med både in och ut? Skriver vad som saknas. 0 = allt finns.
+koll() {
+  local v fel=0
+  for v in LUR_A1 LUR_A2 LUR_A3 LUR_B; do
+    [ -n "${!v:-}" ] || continue
+    if ! find_node IN "${!v}" >/dev/null 2>&1 || ! find_node UT "${!v}" >/dev/null 2>&1; then
+      echo "st2-ljud: ${v#LUR_}-luren (port ${!v}) saknas på USB." >&2
+      fel=1
+    fi
+  done
+  if [ "$fel" = 1 ]; then
+    echo "  → Stäng av NUC:en, kolla att donglen sitter i rätt uttag, starta igen. Koppla aldrig om med NUC:en igång." >&2
+    echo "  → Kärnans förklaring: journalctl -k -b | grep -iE 'bandwidth|disconnect'" >&2
+  else
+    echo "st2-ljud: alla lurar finns på USB."
+  fi
+  return "$fel"
 }
 
 case "${1:-koppla}" in
@@ -145,5 +171,6 @@ case "${1:-koppla}" in
   status) status ;;
   loss) loss; echo "st2-ljud: XY-lur-* borttagna." ;;
   format) format ;;
-  *) echo "Användning: st2-ljud.sh lista|koppla|status|loss|format" >&2; exit 1 ;;
+  koll) koll ;;
+  *) echo "Användning: st2-ljud.sh lista|koppla|status|loss|format|koll" >&2; exit 1 ;;
 esac

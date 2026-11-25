@@ -15,7 +15,9 @@
 #   SINK_A= SINK_B=       utgång per fönster. Standard = LURARNA (Josef 2026-11-25: allt appljud i lurarna):
 #                         A → xy_lurar_A (alla A-lurar), B → xy_lur_B_ut (B-luren), om de finns (st2-ljud.sh).
 #
-# LJUD PER FÖNSTER: varje Chrome-process taggas (application.name=XY-A / XY-B) och en route-loop håller
+# LJUD PER FÖNSTER: varje Chrome-fönster är en egen process med egen profil (st2-A / st2-B). Chrome skriver över
+# PULSE_PROP (application.name blir "Google Chrome" i båda), så route-loopen känner igen fönstret på PROCESSTRÄDET:
+# strömmens application.process.id → föräldrar → den som har --user-data-dir=…/st2-A. Loopen håller
 #   - utgångar (sink-inputs) på SINK_A/SINK_B — utom strömmar som appen själv lagt i en lur (xy_lur_*,
 #     Lögndetektorns frågor via setSinkId), de lämnas orörda;
 #   - ingångar (source-outputs) på fönstrets EGNA lurar: en ström som redan ligger på en av fönstrets
@@ -112,8 +114,8 @@ st2_launch() { # sida pos sink
   echo "st2-kiosk: sida $sida → $(st2_url "$sida")  @ $pos${sink:+  ut: $sink}"
 }
 
-# Route-loopen (se huvudet). $1 = tagg (XY-A), $2 = rummets utgång (tom = rör inte), $3 = fönstrets
-# lurar (mellanslagsseparerade källnamn; första = dit främmande ingångar flyttas), $4 = profil.
+# Route-loopen (se huvudet). $1 = tagg (för loggen), $2 = fönstrets utgång (tom = rör inte), $3 = fönstrets
+# lurar (mellanslagsseparerade källnamn; första = dit främmande ingångar flyttas), $4 = profil (st2-A / st2-B).
 st2_route() {
   command -v pactl >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1 || return 0
   local tag="$1" sink="$2" egna="$3" prof="$4"
@@ -125,7 +127,20 @@ st2_route() {
         pactl -f json list sink-inputs; echo '@@'; pactl -f json list source-outputs; } 2>/dev/null |
       python3 -c '
 import sys, json
-tag, sink, egna = sys.argv[1], sys.argv[2], sys.argv[3].split()
+prof, sink, egna = sys.argv[1], sys.argv[2], sys.argv[3].split()
+def agare(pid):
+    # Går strömmens process (eller en förälder) med det här fönstrets profil?
+    sett = 0
+    while pid and pid > 1 and sett < 12:
+        sett += 1
+        try:
+            if ("--user-data-dir=" + prof).encode() in open(f"/proc/{pid}/cmdline", "rb").read():
+                return True
+            st = open(f"/proc/{pid}/status").read()
+            pid = int(st.split("PPid:")[1].split()[0])
+        except Exception:
+            return False
+    return False
 d = sys.stdin.read().split("@@")
 def load(s):
     try: return json.loads(s)
@@ -133,7 +148,9 @@ def load(s):
 sinks = {str(x.get("index")): x.get("name", "") for x in load(d[0])}
 sources = {str(x.get("index")): x.get("name", "") for x in load(d[1])}
 finns = set(sources.values())
-mine = lambda x: x.get("properties", {}).get("application.name") == tag
+def mine(x):
+    try: return agare(int(x.get("properties", {}).get("application.process.id", "0")))
+    except Exception: return False
 if sink:
     for x in load(d[2]):
         cur = sinks.get(str(x.get("sink")), "")
@@ -145,7 +162,7 @@ if egna:
         cur = sources.get(str(x.get("source")), "")
         if mine(x) and cur not in egna:
             print("move-source-output", x.get("index"), egna[0])
-' "$tag" "$sink" "$egna" | while read -r cmd id dest; do
+' "$PROFILE_DIR/$prof" "$sink" "$egna" | while read -r cmd id dest; do
         pactl "$cmd" "$id" "$dest" >/dev/null 2>&1 && echo "st2-kiosk: $tag $cmd #$id → $dest"
       done
       sleep 2
