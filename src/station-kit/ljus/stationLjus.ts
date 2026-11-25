@@ -23,7 +23,7 @@
  */
 import { reactive, readonly } from 'vue'
 import mqtt from 'mqtt'
-import { GEST, lageLook, regiLook, type Gest, type Lage, type LjudNamn, type Look, type Valv } from './kanon'
+import { GEST, lageLook, regiLook, REGI_FORE, type Gest, type Lage, type LjudNamn, type Look, type Valv } from './kanon'
 
 export interface LjusClient {
   publish(topic: string, payload: string, opts?: { retain?: boolean }): unknown
@@ -104,6 +104,7 @@ function egna(): string[] {
 
 function lookFor(id: string): Look {
   if (state.hitta && Date.now() < state.hitta.until) return { color: state.hitta.color, effekt: 'static' }
+  if (state.regiFas && REGI_FORE.includes(state.regiFas)) return regiLook(state.regiFas, opts!.valv)!
   const f = state.farg[id]
   if (f) return f
   // Delsegment (t.ex. `A.lur2`) utan eget läge följer sitt huvudsegment (`A`).
