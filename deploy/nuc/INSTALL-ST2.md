@@ -138,8 +138,9 @@ EXTRA_QUERY_B=lur=XY-lur-B
 - Vänster skärm blir sida A och höger skärm sida B. Det avgörs av `xrandr`, men kan tvingas med `POS_A=0,0` och `POS_B=1920,0`.
 - Touch per skärm: `OUTPUT_A=DP-1`, `OUTPUT_B=DP-3`, `TOUCH_PATH_A=…` och `TOUCH_PATH_B=…`. Skärmnamnen tar du ur
   `xrandr --listmonitors`, och ID_PATH ur Undersökningens `deploy/nuc/find-touch.sh`.
-- Rummets ljud per fönster: `SINK_A=…` och `SINK_B=…` (`pactl list short sinks`). Tomt = standardutgången.
-  VALdis frågor i Lögndetektorn går alltid till B-luren, oavsett `SINK_B`.
+- **Allt appljud går i telefonlurarna, inte i skärmarna** (Josef 2026-11-25). Sida A spelar i alla A-lurar via
+  utgången `XY-lurar-A`, och sida B i B-luren via `XY-lur-B`. Bara utgångarna kombineras, mikrofonerna mixas aldrig.
+  Ska ett fönster låta någon annanstans sätter du `SINK_A=…` eller `SINK_B=…` (`pactl list short sinks`).
 - **`ST2_URL=direkt`** öppnar spelen direkt (:8796 och :8798) utan skal och entré. Använd det för bänktest utan
   broker, eftersom skalets entré synkar sidorna över brokern. Utan raden (`skal`) öppnas skalet, som i riggen.
 
@@ -162,7 +163,7 @@ Lurvolymen sätts av `st2-ljud.sh`: 100 % ut och 50 % in, eftersom JieLi-donglar
 ```bash
 bash ~/minnestest/deploy/nuc/st2-ljud.sh koppla
 ```
-Den listar `in xy_lur_A1`, `in xy_lur_A2`, `in xy_lur_B` och `ut xy_lur_B_ut`.
+Den listar `in xy_lur_A1`, `in xy_lur_A2`, `in xy_lur_B`, `ut xy_lurar_A` och `ut xy_lur_B_ut`.
 Kopplingarna försvinner vid omstart, men kiosken kör `koppla` själv innan Chrome startar.
 
 ## Steg 8: Kiosken startar av sig själv

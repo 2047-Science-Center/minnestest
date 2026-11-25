@@ -12,7 +12,8 @@
 #   EXTRA_QUERY_A=        t.ex. lurar=2           EXTRA_QUERY_B=lur=XY-lur-B (frågorna i B-luren)
 #   POS_A=0,0 POS_B=1920,0   (annars ur xrandr: vänstraste = A, högraste = B)
 #   OUTPUT_A=DP-1 OUTPUT_B=DP-3 + TOUCH_PATH_A=… TOUCH_PATH_B=…   (touch per skärm, ID_PATH)
-#   SINK_A= SINK_B=       rummets utgång per fönster (pactl list short sinks). Tomt = standardutgången.
+#   SINK_A= SINK_B=       utgång per fönster. Standard = LURARNA (Josef 2026-11-25: allt appljud i lurarna):
+#                         A → xy_lurar_A (alla A-lurar), B → xy_lur_B_ut (B-luren), om de finns (st2-ljud.sh).
 #
 # LJUD PER FÖNSTER: varje Chrome-process taggas (application.name=XY-A / XY-B) och en route-loop håller
 #   - utgångar (sink-inputs) på SINK_A/SINK_B — utom strömmar som appen själv lagt i en lur (xy_lur_*,
@@ -25,6 +26,9 @@
 ST2_URL="${ST2_URL:-skal}"
 EXTRA_QUERY_A="${EXTRA_QUERY_A:-}"
 EXTRA_QUERY_B="${EXTRA_QUERY_B:-lur=XY-lur-B}"
+finns_sink() { LC_ALL=C pactl list short sinks 2>/dev/null | awk '{print $2}' | grep -qx "$1"; }
+if [ -z "${SINK_A:-}" ] && finns_sink xy_lurar_A; then SINK_A=xy_lurar_A; fi
+if [ -z "${SINK_B:-}" ] && finns_sink xy_lur_B_ut; then SINK_B=xy_lur_B_ut; fi
 SINK_A="${SINK_A:-}"
 SINK_B="${SINK_B:-}"
 OUTPUT_A="${OUTPUT_A:-}"; OUTPUT_B="${OUTPUT_B:-}"

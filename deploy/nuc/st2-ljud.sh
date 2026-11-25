@@ -2,7 +2,10 @@
 # Station 2: varje telefonlur får en EGEN namngiven ljudenhet, bunden till sitt USB-uttag (bus_path),
 # så att apparna kan hitta luren på ETIKETTEN (Chrome-enhetens namn) i stället för på ett ostabilt id:
 #   in  (mik):  XY-lur-A1, XY-lur-A2, (XY-lur-A3), XY-lur-B     ← module-remap-source på lurens mik
-#   ut  (lur):  XY-lur-B                                       ← module-remap-sink på B-lurens hörsnäcka
+#   ut  (lur):  XY-lurar-A = alla A-lurarnas hörsnäckor        ← module-combine-sink (sida A:s ljud)
+#               XY-lur-B                                       ← module-remap-sink på B-lurens hörsnäcka
+# ALLT appljud går i lurarna, inte i skärmarna (Josef 2026-11-25): st2-kiosk.sh lägger fönster A på
+# xy_lurar_A och fönster B på xy_lur_B_ut om inget annat SINK_A/SINK_B är satt.
 # Människa eller maskin (sida A) lyssnar per tur på den aktiva spelarens XY-lur-A<n>; Lögndetektorn
 # (sida B) hör bara XY-lur-B och spelar VALdis frågor i XY-lur-B (?lur=XY-lur-B).
 #
@@ -58,7 +61,7 @@ find_node() {
 
 loss() {
   local ids
-  ids=$(pactl list short modules 2>/dev/null | awk '/xy_lur_|xy_mix_A|xy_mik_A/ {print $1}')
+  ids=$(pactl list short modules 2>/dev/null | awk '/xy_lur_|xy_lurar_A|xy_mix_A|xy_mik_A/ {print $1}')
   for id in $ids; do pactl unload-module "$id" 2>/dev/null || true; done
 }
 
@@ -83,7 +86,18 @@ koppla() {
     [ -n "$s" ] && pactl set-sink-volume "$s" "$LUR_VOL_UT" 2>/dev/null || true
     antal=$((antal + 1))
   done
-  # B-lurens hörsnäcka (Lögndetektorns frågor, setSinkId på etiketten XY-lur-B).
+  # Sida A:s ljud i alla A-lurarna (bara UT kombineras — mikarna mixas aldrig).
+  local sA=()
+  for v in LUR_A1 LUR_A2 LUR_A3; do
+    [ -n "${!v:-}" ] || continue
+    s=$(find_node UT "${!v}" 2>/dev/null || true)
+    [ -n "$s" ] && sA+=("$s")
+  done
+  if [ "${#sA[@]}" -gt 0 ]; then
+    pactl load-module module-combine-sink sink_name=xy_lurar_A \
+      sink_properties=device.description=XY-lurar-A slaves="$(IFS=,; echo "${sA[*]}")" >/dev/null
+  fi
+  # B-lurens hörsnäcka (allt Lögndetektorns ljud; frågorna även via setSinkId på etiketten XY-lur-B).
   if [ -n "${LUR_B:-}" ]; then
     s=$(find_node UT "$LUR_B")
     pactl load-module module-remap-sink master="$s" sink_name="xy_lur_B_ut" \
@@ -98,7 +112,7 @@ koppla() {
 
 status() {
   pactl list short sources 2>/dev/null | awk '$2 ~ /^xy_lur_/ {print "  in  " $2}'
-  pactl list short sinks 2>/dev/null | awk '$2 ~ /^xy_lur_/ {print "  ut  " $2}'
+  pactl list short sinks 2>/dev/null | awk '$2 ~ /^xy_lur/ {print "  ut  " $2}'
 }
 
 case "${1:-koppla}" in
