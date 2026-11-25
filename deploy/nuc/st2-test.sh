@@ -6,6 +6,9 @@
 #   bash ~/minnestest/deploy/nuc/st2-test.sh stopp    stäng fönstren och testets spelservrar
 #   bash ~/minnestest/deploy/nuc/st2-test.sh autostart  starta av sig själv vid inloggning (hård omstart = samma läge)
 #   bash ~/minnestest/deploy/nuc/st2-test.sh ingen-autostart
+#   bash ~/minnestest/deploy/nuc/st2-test.sh omstart    stäng allt (även servrarna) och starta om
+#   bash ~/minnestest/deploy/nuc/st2-test.sh uppdatera  git pull (skalet + båda spelen) + bygg + omstart
+#   bash ~/minnestest/deploy/nuc/st2-test.sh ikoner     skrivbordsikoner: starta, starta om, stoppa, uppdatera
 # Kräver kiosk.env med SIDA=AB + LUR_A1/LUR_A2/LUR_B (INSTALL-ST2.md steg 7). ST2_URL=direkt = utan skal/broker.
 # Stäng ett fönster: Alt+F4. Loggar: /tmp/st2-mem.log, /tmp/st2-logn.log, /tmp/st2-kiosk.log
 set -euo pipefail
@@ -33,7 +36,7 @@ server() { # namn port hälsa mapp fil portvariabel
   exit 1
 }
 
-if [ "${1:-}" = stopp ]; then
+stoppa() {
   stang_fonster
   # Bara servrarna som st2-test.sh själv startade (pid-filerna) — aldrig andra stationers node-servrar.
   for n in mem logn; do
@@ -41,6 +44,41 @@ if [ "${1:-}" = stopp ]; then
     rm -f "/tmp/st2-$n.pid"
   done
   echo "st2-test: stoppat."
+}
+if [ "${1:-}" = stopp ]; then stoppa; exit 0; fi
+if [ "${1:-}" = omstart ]; then stoppa; sleep 2; fi
+if [ "${1:-}" = uppdatera ]; then
+  for r in minnestest manniska-eller-maskin forhoret; do
+    echo "st2-test: uppdaterar $r"
+    ( cd "$BAS/$r" && git pull --ff-only ) || { echo "st2-test: git pull misslyckades i $r" >&2; exit 1; }
+  done
+  for r in manniska-eller-maskin forhoret; do
+    ( cd "$BAS/$r" && (npm ci --no-audit --no-fund >/tmp/st2-npm-$r.log 2>&1 || npm install --no-audit --no-fund >>/tmp/st2-npm-$r.log 2>&1) \
+      && npm run build >>/tmp/st2-npm-$r.log 2>&1 ) || { echo "st2-test: bygget av $r misslyckades — se /tmp/st2-npm-$r.log" >&2; exit 1; }
+    echo "st2-test: $r byggd"
+  done
+  stoppa; sleep 2
+  exec "$HERE/st2-test.sh"
+fi
+if [ "${1:-}" = ikoner ]; then
+  d="$HOME/Skrivbord"; [ -d "$d" ] || d="$HOME/Desktop"
+  ikon() { # fil namn kommando ikon
+    cat >"$d/$1.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=$2
+Exec=bash -c "$3 || read -p 'Något gick fel (se ovan). Tryck Enter för att stänga.'"
+Icon=$4
+Terminal=true
+EOF
+    chmod +x "$d/$1.desktop"
+    gio set "$d/$1.desktop" metadata::trusted true 2>/dev/null || true
+  }
+  ikon station2-test "Station 2 starta" "$HERE/st2-test.sh" media-playback-start
+  ikon station2-omstart "Station 2 starta om" "$HERE/st2-test.sh omstart" view-refresh
+  ikon station2-stoppa "Station 2 stoppa" "$HERE/st2-test.sh stopp" media-playback-stop
+  ikon station2-uppdatera "Station 2 uppdatera" "$HERE/st2-test.sh uppdatera" system-software-update
+  echo "st2-test: fyra ikoner på $d (starta, starta om, stoppa, uppdatera)."
   exit 0
 fi
 
