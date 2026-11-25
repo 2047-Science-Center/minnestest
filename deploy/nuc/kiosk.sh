@@ -12,6 +12,15 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -f "$HERE/kiosk.env" ] && . "$HERE/kiosk.env"
 
 URL_BASE="${URL_BASE:-http://localhost:8080}"        # gateway-tjänsten (samma origin)
+# Station 2: vilken sida den här NUC:en är (A = Människa eller maskin, B = Lögndetektorn) + ev. extra
+# parametrar som skalet skickar vidare till spelet (t.ex. lur=Opis på sida B = frågorna i luren).
+SIDA="${SIDA:-}"
+EXTRA_QUERY="${EXTRA_QUERY:-}"
+APP_URL="$URL_BASE/"
+q=""
+[ -n "$SIDA" ] && q="sida=$SIDA"
+[ -n "$EXTRA_QUERY" ] && q="${q:+$q&}$EXTRA_QUERY"
+[ -n "$q" ] && APP_URL="$URL_BASE/?$q"
 PROFILE_DIR="${PROFILE_DIR:-$HOME/.flykten-kiosk}"
 
 # Touch → skärm-mappning (valfritt; bara relevant om touchen hamnar fel).
@@ -45,6 +54,11 @@ if [ -n "${MIC_SOURCE:-}" ] && command -v pactl >/dev/null 2>&1; then
 fi
 if [ -n "${AUDIO_SINK:-}" ] && command -v pactl >/dev/null 2>&1; then
   pactl set-default-sink "$AUDIO_SINK" || echo "kiosk.sh: kunde inte sätta ljud-ut '$AUDIO_SINK'." >&2
+fi
+
+# --- Station 2 sida A: de tre lurarnas mikar → EN virtuell mik (st2-ljud.sh, om LUR_A1–3 är satta) ---
+if [ -n "${LUR_A1:-}" ] && command -v pactl >/dev/null 2>&1; then
+  "$HERE/st2-ljud.sh" koppla || echo "kiosk.sh: kunde inte koppla lurarna (kör deploy/nuc/st2-ljud.sh lista)." >&2
 fi
 
 # --- Touch → skärm-mappning (om konfigurerad) ---
@@ -90,4 +104,4 @@ exec "$BROWSER" \
   --overscroll-history-navigation=0 \
   --check-for-update-interval=31536000 \
   --password-store=basic \
-  --app="$URL_BASE"
+  --app="$APP_URL"

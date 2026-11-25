@@ -23,4 +23,12 @@ echo "== starta om gateway + kiosk =="
 sudo systemctl restart minnestest-server.service
 systemctl --user restart minnestest-kiosk.service 2>/dev/null || true
 
-echo "Uppdaterad. Loggar: sudo journalctl -u minnestest-server -f"
+# Station 2:s spel (om de är installerade på den här NUC:en): git pull + bygg + omstart.
+for sida in A B; do
+  tj=$([ "$sida" = A ] && echo st2-mem || echo st2-logn)
+  if systemctl list-unit-files "$tj.service" >/dev/null 2>&1 && systemctl cat "$tj.service" >/dev/null 2>&1; then
+    bash "$REPO/deploy/nuc/st2-spel.sh" update "$sida"
+  fi
+done
+
+echo "Uppdaterad. Loggar: sudo journalctl -u minnestest-server -f  (spelen: -u st2-mem / -u st2-logn)"

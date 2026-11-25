@@ -1,0 +1,21 @@
+# systemd-tjänst för ett av station 2:s spel (Människa eller maskin / Lögndetektorn).
+# Installeras av st2-spel.sh (@...@ ersätts där). System-tjänst → reser sig efter strömavbrott.
+# Spelets server serverar sitt byggda dist/ + /api på EN port. Nycklarna läses ur spelets
+# egen server/.env (aldrig i git). Ingen broker här: skalet skickar ?mqtt= vidare till spelet.
+[Unit]
+Description=X&Y station 2 — @TITEL@ (@NAMN@, :@PORT@)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+WorkingDirectory=@REPO@
+Environment=NODE_ENV=production
+Environment=@PORTVAR@=@PORT@
+ExecStart=@NODE@ @REPO@/@ENTRY@
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
