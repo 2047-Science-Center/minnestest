@@ -1,106 +1,71 @@
 {
   "klipp": "roll_sanningsanalytiker_set2",
   "fil": "roll_sanningsanalytiker_set2.mp4",
-  "duration_s": 28.527,
+  "duration_s": 24.5,
   "sprak": [
     "sv",
     "no"
   ],
-  "_no_status": "UTKAST - ersätts av Josefs norska översättning",
-  "_undertext_status": "Exakt ur HyperFrames-källan (projekt-B-set2/index.html): text och tider är källans egna, inte ögonmått.",
-  "_set_obs": "Filnamnet behålls. Set-kopplingen roll↔fil sköts i minnestest-config (entré-sessionen, fd94a35). Titeln avser klippets innehåll.",
+  "_status": "UTKAST v3 (2026-11-24) – ingen berättarröst; raderna är klippets text. Norska saknas.",
   "titel": {
-    "sv": "Sanningsanalytiker",
-    "no": "Sannhetsanalytiker"
+    "sv": "Systemutvecklare",
+    "no": ""
   },
   "portratt": "roll_sanningsanalytiker_set2.portratt.jpg",
   "undertext": [
     {
       "t": 0.2,
-      "slut": 2.684,
-      "sv": "Okej så. Ni frågar alltid vad jag gör på jobbet.",
-      "no": "Ok, da. Dere spør alltid hva jeg gjør på jobben."
+      "slut": 2.9,
+      "sv": "Min dag som systemutvecklare. Den börjar sent.",
+      "no": ""
     },
     {
-      "t": 2.804,
-      "slut": 6.459,
-      "sv": "Jag ska ta mig in där jag inte får komma in. Genom att ljuga.",
-      "no": "Jeg skal komme meg inn der jeg ikke får komme inn. Ved å lyve."
+      "t": 3.2,
+      "slut": 5.4,
+      "sv": "10:47 Vaknar. Ingen kommentar.",
+      "no": ""
     },
     {
-      "t": 6.579,
-      "slut": 12.057,
-      "sv": "Varje morgon får jag en historia som inte är sann. Mitt jobb är att få systemet att tro på den.",
-      "no": "Hver morgen får jeg en historie som ikke er sann. Jobben min er å få systemet til å tro på den."
+      "t": 5.7,
+      "slut": 7.9,
+      "sv": "11:30 Frukost, eller lunch",
+      "no": ""
     },
     {
-      "t": 12.177,
-      "slut": 15.636,
-      "sv": "För att ljuga bra måste man veta exakt hur en lögn låter.",
-      "no": "For å lyve godt må man vite nøyaktig hvordan en løgn høres ut."
+      "t": 8.2,
+      "slut": 10.4,
+      "sv": "13:00 Cyklar genom tunnlarna till jobbet",
+      "no": ""
     },
     {
-      "t": 15.756,
-      "slut": 19.007,
-      "sv": "Ett ”eh” för mycket… och jag åker ut.",
-      "no": "Ett «eh» for mye … og jeg ryker ut."
+      "t": 10.7,
+      "slut": 13.4,
+      "sv": "19:00 Dags att lära maskinen höra lögner",
+      "no": ""
     },
     {
-      "t": 19.127,
-      "slut": 21.494,
-      "sv": "Men när historien håller…",
-      "no": "Men når historien holder …"
+      "t": 13.7,
+      "slut": 16.4,
+      "sv": "21:30 Den gissar fel. Igen.",
+      "no": ""
     },
     {
-      "t": 21.614,
-      "slut": 28.357,
-      "sv": "då vet vi var hålet är. Och då kan vi täppa till det. Ärligt, så kul.",
-      "no": "da vet vi hvor hullet er. Og da kan vi tette det. Ærlig talt, så gøy."
+      "t": 16.7,
+      "slut": 19.4,
+      "sv": "23:58 En sista idé",
+      "no": ""
+    },
+    {
+      "t": 19.7,
+      "slut": 21.9,
+      "sv": "01:12 Den hörde det",
+      "no": ""
+    },
+    {
+      "t": 22.2,
+      "slut": 24.4,
+      "sv": "01:15 Nu sover jag. Kanske.",
+      "no": ""
     }
-  ],
-  "textrutor": [
-    {
-      "t": 0.28,
-      "slut": 2.804,
-      "sv": "en dag som sanningsanalytiker 🔓",
-      "no": "en dag som sannhetsanalytiker 🔓",
-      "typ": "ruta"
-    },
-    {
-      "t": 6.659,
-      "slut": 12.177,
-      "sv": "dagens uppdrag: 1 historia. 0 tvekan.",
-      "no": "dagens oppdrag: 1 historie. 0 nøling.",
-      "typ": "ruta"
-    },
-    {
-      "t": 15.756,
-      "slut": 19.127,
-      "sv": "förtroende",
-      "no": "tillit",
-      "typ": "etikett-meter"
-    },
-    {
-      "t": 15.836,
-      "slut": 19.127,
-      "sv": "regel 1: tveka aldrig",
-      "no": "regel 1: nøl aldri",
-      "typ": "ruta"
-    },
-    {
-      "t": 19.207,
-      "slut": 21.614,
-      "sv": "✓ insläppt",
-      "no": "✓ sluppet inn",
-      "typ": "ruta"
-    },
-    {
-      "t": 21.694,
-      "slut": 28.527,
-      "sv": "jag vet hur en lögn låter → så blir systemet säkrare",
-      "no": "jeg vet hvordan en løgn høres ut → så blir systemet sikrere",
-      "typ": "ruta"
-    }
-  ],
-  "_textrutor": "Valfritt spår: klippets egna textrutor/etiketter (influencer-stil), sv/no. Används om overlay-lagret ska visa dem."
+  ]
 }

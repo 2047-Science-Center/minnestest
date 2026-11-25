@@ -335,7 +335,7 @@ export const SIDE_GAME: Record<SideId, Game> = { A: 'manniskotest', B: 'logndete
  * Följer thisSide(): sida B = "Lögndetektorn", sida A och den delade vyn = "Människotestet". Används överallt där
  * stationens namn visas (ENTRE/ROLLVAL.stationTitle → ankomstvyns mitt, incheckningen, rotationens skärmar).
  */
-export const STATION_TITLE: string = thisSide() === 'B' ? 'Lögndetektorn' : 'Människotestet'
+export const STATION_TITLE: string = thisSide() === 'B' ? 'Lögndetektorn' : 'Människa eller maskin' // sida A heter så sedan 2026-11-24 (nytt spel)
 
 /**
  * ATTRACT-BILD PER NUC/SIDA (Josef 2026-11-19, två bilder i st2) bakom "Ställ er på rätt sida".
@@ -429,7 +429,7 @@ export const ENTRE: EntreConfig = {
   /** Stationsintrot (hype-klipp ~5–6 s) efter "Ställ er på rätt sida". Saknas filen → hoppas över.
    *  Två stationer på två NUC:ar (Josef 2026-11-19): eget klipp per sida (thisSide()).
    *  Sida B = logndetektorn.mp4. Sida A och den delade vyn = manniskotestet.mp4. */
-  introClip: `${import.meta.env.BASE_URL}media/stationsintro/${thisSide() === 'B' ? 'logndetektorn' : 'manniskotestet'}.mp4`,
+  introClip: `${import.meta.env.BASE_URL}media/stationsintro/${thisSide() === 'B' ? 'logndetektorn' : 'manniska-eller-maskin'}.mp4`,
   /** Rollsekvensen efter introt (inga klick): brygga → kort A → klipp A → brygga → kort B → klipp B → valet.
    *  Rollnamn/valvfärg enligt station-kit/stationsintro/README.md (Josef 2026-11-19). */
   rollkort: { A: 'ÄKTHETSGRANSKARE', B: 'SANNINGSANALYTIKER', valvfarg: '#ff5a3c', sprak: config.lang === 'no' ? 'no' : 'sv' },
