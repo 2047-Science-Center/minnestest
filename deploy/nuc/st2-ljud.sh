@@ -17,6 +17,12 @@
 #   bash deploy/nuc/st2-ljud.sh koppla    # skapa XY-lur-* ur LUR_A1/LUR_A2/LUR_A3/LUR_B i kiosk.env
 #   bash deploy/nuc/st2-ljud.sh status    # vad som är kopplat
 #   bash deploy/nuc/st2-ljud.sh loss      # ta bort XY-lur-* (och en gammal xy_mik_A-mix)
+#   bash deploy/nuc/st2-ljud.sh format    # EN GÅNG per NUC: lurarnas utgång i 16 bit (USB-bandbredden, se nedan)
+#
+# USB-BANDBREDD (bänktest 2026-11-25): tre JieLi-donglar i samma hubb är full-speed (12 Mbit/s) och delar hubbens
+# tidsbudget. Med alla tre in+ut igång i 24 bit fick den sista utgången "set_hw_params: Enheten är full" (ENOSPC)
+# → ingen ljud i den luren. Donglarna klarar S16_LE ut (Altset 2): "format" lägger en WirePlumber-regel
+# (~/.config/wireplumber/main.lua.d/51-xy-lurar.lua, ingen sudo) och startar om ljudet. Ta bort filen = ångra.
 #
 # kiosk.env: en unik bit av USB-PORTEN per lur, t.ex. LUR_A1=usb-0:2.2: (se "lista"). Volym:
 #   LUR_VOL_UT=100%  (JieLi-donglarna startar på 40 %, för lågt i luren)   LUR_VOL_IN=50%
@@ -115,10 +121,29 @@ status() {
   pactl list short sinks 2>/dev/null | awk '$2 ~ /^xy_lur/ {print "  ut  " $2}'
 }
 
+format() {
+  local d="$HOME/.config/wireplumber/main.lua.d" f
+  f="$d/51-xy-lurar.lua"
+  mkdir -p "$d"
+  cat >"$f" <<'LUA'
+-- X&Y station 2 (minnestest deploy/nuc/st2-ljud.sh format): telefonlurarnas JieLi-donglar i 16 bit ut,
+-- annars räcker inte USB-bandbredden till tre lurar (in+ut) i samma hubb. Ta bort filen = ångra.
+table.insert(alsa_monitor.rules, {
+  matches = { { { "node.name", "matches", "alsa_output.usb-JieLi_Technology_USB_Audio*" } } },
+  apply_properties = { ["audio.format"] = "S16LE" },
+})
+LUA
+  echo "st2-ljud: skrev $f — startar om ljudet (pipewire + wireplumber)."
+  systemctl --user restart wireplumber pipewire pipewire-pulse
+  sleep 3
+  pactl list short sinks 2>/dev/null | grep -i jieli || true
+}
+
 case "${1:-koppla}" in
   lista) usb_nodes | column -t -s $'\t' ;;
   koppla) koppla ;;
   status) status ;;
   loss) loss; echo "st2-ljud: XY-lur-* borttagna." ;;
-  *) echo "Användning: st2-ljud.sh lista|koppla|status|loss" >&2; exit 1 ;;
+  format) format ;;
+  *) echo "Användning: st2-ljud.sh lista|koppla|status|loss|format" >&2; exit 1 ;;
 esac

@@ -97,11 +97,15 @@ st2_flags=(
 
 ST2_PIDS=()
 st2_launch() { # sida pos sink
-  local sida="$1" pos="$2" sink="$3" pre
+  local sida="$1" pos="$2" sink="$3" pre dbg=()
+  # ST2_DEBUG=1: Chromes felsökningsport (bara localhost) — A 9222, B 9223 — för att läsa konsolen över SSH.
+  if [ -n "${ST2_DEBUG:-}" ]; then
+    if [ "$sida" = A ]; then dbg=(--remote-debugging-port=9222); else dbg=(--remote-debugging-port=9223); fi
+  fi
   pre=(env "PULSE_PROP=application.name=XY-$sida")
   [ -n "$sink" ] && pre+=("PULSE_SINK=$sink")
   "${pre[@]}" "$BROWSER" "${st2_flags[@]}" \
-    --user-data-dir="$PROFILE_DIR/st2-$sida" \
+    --user-data-dir="$PROFILE_DIR/st2-$sida" "${dbg[@]}" \
     --window-position="$pos" \
     --app="$(st2_url "$sida")" &
   ST2_PIDS+=("$!")
