@@ -1,6 +1,6 @@
 /**
  * Skärm↔skärm-synk över riggens broker — för en station vars två sidor sitter på
- * OLIKA NUC:ar (station 2: Människotestet + Lögndetektorn). BroadcastChannel når bara
+ * OLIKA NUC:ar (station 2: Människa eller maskin + Lögndetektorn). BroadcastChannel når bara
  * samma dator, så entréns röster/lottning/sekvens-steg måste gå via brokern i stället.
  *
  * Kontrakt: `station<N>/skarmsynk` (SOM.md). Payload = JSON `{from, kind, payload}`:

@@ -278,9 +278,10 @@ export const PILOT_GROUP = {
  * skärmen. Skippbart via ROLLVAL_ENABLED. Inramning: förmågor värda att
  * vara bra på — IMPLICIT, copyn nämner aldrig "framtidsyrke" eller AI.
  *
- * Rollerna speglar appens två sidor: Äkthetsgranskare = människotestet
- * ("är det en äkta människa?"), Sanningsanalytiker = lögndetektorn
- * ("är det sant?").
+ * Rollerna speglar stationens två sidor (Josef 2026-11-25, rollklipp v3 "en dag som …"):
+ * Teleingenjör = sida A Människa eller maskin (Växeln, lurarna, linjen),
+ * Systemutvecklare = sida B Lögndetektorn (lär maskinen höra lögner).
+ * Id:n (akthetsgranskare/sanningsanalytiker) och klippens filnamn är oförändrade — bara texten byttes.
  *
  * INGA riktiga klipp finns än → tydligt märkta PLACEHOLDER-klipp i
  * minnestest/Assets/ (prefix roll_). Strukturerat som TVÅ klippset så det är
@@ -331,8 +332,8 @@ function clipPortratt(file: string): string {
 export const SIDE_GAME: Record<SideId, Game> = { A: 'manniskotest', B: 'logndetektor' }
 
 /**
- * STATIONENS NAMN PER SIDA (Josef 2026-11-19: Människotestet och Lögndetektorn är två stationer på två NUC:ar).
- * Följer thisSide(): sida B = "Lögndetektorn", sida A och den delade vyn = "Människotestet". Används överallt där
+ * STATIONENS NAMN PER SIDA (Josef 2026-11-19: två stationer på två NUC:ar; sida A heter "Människa eller maskin"
+ * sedan 2026-11-25). Följer thisSide(): sida B = "Lögndetektorn", sida A och den delade vyn = "Människa eller maskin". Används överallt där
  * stationens namn visas (ENTRE/ROLLVAL.stationTitle → ankomstvyns mitt, incheckningen, rotationens skärmar).
  */
 export const STATION_TITLE: string = thisSide() === 'B' ? 'Lögndetektorn' : 'Människa eller maskin' // sida A heter så sedan 2026-11-24 (nytt spel)
@@ -354,20 +355,20 @@ export function attractBild(): string | null {
 
 export const ROLLVAL: RollvalConfig = {
   stationTitle: STATION_TITLE,
-  intro: 'Två sätt att se igenom det som inte stämmer. Titta på hur en dag ser ut — välj sedan vilken du vill kliva in i.',
+  intro: 'Två sorters teknologer. Titta på hur en dag ser ut — välj sedan vilken du vill kliva in i.',
   question: 'Vilken av dem känns som du?',
   roles: [
     {
       id: 'akthetsgranskare',
-      name: 'Äkthetsgranskare',
-      tagline: 'Den som känner igen det äkta.',
-      description: 'Mitt i allt som härmar och kopierar är förmågan att känna igen det genuina — en riktig människa, en äkta reaktion — ovärderlig. Litar inte blint, prövar.',
+      name: 'Teleingenjör',
+      tagline: 'Den som får tonen tillbaka i luren.',
+      description: 'Följer linjen genom Valvet, mäter, letar och löder tills det hörs en ton i luren igen. Praktiskt hantverk som får allt annat att fungera.',
     },
     {
       id: 'sanningsanalytiker',
-      name: 'Sanningsanalytiker',
-      tagline: 'Den som ser skillnad på sant och påhittat.',
-      description: 'Lyssnar, väger och genomskådar. Att kunna avgöra om något faktiskt stämmer är en av de svåraste och viktigaste förmågor man kan bli bra på.',
+      name: 'Systemutvecklare',
+      tagline: 'Den som lär maskinen höra lögner.',
+      description: 'Sitter med samma problem tills det löser sig — sent, envist och med torr självironi. Bygger systemen som skiljer sant från påhittat.',
     },
   ],
   clipSets: [
@@ -391,8 +392,8 @@ export const ROLLVAL_PORTRATT_SETS: Array<Record<string, string>> = [
  * ENTRÉN (station-kit/entre, gemensam för st1–3): attract med testgrupp +
  * sidindelning → rollval-klippen → valet (person för person / RFID) →
  * ombalansering → "gå till sida A/B". SIDA = ROLL, fast här. TVÅ NUC:ar, en per sida:
- *   sida A = Människotestet (rollvalets Äkthetsgranskare)
- *   sida B = Lögndetektorn  (rollvalets Sanningsanalytiker)
+ *   sida A = Människa eller maskin (rollvalets Teleingenjör)
+ *   sida B = Lögndetektorn         (rollvalets Systemutvecklare)
  * NUC:ens sida: ?sida=A|B i kiosk-URL:en, annars ur VITE_GAME (PINNED_GAME) via
  * SIDE_GAME, annars delad vy (en skärm för hela gruppen, pilot → sida A:s spel).
  * Sida A-NUC:en leder (lottar). De två NUC:arna synkar entrén över appens transport
@@ -404,23 +405,23 @@ export const ENTRE: EntreConfig = {
   stationTitle: STATION_TITLE,
   /** Attract-bilden bakom ankomstvyn: valvdörren (A) / konsolen (B), se ATTRACT_BILD. */
   attractBild: attractBild(),
-  // XY-PLATSER (2026-11-18): A = Människotestet, 3 telefonlurar = max 3; överskottet till
-  // lögndetektorn (en mikrofon, turordning: 1 vid mikrofonen, resten i kö).
+  // XY-PLATSER (2026-11-18): A = Människa eller maskin, 3 telefonlurar = max 3; överskottet till
+  // Lögndetektorn (en lur, turordning: 1 vid luren, resten i kö). Plats-id:n (B.mikrofon) oförändrade (SOM.md).
   roles: [
-    { letter: 'A', rollvalRoleId: 'akthetsgranskare', name: 'Äkthetsgranskare', titel: 'Människotestet', max: 3, plats: 'A.lur' },
+    { letter: 'A', rollvalRoleId: 'akthetsgranskare', name: 'Teleingenjör', titel: 'Människa eller maskin', max: 3, plats: 'A.lur' },
     {
       letter: 'B',
       rollvalRoleId: 'sanningsanalytiker',
-      name: 'Sanningsanalytiker',
+      name: 'Systemutvecklare',
       subRoles: [
-        { id: 'mikrofon', name: 'Vid mikrofonen', count: 1, plats: 'B.mikrofon' },
+        { id: 'mikrofon', name: 'Vid luren', count: 1, plats: 'B.mikrofon' },
         { id: 'ko', name: 'I kö', plats: 'B.ko' },
       ],
     },
   ],
   station3d: 'minne',
   sides: {
-    A: { id: 'A', label: 'Människotestet' },
+    A: { id: 'A', label: 'Människa eller maskin' },
     B: { id: 'B', label: 'Lögndetektorn' },
   },
   voteMode: 'skarm',
@@ -428,21 +429,21 @@ export const ENTRE: EntreConfig = {
   illustrationUrl: `${import.meta.env.BASE_URL}entre/sidor-3d.html`,
   /** Stationsintrot (hype-klipp ~5–6 s) efter "Ställ er på rätt sida". Saknas filen → hoppas över.
    *  Två stationer på två NUC:ar (Josef 2026-11-19): eget klipp per sida (thisSide()).
-   *  Sida B = logndetektorn.mp4. Sida A och den delade vyn = manniskotestet.mp4. */
+   *  Sida B = logndetektorn.mp4. Sida A och den delade vyn = manniska-eller-maskin.mp4 (sedan 2026-11-25). */
   introClip: `${import.meta.env.BASE_URL}media/stationsintro/${thisSide() === 'B' ? 'logndetektorn' : 'manniska-eller-maskin'}.mp4`,
   /** Rollsekvensen efter introt (inga klick): brygga → kort A → klipp A → brygga → kort B → klipp B → valet.
    *  Rollnamn/valvfärg enligt station-kit/stationsintro/README.md (Josef 2026-11-19). */
-  rollkort: { A: 'ÄKTHETSGRANSKARE', B: 'SANNINGSANALYTIKER', valvfarg: '#ff5a3c', sprak: config.lang === 'no' ? 'no' : 'sv' },
+  rollkort: { A: 'TELEINGENJÖR', B: 'SYSTEMUTVECKLARE', valvfarg: '#ff5a3c', sprak: config.lang === 'no' ? 'no' : 'sv' },
   /** De två sidorna (olika NUC:ar) väntar in varandra och spelar introt + rollsekvensen i takt över
    *  broker-synken (station<N>/skarmsynk, SOM.md); varje NUC visar sitt eget stationsintro. Josef 2026-11-20. */
   synkIntro: true,
   clips: ROLLVAL_ENABLED,
   clipSet: ROLLVAL_START_SET,
   clipSetCount: ROLLVAL.clipSets.length,
-  /** DB:ns set_id per klippset-index (SOM.md "Klippset per grupp"). Kontrollerat 2026-11-19 mot HyperFrames-klippen
-   *  (xy-simulator/media/video/teknologerna-influencer/render/ = Assets/roll_*): set1-filerna = Äkthetsgranskare
-   *  KVINNA (A) + Sanningsanalytiker man → kvinnlig A = DB set 2 (st2 A); set2-filerna = Äkthetsgranskare man +
-   *  Sanningsanalytiker KVINNA (B) → DB set 1 (st2 B). OBS omvänt mot filnamnen, som i Undersökningen. */
+  /** DB:ns set_id per klippset-index (SOM.md "Klippset per grupp"). Rollklipp v3 (2026-11-25, xy-produktion/
+   *  rollklipp-st2-v3/KARTA.md) har samma könsfördelning som v2: set1-filerna = Teleingenjör KVINNA (Selma, A) +
+   *  Systemutvecklare man (Elias) → DB set 2 (st2 A); set2-filerna = Teleingenjör man (Viktor) + Systemutvecklare
+   *  KVINNA (Nora, B) → DB set 1 (st2 B). OBS omvänt mot filnamnen, som i Undersökningen. */
   clipSetIds: [2, 1],
   pilotRoster: [
     { band_id: 'PILOT01', name: 'Liam', gender: 'man' },
