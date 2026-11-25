@@ -8,12 +8,14 @@ Varje fönster ska **bara höra sina egna lurar**, och allt ljud ska komma **i t
 
 **Lurarna:**
 
-| Lur | Sitter i | Hör till |
-|---|---|---|
-| A1 | hubbens uttag 2 | Människa eller maskin, spelare 1 |
-| A2 | hubbens uttag 4 | Människa eller maskin, spelare 2 |
-| B | **direkt i NUC:en**, inte i hubben | Lögndetektorn |
+| Märkt lur | Sitter i | Blir | Hör till |
+|---|---|---|---|
+| Lur 1 | **framsidans uttag på NUC:en**, inte i hubben | XY-lur-B | Lögndetektorn |
+| Lur 2 | hubbens uttag 2 | XY-lur-A1 | Människa eller maskin, spelare 1 |
+| Lur 3 | hubbens uttag 4 | XY-lur-A2 | Människa eller maskin, spelare 2 |
 
+Datorn känner igen luren på **uttaget** och inte på själva luren, eftersom donglarna är identiska. Flyttar någon en
+kontakt till ett annat uttag följer rollen med uttaget. Uttagen är märkta med samma nummer som lurarna.
 Hubben klarar bara två lurar. Med en tredje tar USB-bandbredden slut, och då försvinner en lur.
 
 > **Rör inte kablarna** medan NUC:en är på. En dongel med glapp kan frysa all USB, och då måste NUC:en stängas av
