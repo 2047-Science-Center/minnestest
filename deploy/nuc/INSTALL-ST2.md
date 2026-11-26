@@ -154,6 +154,18 @@ EXTRA_QUERY_B=lur=XY-lur-B
 - **`ST2_URL=direkt`** öppnar spelen direkt (:8796 och :8798) utan skal och entré. Använd det för bänktest utan
   broker, eftersom skalets entré synkar sidorna över brokern. Utan raden (`skal`) öppnas skalet, som i riggen.
 
+**Lurdonglarna vid kallstart (en gång per NUC, sudo):** JieLi-donglarna är UAC3-enheter. Sitter de i när NUC:en
+startar svarar de inte i tid, och kärnan säger `snd-usb-audio … probe failed with error -32`. Då blir det inga
+ljudenheter. Kopplas de in efter starten fungerar de. Tjänsten `st2-lurar-usb` gör samma omkoppling i mjukvara cirka
+10 sekunder efter varje start:
+```bash
+sed "s|@SKRIPT@|$HOME/minnestest/deploy/nuc/st2-lurar-usb.sh|" ~/minnestest/deploy/nuc/st2-lurar-usb.service | sudo tee /etc/systemd/system/st2-lurar-usb.service >/dev/null && sudo systemctl daemon-reload && sudo systemctl enable --now st2-lurar-usb.service
+```
+✅ `journalctl -u st2-lurar-usb -b` visar `alla lurdonglar har ljuddrivrutin`.
+
+**En lur per sida** (innan hubben finns): `LUR_A1=…`, `LUR_B=…` och `EXTRA_QUERY_A=lurar=1`. Människa eller maskin
+kör då med en spelare.
+
 **En NUC per sida:**
 ```
 SIDA=A

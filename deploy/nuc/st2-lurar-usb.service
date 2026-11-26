@@ -1,0 +1,14 @@
+# Station 2: väck lurdonglar som inte fick ljuddrivrutin vid kallstart (st2-lurar-usb.sh). Systemtjänst (root).
+# Installera:  sudo install -m 0644 deploy/nuc/st2-lurar-usb.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable st2-lurar-usb.service
+# @SKRIPT@ ersätts med full sökväg vid installation (se INSTALL-ST2.md).
+[Unit]
+Description=X&Y station 2 — väck telefonlurarnas USB-donglar efter start
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/sleep 10
+ExecStart=/bin/sh @SKRIPT@
+
+[Install]
+WantedBy=multi-user.target

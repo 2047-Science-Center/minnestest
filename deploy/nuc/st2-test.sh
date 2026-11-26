@@ -102,7 +102,13 @@ fi
 
 # Lurarna först: saknas en på USB startar vi inte (annars hamnar dess ljud i skärmen och det "hoppar").
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-if ! "$HERE/st2-ljud.sh" koll; then
+# Vid uppstart kan lurdonglarna behöva några sekunder (st2-lurar-usb.service väcker dem ~10 s efter start).
+lurar_ok=0
+for _ in $(seq 1 15); do
+  "$HERE/st2-ljud.sh" koll >/dev/null 2>&1 && { lurar_ok=1; break; }
+  sleep 2
+done
+if [ "$lurar_ok" = 0 ] && ! "$HERE/st2-ljud.sh" koll; then
   command -v notify-send >/dev/null 2>&1 && DISPLAY="${DISPLAY:-:0}" notify-send -u critical "Station 2" "En lur saknas på USB — se terminalen / st2-ljud.sh koll" 2>/dev/null || true
   exit 1
 fi
