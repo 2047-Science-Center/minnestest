@@ -9,7 +9,9 @@
 #   bash ~/minnestest/deploy/nuc/st2-test.sh omstart    stäng allt (även servrarna) och starta om
 #   bash ~/minnestest/deploy/nuc/st2-test.sh uppdatera  git pull (skalet + båda spelen) + bygg + omstart
 #   bash ~/minnestest/deploy/nuc/st2-test.sh ikoner     skrivbordsikoner: starta, starta om, stoppa, uppdatera
-# Kräver kiosk.env med SIDA=AB + LUR_A1/LUR_A2/LUR_B (INSTALL-ST2.md steg 7). ST2_URL=direkt = utan skal/broker;
+# Kräver kiosk.env med SIDA=AB + LUR_A1/LUR_A2/LUR_B (INSTALL-ST2.md steg 7), eller EN sida per NUC: SIDA=A
+# (Människa eller maskin, LUR_A1..A3 + EXTRA_QUERY=lurar=N) / SIDA=B (Lögndetektorn, LUR_B) — då startas bara den
+# sidans spelserver och ett fönster. ST2_URL=direkt = utan skal/broker (bara SIDA=AB);
 # annars (skal) startar testet även skalet på :8080 (entré → rollval → spel, broker ur ~/minnestest/.env.production.local).
 # Stäng ett fönster: Alt+F4. Loggar: /tmp/st2-mem.log, /tmp/st2-logn.log, /tmp/st2-kiosk.log
 set -euo pipefail
@@ -19,7 +21,9 @@ BAS="$(cd "$HERE/../../.." && pwd)"   # syskonmapparna (~/manniska-eller-maskin,
 PROFILE_DIR="${PROFILE_DIR:-$HOME/.flykten-kiosk}"
 [ -f "$HERE/kiosk.env" ] && PROFILE_DIR="$(. "$HERE/kiosk.env"; echo "${PROFILE_DIR:-$HOME/.flykten-kiosk}")"
 
-stang_fonster() { pkill -f "$PROFILE_DIR/st2-" 2>/dev/null || true; }
+SIDA_V="$( [ -f "$HERE/kiosk.env" ] && . "$HERE/kiosk.env"; echo "${SIDA:-AB}")"
+# Båda fönstren (st2-A/st2-B, SIDA=AB) och enkelfönstret (SIDA=A/B kör kiosk.sh med PROFILE_DIR direkt).
+stang_fonster() { pkill -f -- "--user-data-dir=$PROFILE_DIR" 2>/dev/null || true; }
 
 server() { # namn port hälsa mapp fil portvariabel
   local namn="$1" port="$2" halsa="$3" mapp="$BAS/$4" fil="$5" var="$6"
@@ -118,8 +122,8 @@ fi
 # men startad här utan sudo/systemd. Svarar tjänsten redan används den.
 ST2_URL_V="$( [ -f "$HERE/kiosk.env" ] && . "$HERE/kiosk.env"; echo "${ST2_URL:-skal}")"
 [ "$ST2_URL_V" = direkt ] || server skal 8080 / minnestest server/index.js PORT
-server mem 8796 /healthz manniska-eller-maskin server/index.mjs GATEWAY_PORT
-server logn 8798 / forhoret server/index.js FORHORET_PORT
+[ "$SIDA_V" = B ] || server mem 8796 /healthz manniska-eller-maskin server/index.mjs GATEWAY_PORT
+[ "$SIDA_V" = A ] || server logn 8798 / forhoret server/index.js FORHORET_PORT
 stang_fonster
 sleep 1
 export DISPLAY="${DISPLAY:-:0}"

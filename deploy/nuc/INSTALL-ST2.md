@@ -166,16 +166,31 @@ sed "s|@SKRIPT@|$HOME/minnestest/deploy/nuc/st2-lurar-usb.sh|" ~/minnestest/depl
 **En lur per sida** (innan hubben finns): `LUR_A1=…`, `LUR_B=…` och `EXTRA_QUERY_A=lurar=1`. Människa eller maskin
 kör då med en spelare.
 
-**En NUC per sida:**
+**En NUC per sida** (beslut 2026-11-26: station 2 delas på två NUC:ar). `st2-test.sh` startar då bara den sidans
+spelserver och **ett** fönster, och `kiosk.sh` lägger appens ljud i sidans lurar (ut `xy_lurar_A` / `xy_lur_B_ut`).
+Portarna (`usb-0:…:`) tar du fram med `st2-ljud.sh lista` när lurarna sitter i. Högst två lurar per hubb
+(bandbredden), en tredje direkt i NUC:en.
 ```
+# NUC 1 — Människa eller maskin, tre lurar
 SIDA=A
-LUR_A1=usb-0:2.2:
-LUR_A2=usb-0:2.4:
+LUR_A1=usb-0:6.3:
+LUR_A2=usb-0:6.1:
+LUR_A3=usb-0:4:
+EXTRA_QUERY=lurar=3
+OUTPUT=DP-3
+TOUCH_PATH=pci-0000:00:14.0-usb-0:1:1.0
+OUTPUT_A=DP-3
+TOUCH_PATH_A=pci-0000:00:14.0-usb-0:1:1.0
 ```
 ```
+# NUC 2 — Lögndetektorn, en lur
 SIDA=B
-LUR_B=usb-0:2.3:
+LUR_B=usb-0:5:
 EXTRA_QUERY=lur=XY-lur-B
+OUTPUT=…            # ur find-touch.sh
+TOUCH_PATH=…
+OUTPUT_A=…          # samma skärm igen, så att st2-reset-touch.sh mappar den
+TOUCH_PATH_A=…
 ```
 
 Lurvolymen sätts av `st2-ljud.sh`: 100 % ut och 50 % in, eftersom JieLi-donglarna startar på 40 %. Ändra med

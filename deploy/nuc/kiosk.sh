@@ -62,6 +62,18 @@ if [ -n "${LUR_A1:-}${LUR_B:-}" ] && command -v pactl >/dev/null 2>&1; then
   "$HERE/st2-ljud.sh" koppla || echo "kiosk.sh: kunde inte koppla lurarna (kör deploy/nuc/st2-ljud.sh lista)." >&2
 fi
 
+# --- Station 2, EN sida per NUC (SIDA=A / SIDA=B): appens ljud i sidans lurar, aldrig i skärmen ---
+# (SIDA=AB sköts per fönster av route-loopen i st2-kiosk.sh.) Sätts efter `koppla`, när xy_* finns.
+if { [ "$SIDA" = A ] || [ "$SIDA" = B ]; } && [ -n "${LUR_A1:-}${LUR_B:-}" ] && command -v pactl >/dev/null 2>&1; then
+  if [ "$SIDA" = A ]; then st2_ut=xy_lurar_A; st2_in=xy_lur_A1; else st2_ut=xy_lur_B_ut; st2_in=xy_lur_B; fi
+  if LC_ALL=C pactl list short sinks 2>/dev/null | awk '{print $2}' | grep -qx "$st2_ut"; then
+    pactl set-default-sink "$st2_ut" && pactl set-default-source "$st2_in" \
+      && echo "kiosk.sh: sida $SIDA → ut $st2_ut, in $st2_in"
+  else
+    echo "kiosk.sh: $st2_ut saknas — lurarna kopplades inte (st2-ljud.sh koll)." >&2
+  fi
+fi
+
 # --- Station 2 på EN NUC med två skärmar: SIDA=AB → två kioskfönster (st2-kiosk.sh) ---
 if [ "$SIDA" = AB ]; then
   . "$HERE/st2-kiosk.sh"
