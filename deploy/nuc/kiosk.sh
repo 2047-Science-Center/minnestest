@@ -110,7 +110,15 @@ if [ "${KIOSK:-1}" = 1 ]; then FULLSCREEN_FLAG=--kiosk; else FULLSCREEN_FLAG=--s
 #   --autoplay-policy=...           → attract-ljud + uppläst NPC-röst utan gest
 #   --ozone-platform=x11            → helskärm funkar även på Wayland (XWayland)
 OZONE="${OZONE:-x11}"
+# Rätt skärm när flera är inkopplade: POS=x,y, annars skärmen OUTPUT:s läge ur xrandr (läget kan byta vid omstart,
+# kontaktnamnet gör det inte). Utan båda: Chromes standard (primärskärmen).
+if [ -z "${POS:-}" ] && [ -n "$OUTPUT" ] && command -v xrandr >/dev/null 2>&1; then
+  POS="$(xrandr 2>/dev/null | awk -v o="$OUTPUT" '$1==o && $2=="connected" { for (i=3;i<=NF;i++) if ($i ~ /^[0-9]+x[0-9]+\+[0-9]+\+[0-9]+$/) { split($i,a,"+"); print a[2]","a[3]; exit } }')"
+fi
+POS_FLAG=()
+[ -n "${POS:-}" ] && POS_FLAG=(--window-position="$POS") && echo "kiosk.sh: fönstret på ${OUTPUT:-skärmen} @ $POS"
 exec "$BROWSER" \
+  "${POS_FLAG[@]}" \
   "--ozone-platform=$OZONE" \
   "$FULLSCREEN_FLAG" --disable-pinch \
   --user-data-dir="$PROFILE_DIR" \
