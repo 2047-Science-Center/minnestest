@@ -435,8 +435,9 @@ export const ENTRE: EntreConfig = {
    *  Rollnamn/valvfärg enligt station-kit/stationsintro/README.md (Josef 2026-11-19). */
   rollkort: { A: 'TELEINGENJÖR', B: 'SYSTEMUTVECKLARE', valvfarg: '#ff5a3c', sprak: config.lang === 'no' ? 'no' : 'sv' },
   /** De två sidorna (olika NUC:ar) väntar in varandra och spelar introt + rollsekvensen i takt över
-   *  broker-synken (station<N>/skarmsynk, SOM.md); varje NUC visar sitt eget stationsintro. Josef 2026-11-20. */
-  synkIntro: true,
+   *  broker-synken (station<N>/skarmsynk, SOM.md); varje NUC visar sitt eget stationsintro. Josef 2026-11-20.
+   *  ?synk=0 = sidan kör ensam (andra sidans NUC finns inte än) — annars står den på "Väntar på andra sidan". */
+  synkIntro: typeof window === 'undefined' || new URLSearchParams(window.location.search).get('synk') !== '0',
   clips: ROLLVAL_ENABLED,
   clipSet: ROLLVAL_START_SET,
   clipSetCount: ROLLVAL.clipSets.length,
