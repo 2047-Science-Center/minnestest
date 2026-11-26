@@ -70,6 +70,18 @@ function createTransport(): Transport {
   if (config.mode === 'production') {
     return new MqttTransport(config.stationN)
   }
+  // En sida per NUC (?sida=A|B) i riggen (VITE_MQTT_URL satt vid bygget): synken MÅSTE gå över brokern —
+  // BroadcastChannel når bara samma dator och sidorna skulle vänta på varandra i evighet (XY-ST2-TVA-NUCAR M1).
+  // ?synkvia=mqtt tvingar brokern, ?synkvia=lokal tvingar BroadcastChannel (bänk utan broker).
+  if (typeof window !== 'undefined') {
+    const p = new URLSearchParams(window.location.search)
+    const sida = p.get('sida')?.toUpperCase()
+    const via = p.get('synkvia')
+    const rigg = !!(import.meta.env.VITE_MQTT_URL as string | undefined)
+    if (via === 'mqtt' || (via !== 'lokal' && rigg && (sida === 'A' || sida === 'B'))) {
+      return new MqttTransport(config.stationN)
+    }
+  }
   return new BroadcastChannelTransport(`minnestest-station${config.stationN}`)
 }
 

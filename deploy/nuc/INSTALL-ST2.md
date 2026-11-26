@@ -87,9 +87,14 @@ Vill du ha egna nycklar per spel lägger du dem i `~/manniska-eller-maskin/serve
 ## Steg 5: Brokern (riggens adress, via env)
 🖥️ KÖR:
 ```bash
-echo 'VITE_MQTT_URL=ws://192.168.10.10:9001' > ~/minnestest/.env.production.local
+printf '%s\n' VITE_MQTT_URL=ws://192.168.10.10:9001 VITE_ROTATION=1 VITE_LJUS=1 VITE_FILM=1 VITE_INCHECKNING=1 > ~/minnestest/.env.production.local
 ```
-Filen är gitignorerad (`*.local`). Det är riggens broker i Borlänge.
+Filen är gitignorerad (`*.local`). Det är riggens broker i Borlänge plus rotation, ljus, film och incheckning.
+> **Station 2 på två NUC:ar:** filen måste vara **exakt likadan på båda** (sida A och sida B). Skiljer en flagga
+> (t.ex. rotation på ena, av på andra) får sidorna olika környckel och slänger varandras meddelanden utan att säga
+> något. Kontroll: `diff <(ssh minnest01@minnest-01 cat ~/minnestest/.env.production.local) <(ssh logndetektorn01@logndetektorn-01 cat ~/minnestest/.env.production.local)`
+> ska inte visa något. Med `VITE_MQTT_URL` satt och `?sida=A|B` går sidornas synk över brokern (`station2/skarmsynk`).
+> `synk=0` (sidan kör ensam) bara på A och bara när B saknas — aldrig blandat.
 > **På 2047-nätet nu** finns ingen `192.168.10.10`, så MQTT kopplar inte upp förrän i Borlänge. Spelen fungerar
 > ändå: lurar, AI och röst. Det som saknas på 2047 är rotationen från regi, ljuset (`station2/underglow`) och
 > VALdi-ringen. Peka inte om till husbrokern i riggen (CLAUDE.md, "Kopiera ALDRIG in i riggen").
@@ -296,8 +301,10 @@ systemctl --user status minnestest-kiosk
 ---
 
 ## I Borlänge
-- **Koppla in NUC:en i Teltonika-routern.** IP-adressen **`192.168.10.12`** sätts **i routern** med en DHCP-reservation på NUC:ens MAC, se `xy-arkitektur/TELTONIKA-INSTALLATION.md` §6.3. Inget ändras i kitet.
-- **Brokern** (`192.168.10.10`) står redan i `.env.production.local`, så MQTT kopplar upp av sig själv. Rotation, ljus och VALdi-ringen börjar fungera.
+- **Koppla in NUC:arna i Teltonika-routern.** Sida A (`minnest-01`) får **`192.168.10.12`**, sida B (`logndetektorn-01`)
+  **`192.168.10.17`**, med DHCP-reservation på MAC eller manuell IPv4, se `xy-arkitektur/TELTONIKA-INSTALLATION.md` §7. Inget ändras i kitet.
+- **Brokern** (`192.168.10.10`) står redan i `.env.production.local` (steg 5, samma fil på båda), så MQTT kopplar upp av sig själv.
+  Rotation, ljus, VALdi-ringen och synken mellan sidorna börjar fungera.
 - **Internet behövs fortfarande** för talfångsten i Chrome, AI-anropen och ElevenLabs, alltså via routerns WAN/SIM.
 - ✅ Från en laptop på rigg-nätet ska du se stationens topics:
   ```bash
