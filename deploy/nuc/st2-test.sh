@@ -9,7 +9,8 @@
 #   bash ~/minnestest/deploy/nuc/st2-test.sh omstart    stäng allt (även servrarna) och starta om
 #   bash ~/minnestest/deploy/nuc/st2-test.sh uppdatera  git pull (skalet + båda spelen) + bygg + omstart
 #   bash ~/minnestest/deploy/nuc/st2-test.sh ikoner     skrivbordsikoner: starta, starta om, stoppa, uppdatera
-# Kräver kiosk.env med SIDA=AB + LUR_A1/LUR_A2/LUR_B (INSTALL-ST2.md steg 7). ST2_URL=direkt = utan skal/broker.
+# Kräver kiosk.env med SIDA=AB + LUR_A1/LUR_A2/LUR_B (INSTALL-ST2.md steg 7). ST2_URL=direkt = utan skal/broker;
+# annars (skal) startar testet även skalet på :8080 (entré → rollval → spel, broker ur ~/minnestest/.env.production.local).
 # Stäng ett fönster: Alt+F4. Loggar: /tmp/st2-mem.log, /tmp/st2-logn.log, /tmp/st2-kiosk.log
 set -euo pipefail
 
@@ -39,7 +40,7 @@ server() { # namn port hälsa mapp fil portvariabel
 stoppa() {
   stang_fonster
   # Bara servrarna som st2-test.sh själv startade (pid-filerna) — aldrig andra stationers node-servrar.
-  for n in mem logn; do
+  for n in skal mem logn; do
     [ -f "/tmp/st2-$n.pid" ] && kill "$(cat "/tmp/st2-$n.pid")" 2>/dev/null || true
     rm -f "/tmp/st2-$n.pid"
   done
@@ -52,7 +53,7 @@ if [ "${1:-}" = uppdatera ]; then
     echo "st2-test: uppdaterar $r"
     ( cd "$BAS/$r" && git pull --ff-only ) || { echo "st2-test: git pull misslyckades i $r" >&2; exit 1; }
   done
-  for r in manniska-eller-maskin forhoret; do
+  for r in minnestest manniska-eller-maskin forhoret; do
     ( cd "$BAS/$r" && (npm ci --no-audit --no-fund >/tmp/st2-npm-$r.log 2>&1 || npm install --no-audit --no-fund >>/tmp/st2-npm-$r.log 2>&1) \
       && npm run build >>/tmp/st2-npm-$r.log 2>&1 ) || { echo "st2-test: bygget av $r misslyckades — se /tmp/st2-npm-$r.log" >&2; exit 1; }
     echo "st2-test: $r byggd"
@@ -113,6 +114,10 @@ if [ "$lurar_ok" = 0 ] && ! "$HERE/st2-ljud.sh" koll; then
   exit 1
 fi
 
+# ST2_URL=skal (standard): skalet (entré, rollval, rotation, ljus) på :8080 — samma server som minnestest-server,
+# men startad här utan sudo/systemd. Svarar tjänsten redan används den.
+ST2_URL_V="$( [ -f "$HERE/kiosk.env" ] && . "$HERE/kiosk.env"; echo "${ST2_URL:-skal}")"
+[ "$ST2_URL_V" = direkt ] || server skal 8080 / minnestest server/index.js PORT
 server mem 8796 /healthz manniska-eller-maskin server/index.mjs GATEWAY_PORT
 server logn 8798 / forhoret server/index.js FORHORET_PORT
 stang_fonster
