@@ -68,6 +68,8 @@ POS_A="${POS_A:-0,0}"
 POS_B="${POS_B:-1920,0}"
 
 # --- Touch per skärm (port-baserat, självläkande) ---
+# Sida B:s panel som egen pekare (TOUCH_EGEN_PEKARE=1), så samtidiga tryck inte låser fönstren (st2-reset-touch.sh).
+bash "$HERE/st2-reset-touch.sh" --pekare || true
 WATCH_PID=""
 if command -v xinput >/dev/null 2>&1 && command -v udevadm >/dev/null 2>&1; then
   touch_args=()

@@ -188,6 +188,29 @@ bash ~/minnestest/deploy/nuc/st2-ljud.sh koppla
 Den listar `in xy_lur_A1`, `in xy_lur_A2`, `in xy_lur_B`, `ut xy_lurar_A` och `ut xy_lur_B_ut`.
 Kopplingarna försvinner vid omstart, men kiosken kör `koppla` själv innan Chrome startar.
 
+## Steg 7b: Touch, varje skärm tar bara sina egna tryck (permanent, som Förhandlingen)
+Med två touchskärmar på en NUC kan ett tryck på den ena registreras på den andra. Fixen är densamma som i
+Förhandlingen. Varje panel binds till **sin** skärm via panelens USB-port. Det mappas om vid varje inloggning och
+sedan var femte sekund. Dessutom får sida B:s panel en egen pekare, så att samtidiga tryck inte låser fönstren.
+🖥️ KÖR (skärmarna och touchkablarna inkopplade, i X11):
+```bash
+bash ~/minnestest/deploy/nuc/find-touch.sh
+```
+Lägg raderna den skriver ut i `kiosk.env`, med vänster skärm som sida A och höger som sida B:
+```
+OUTPUT_A=DP-1
+TOUCH_PATH_A=pci-...-usb-0:...
+OUTPUT_B=DP-3
+TOUCH_PATH_B=pci-...-usb-0:...
+TOUCH_WATCH=5
+TOUCH_EGEN_PEKARE=1
+```
+```bash
+bash ~/minnestest/deploy/nuc/st2-reset-touch.sh autostart && bash ~/minnestest/deploy/nuc/st2-reset-touch.sh
+```
+✅ Den skriver `Touch ommappad.`. Tryck på vänster skärm, då ska bara vänster reagera. Gör sedan samma sak med höger.
+Ikonen **Återställ touch (station 2)** på skrivbordet gör samma sak om något någon gång hamnar fel.
+
 ## Steg 8: Kiosken startar av sig själv
 Kiosken kräver autologin till en X11-session. Antingen:
 - **Ren kiosk** (rekommenderas):
