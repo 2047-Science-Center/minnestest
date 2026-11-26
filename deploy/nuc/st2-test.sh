@@ -108,9 +108,16 @@ fi
 # Lurarna först: saknas en på USB startar vi inte (annars hamnar dess ljud i skärmen och det "hoppar").
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 # Vid uppstart kan lurdonglarna behöva några sekunder (st2-lurar-usb.service väcker dem ~10 s efter start).
+# JieLi-donglarna får ofta INGEN ljuddrivrutin vid kallstart (UAC3, -32) och vaknar bara av att dras ur och sättas i
+# (2026-11-26). Därför väntar vi upp till 10 min och ber om omkoppling — sedan startar stationen av sig själv.
 lurar_ok=0
-for _ in $(seq 1 15); do
+for i in $(seq 1 300); do
   "$HERE/st2-ljud.sh" koll >/dev/null 2>&1 && { lurar_ok=1; break; }
+  if [ "$i" = 15 ]; then
+    echo "st2-test: lurarna har inget ljud — dra ur och sätt i dem en i taget, stationen startar sedan själv."
+    command -v notify-send >/dev/null 2>&1 && DISPLAY="${DISPLAY:-:0}" notify-send -u critical "Station 2" \
+      "Lurarna har inget ljud ännu. Dra ur och sätt i dem en i taget — stationen startar sedan själv." 2>/dev/null || true
+  fi
   sleep 2
 done
 if [ "$lurar_ok" = 0 ] && ! "$HERE/st2-ljud.sh" koll; then
