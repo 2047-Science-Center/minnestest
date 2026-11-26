@@ -7,8 +7,12 @@
  * LJUS (XY-ST2-LJUSMANUS.md, SOM.md): spelet styr inte underglow själv utan skickar
  * {kalla:"xy-st2", typ:"ljus", lage? | gest? | utfall? | farg?, seg?} → skalet anropar station-kit/ljus
  * på SINA segment (sida A: A + A.lur1–3, sida B: B). Alltid tyst — spelet spelar sina egna ljud.
+ *
+ * HOPPA (station-kit/kiosk/kioskSkip): hörngesten ligger i skalet (ovanför iframen). Medan spelet visas
+ * skickas hoppet in i spelet: {kalla:"xy-st2", typ:"hoppa"} → spelets eget "nästa steg".
  */
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useHoppa } from '@/station-kit/kiosk/kioskSkip'
 import { useLjus } from '@/station-kit/ljus'
 import type { Gest, Lage } from '@/station-kit/ljus/kanon'
 import { spelSrc, tolkaPersoner, type ExternPerson } from '../externSpel'
@@ -53,12 +57,19 @@ function ljusFranSpel(m: LjusMsg): void {
   else if (m.farg && /^#[0-9a-fA-F]{6}$/.test(m.farg.color ?? '') && EFFEKTER.includes(m.farg.effekt ?? 'static'))
     ljus.farg({ color: m.farg.color!, effekt: (m.farg.effekt ?? 'static') as 'static' }, ids)
 }
+const ram = ref<HTMLIFrameElement | null>(null)
+useHoppa(() => {
+  const w = ram.value?.contentWindow
+  if (!w) return false
+  w.postMessage({ kalla: 'xy-st2', typ: 'hoppa' }, spelOrigin.value)
+  return true
+})
 onMounted(() => window.addEventListener('message', onMessage))
 onBeforeUnmount(() => window.removeEventListener('message', onMessage))
 </script>
 
 <template>
-  <iframe class="extern" :src="src" allow="microphone; autoplay; fullscreen; speaker-selection" title="Stationens spel" />
+  <iframe ref="ram" class="extern" :src="src" allow="microphone; autoplay; fullscreen; speaker-selection" title="Stationens spel" />
 </template>
 
 <style scoped>

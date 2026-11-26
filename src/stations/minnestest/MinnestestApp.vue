@@ -14,6 +14,7 @@ import { audio } from '@/station-kit/audio/AudioEngine'
 import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
 import { initRotation, rotationOptions, DEFAULT_ORDER } from '@/station-kit/rotation/rotation'
 import { kortFil } from '@/station-kit/spellage/spellage'
+import { pilotUi } from '@/station-kit/kiosk/kioskSkip'
 import SpellageKort from '@/station-kit/spellage/SpellageKort.vue'
 import { initResultat, resultatOptions } from '@/station-kit/resultat'
 import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
@@ -63,6 +64,8 @@ const ROLE_TO_GAME: Record<string, Game> = {
 //     till lek när DESS spel är klart; regi väntar in båda (rotation.done_nycklar). Delad vy
 //     (pilot, ingen sida) = hela stationen som förut.
 const mySide = thisSide()
+/** Facilitatorns paus/nollställ/avsluta syns bara med ?pilot=1 (Josef 2026-11-26, som st1/st3); annars hörngesterna. */
+const visaPilot = pilotUi()
 // --- Station 2:s nya spel (Josef 2026-11-24, SOM.md "Station 2 från 2026-11-24"): efter entrén öppnas sidans
 //     spel-app i helskärm — sida A Människa eller maskin, sida B Lögndetektorn — på samma dator. Skalet (den här
 //     appen) behåller entrén, rotationen, resultatet, ljuset, filmerna och leken. ?spel=gammalt = rumsspelen. ---
@@ -294,7 +297,7 @@ watch(
     </template>
 
     <!-- Facilitator-kontroller (paus/starta om/avsluta) + paus-overlay -->
-    <FacilitatorControls v-if="store.phase !== 'attract'" />
+    <FacilitatorControls v-if="visaPilot && store.phase !== 'attract'" />
     <PauseOverlay v-if="store.paused" />
 
     <!-- Rotationen: väntar / lek (overlay; "Testgrupp X — tryck" visas av entrén) -->
