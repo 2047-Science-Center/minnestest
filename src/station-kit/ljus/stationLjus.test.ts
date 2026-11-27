@@ -146,19 +146,24 @@ describe('station-kit/ljus', () => {
     expect(l.state.bas.A).toEqual({ color: FARG.skarp, effekt: 'static' })
   })
 
-  it('delad station: bara egna segment, ersatt:false, ompublicering', () => {
+  it('delad station: bara egna segment på station<N>/underglow/<sida>, ingen ompublicering', () => {
     const f = fakeClient()
-    initLjus(
-      { stationN: 2, enabled: true, mqttUrl: '', valv: 'teknolog', segment: { ...SEG, valdi: [60, 75] }, egna: ['B', 'valdi'], delad: true },
+    const l = initLjus(
+      { stationN: 2, enabled: true, mqttUrl: '', valv: 'teknolog', segment: SEG, egna: ['B'], sida: 'B' },
       f.c,
     )
     f.connect()
-    const n = f.sent.length
     const first = f.sent.at(-1)!
-    expect(first.payload.ersatt).toBe(false)
-    expect(first.payload.segments.map((s: any) => s.id)).toEqual(['B', 'valdi'])
-    vi.advanceTimersByTime(15000)
-    expect(f.sent.length).toBe(n + 1)
+    expect(first.topic).toBe('station2/underglow/B')
+    expect(first.payload.ersatt).toBeUndefined()
+    expect(first.payload.segments.map((s: any) => s.id)).toEqual(['B'])
+    const n = f.sent.length
+    vi.advanceTimersByTime(60000)
+    expect(f.sent.length).toBe(n)
+    l.lage('skarp')
+    l.gest('kvitto', ['B'])
+    expect(f.sent.slice(n).map((m) => m.topic)).toEqual(['station2/underglow/B', 'station2/feedback'])
+    expect(f.sent.some((m) => m.topic === 'station2/underglow')).toBe(false)
   })
 
   it('följarfönster (skrivare:false) publicerar ingen bas men får skicka gester', () => {

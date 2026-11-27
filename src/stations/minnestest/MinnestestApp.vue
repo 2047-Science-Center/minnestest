@@ -89,7 +89,8 @@ entre.setScreen({ side: mySide, leader: mySide !== 'B' })
 const entreDone = computed(() => entre.state.step === 'klar')
 
 // --- Ljuset (station-kit/ljus, XY-FEEDBACK-LJUS-LJUD §5.2). DELAD station: varje sidas NUC
-//     skriver bara SINA segment (A | B + valdi) med {ersatt:false}; delad vy = alla segment.
+//     skriver bara SINA segment på station2/underglow/<sida> (SOM.md "Delad station: en topic per
+//     sida"); delad vy (ingen sida) = alla segment på station2/underglow.
 //     Sidans bas följer rotationen (eller appens faser när rotationen är av); done → 'klar'. ---
 const ljus = initLjus(
   ljusOptions({
@@ -100,7 +101,7 @@ const ljus = initLjus(
     segment: LJUS.segment,
     skrivare: true,
     egna: egnaSegment(mySide),
-    delad: mySide != null,
+    sida: mySide,
     spela,
   }),
 )

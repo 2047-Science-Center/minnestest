@@ -76,8 +76,10 @@ describe('station 2 ljus — delad station mot modulen', () => {
     }
     return { sent, c, connect: () => onConnect() }
   }
-  const bas = (sent: { topic: string; payload: any }[]) =>
-    sent.filter((m) => m.topic === 'station2/underglow').at(-1)!.payload
+  const bas = (sent: { topic: string; payload: any }[], sida: 'A' | 'B') => {
+    expect(sent.some((m) => m.topic === 'station2/underglow')).toBe(false)
+    return sent.filter((m) => m.topic === `station2/underglow/${sida}`).at(-1)!.payload
+  }
 
   it('standardslingan: A 0–69 (lurarna = A.1/A.2/A.3), B 70–140, ingen valdi på underglow', () => {
     expect(LJUS.segment.A).toEqual([0, 69])
@@ -86,15 +88,14 @@ describe('station 2 ljus — delad station mot modulen', () => {
     expect(LJUS.segment.valdi).toBeUndefined()
   })
 
-  it('sida A + sida B täcker tillsammans hela slingan 0–140 (ersatt:false)', () => {
+  it('sida A + sida B täcker tillsammans hela slingan 0–140, var sin topic', () => {
     const tackt = new Set<number>()
     for (const sida of ['A', 'B'] as const) {
       __resetLjusForTest()
       const k = klient()
-      initLjus({ stationN: 2, enabled: true, mqttUrl: '', valv: 'teknolog', segment: LJUS.segment, egna: egnaSegment(sida), delad: true, skrivare: true }, k.c)
+      initLjus({ stationN: 2, enabled: true, mqttUrl: '', valv: 'teknolog', segment: LJUS.segment, egna: egnaSegment(sida), sida, skrivare: true }, k.c)
       k.connect()
-      const b = bas(k.sent)
-      expect(b.ersatt).toBe(false)
+      const b = bas(k.sent, sida)
       expect(b.segments.map((x: { id: string }) => x.id)).toEqual(egnaSegment(sida))
       for (const x of b.segments) for (let i = x.from; i <= x.to; i++) tackt.add(i)
     }
@@ -103,17 +104,17 @@ describe('station 2 ljus — delad station mot modulen', () => {
     expect(Math.max(...tackt)).toBe(140)
   })
 
-  it('sida B skriver bara B; ringens lägen/gester på valdi är no-op', () => {
+  it('sida B skriver bara B (station2/underglow/B); ringens lägen/gester på valdi är no-op', () => {
     const k = klient()
     const spela = vi.fn()
     const l = initLjus(
-      { stationN: 2, enabled: true, mqttUrl: '', valv: 'teknolog', segment: LJUS.segment, egna: egnaSegment('B'), delad: true, skrivare: true, spela },
+      { stationN: 2, enabled: true, mqttUrl: '', valv: 'teknolog', segment: LJUS.segment, egna: egnaSegment('B'), sida: 'B', skrivare: true, spela },
       k.c,
     )
     k.connect()
     l.lage('skarp', [segmentFor('logndetektor', 'B')])
     for (const s of ringSteg('vila', 'lyssnar')) if ('lage' in s) l.lage(s.lage, ['valdi'])
-    const b = bas(k.sent)
+    const b = bas(k.sent, 'B')
     expect(b.segments).toEqual([{ id: 'B', from: 70, to: 140, color: FARG.skarp, effekt: 'static' }])
 
     const fore = k.sent.length

@@ -86,8 +86,8 @@ export const BANDLOST: boolean = bandlostFran(true, import.meta.env.VITE_BANDLOS
 
 /**
  * LJUS (station-kit/ljus, XY-FEEDBACK-LJUS-LJUD §1.2/§5.2, SOM.md "Stationsljus"):
- * station2/underglow (bas, retained) + station2/feedback (gester). DELAD station: varje
- * sidas NUC skriver bara SINA segment — A = Människa eller maskin (3 lurar), B = Lögndetektorn.
+ * station2/underglow/A|B (bas, retained, en topic per sida) + station2/feedback (gester). DELAD
+ * station: varje sidas NUC skriver bara SINA segment — A = Människa eller maskin (3 lurar), B = Lögndetektorn.
  * Standardslingan (SOM.md, 141 LED, samma som st1/st3): A 0–69, B 70–140. VALdi-ringen ligger
  * INTE på underglow — den sitter på hålets egen ESP32 (station2/valdi). Josef 2026-11-27.
  * Av i piloten (följer config.mode); ?ljus=1|0|visa / VITE_LJUS överstyr.

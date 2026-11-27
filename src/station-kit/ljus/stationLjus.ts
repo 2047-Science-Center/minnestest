@@ -3,6 +3,8 @@
  * Ett modul-globalt tillstånd per flik (som station-kit/rotation).
  *
  *   station<N>/underglow  (retained)  basen: hela stationens segment, samma form som central/lights
+ *   station<N>/underglow/<sida> (retained) delad station: bara den här sidans segment (SOM.md
+ *                         "Delad station: en topic per sida"); firmwaren slår ihop A + B per id
  *   station<N>/feedback   (ej retained) en gest ovanpå basen: {segments:[{id,from,to,color,tempo,antal}]}
  *   regi/phase            (prenumeration) basen utanför rotationen följer regis fas
  *   station<N>/hitta      (prenumeration) domslutet syns inte härifrån: HELA vagnen lyser i
@@ -18,8 +20,8 @@
  *   5. <LjusRemsa /> i appens rot → förhandsvisning med ?ljus=visa (utan hårdvara).
  *
  * Bara EN skrivare per station publicerar basen (ledarfönstret); alla fönster får skicka
- * gester (ej retained, krockar inte). Delad station (st2): `delad: true` + `egna: ['A']` →
- * {ersatt:false} med bara egna segment, ompublicerat var 15:e s (retained håller bara senaste).
+ * gester (ej retained, krockar inte). Delad station (st2): `sida: 'A'` + `egna: ['A', …]` → bara
+ * egna segment på station<N>/underglow/A (retained, ingen ompublicering; aldrig på station<N>/underglow).
  */
 import { reactive, readonly } from 'vue'
 import mqtt from 'mqtt'
@@ -45,8 +47,8 @@ export interface LjusOptions {
   segment: Record<string, [number, number]>
   /** Segment det här fönstret äger (delad station). Default: alla. */
   egna?: string[]
-  /** Delad station (två NUC:ar, en ESP32): {ersatt:false} + ompublicering. */
-  delad?: boolean
+  /** Delad station (två NUC:ar, en ESP32): den här NUC:ens sida → basen på station<N>/underglow/<sida>. */
+  sida?: 'A' | 'B' | null
   /** Publicerar det här fönstret basen? (ledarfönstret). Default true. Gester skickas ändå. */
   skrivare?: boolean
   /** Spela ett kanoniskt ljud (appens AudioEngine-mappning). */
@@ -55,8 +57,6 @@ export interface LjusOptions {
   visa?: boolean
   /** Spärrtid per segment för gester av samma/lägre prio (ms). Default 1500. */
   sparrMs?: number
-  /** Ompublicering av basen för delade stationer (ms). Default 15000. */
-  republishMs?: number
 }
 
 interface FxState {
@@ -91,10 +91,9 @@ const state = reactive({
 
 let opts: (Required<Omit<LjusOptions, 'spela'>> & { spela?: (l: LjudNamn) => void }) | null = null
 let client: LjusClient | null = null
-let republishTimer: ReturnType<typeof setInterval> | null = null
 let hittaTimer: ReturnType<typeof setTimeout> | null = null
 
-const underglowTopic = () => `station${opts!.stationN}/underglow`
+const underglowTopic = () => `station${opts!.stationN}/underglow${opts!.sida ? `/${opts!.sida}` : ''}`
 const feedbackTopic = () => `station${opts!.stationN}/feedback`
 const hittaTopic = () => `station${opts!.stationN}/hitta`
 const valdiTopic = () => `station${opts!.stationN}/valdi`
@@ -126,13 +125,13 @@ function publish(topic: string, payload: object, retain: boolean): void {
 function publiceraBas(force = false): void {
   recompute()
   if (!opts!.skrivare) return
-  const ids = opts!.delad ? egna() : Object.keys(opts!.segment)
+  const ids = opts!.sida ? egna() : Object.keys(opts!.segment)
   const segments = ids.map((id) => {
     const [from, to] = opts!.segment[id]
     return { id, from, to, ...state.bas[id] }
   })
   const lage = state.lage[ids[0]] ?? state.regiFas ?? 'vila'
-  const body = opts!.delad ? { lage, ersatt: false, segments } : { lage, segments }
+  const body = { lage, segments }
   const json = JSON.stringify(body)
   if (!force && json === state.senast) return
   state.senast = json
@@ -319,11 +318,10 @@ export function initLjus(o: LjusOptions, injected?: LjusClient): StationLjus {
   if (opts) return api
   opts = {
     egna: [],
-    delad: false,
+    sida: null,
     skrivare: true,
     visa: false,
     sparrMs: 1500,
-    republishMs: 15000,
     ...o,
   }
   state.enabled = o.enabled
@@ -353,7 +351,6 @@ export function initLjus(o: LjusOptions, injected?: LjusClient): StationLjus {
     client.subscribe(hittaTopic())
     client.subscribe(valdiTopic())
   }
-  if (opts.delad && opts.skrivare) republishTimer = setInterval(() => publiceraBas(true), opts.republishMs)
   return api
 }
 
@@ -382,8 +379,6 @@ export function ljusOptions(defaults: LjusOptions): LjusOptions {
 
 /** Endast för test: nollställ modulens singleton. */
 export function __resetLjusForTest(): void {
-  if (republishTimer) clearInterval(republishTimer)
-  republishTimer = null
   clearHitta()
   opts = null
   client = null
