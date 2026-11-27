@@ -88,6 +88,13 @@ describe('station-kit/ljus', () => {
     expect(fb.payload.segments[0]).toMatchObject({ color: FARG.amber, antal: 2 })
     const bas = () => f.sent.filter((m) => m.topic === 'station3/underglow').at(-1)!.payload.segments
     f.msg('station3/valdi', { lage: 'dom', color: '#ff5a3c' })
+    // Domen: basen släckt + 3 blink i valvfärgen (feedback), sedan hela vagnen fast i färgen.
+    expect(bas().map((s: { effekt: string }) => s.effekt)).toEqual(['av', 'av'])
+    expect(f.sent.filter((m) => m.topic === 'station3/feedback').at(-1)!.payload).toMatchObject({
+      gest: 'dom',
+      segments: [{ id: 'A', color: '#ff5a3c', tempo: 400, antal: 3 }, { id: 'B' }],
+    })
+    vi.advanceTimersByTime(1200)
     expect(bas().map((s: { color: string }) => s.color)).toEqual(['#ff5a3c', '#ff5a3c'])
     f.msg('station3/valdi', { lage: 'blixt' })
     expect(bas()[0].color).toBe('#ff5a3c')
@@ -209,7 +216,8 @@ describe('station-kit/ljus', () => {
     expect(lageFranRotation('running', 'skarp')).toBe('skarp')
     expect(lageFranRotation('lek', 'lek')).toBe('lek')
     expect(lageFranRotation('waiting', null)).toBeNull()
-    expect(regiLook('idle', 'drift')).toEqual({ color: VALVFARG.drift, effekt: 'puls' })
+    expect(regiLook('idle', 'drift')).toEqual({ color: FARG.amber, effekt: 'puls' }) // manus §4.1: bärnsten + vågen
+    expect(regiLook('klart', 'drift')).toEqual({ color: VALVFARG.drift, effekt: 'puls' }) // reserv utan capstone-spår
     expect(regiLook('rotation', 'drift')).toBeNull()
   })
 })
