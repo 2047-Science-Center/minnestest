@@ -420,6 +420,8 @@ export const ENTRE: EntreConfig = {
     },
   ],
   station3d: 'minne',
+  /** Spellägesmärket ① i ankomsten (xy-produktion/ankomst/UTVARDERING.md, spellage/FORSLAG ①). */
+  lage: 'motValdi',
   sides: {
     A: { id: 'A', label: 'Människa eller maskin' },
     B: { id: 'B', label: 'Lögndetektorn' },
