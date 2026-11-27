@@ -18,12 +18,7 @@ import { avslutText, utfallTyp } from '../avslutText'
 const store = useMinnestestStore()
 const ljus = useLjus()
 const o = computed(() => store.outcome)
-const isLd = computed(() => store.game === 'logndetektor')
-const segs = computed(() => {
-  const s: string[] = [segmentFor(store.game, thisSide())]
-  if (isLd.value) s.push('valdi')
-  return s
-})
+const segs = computed(() => [segmentFor(store.game, thisSide())])
 const text = computed(() => (o.value ? avslutText(store.game, o.value) : null))
 
 const avslut = useAvslut({

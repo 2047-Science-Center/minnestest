@@ -2,8 +2,9 @@
  * Station 2 (Människotestet A / Lögndetektorn B) → station-kit/ljus.
  * Design: xy-arkitektur/XY-FEEDBACK-LJUS-LJUD.md §5.2 (händelsetabellen), §3.1 (ljudnamn).
  *
- * DELAD station: en NUC per sida. Sida A skriver bara segment `A`, sida B skriver `B` +
- * `valdi` (VALdi-ringen). Delad vy (pilot, ingen sida) = alla segment, spelet avgör sidan.
+ * DELAD station: en NUC per sida. Sida A skriver bara `A` + `A.lur1–3`, sida B bara `B`.
+ * Delad vy (pilot, ingen sida) = alla segment, spelet avgör sidan. VALdi-ringen är inget
+ * underglow-segment (hålets egen ESP32, station2/valdi) — gester på `valdi` blir no-op.
  *
  * Rena funktioner här (testas i ljus.test.ts); komponenterna kallar useLjus() med dem.
  */
@@ -93,7 +94,7 @@ export function segmentFor(game: Game, side: SideId | null = null): Segment {
 /** Segment den här NUC:en äger. null (delad vy) = alla. */
 export function egnaSegment(side: SideId | null): string[] | undefined {
   if (side === 'A') return ['A', 'A.lur1', 'A.lur2', 'A.lur3']
-  if (side === 'B') return ['B', 'valdi']
+  if (side === 'B') return ['B']
   return undefined
 }
 
@@ -125,7 +126,8 @@ export function basLage(
 }
 
 /* ------------------------------------------------------------------ *
- * VALdi-ringen (segment `valdi`, bara sida B) speglar ValdiHole-videon.
+ * VALdi-ringen speglar ValdiHole-videon. OBS: `valdi` finns inte längre i LJUS.segment (ringen
+ * sitter på hålets ESP32, station2/valdi) — stegen nedan landar därför ingenstans på underglow.
  * Modulens lägen har inga VALdi-lägen (komet/antand/blixt kräver XyLjus, LJUSLAGEN §4),
  * så: vila/överväger/talar = vila · lyssnar (mik öppen) = ankomst (amber chase) ·
  * godkänd = vinst · förtroendet sjönk = fel · nekad = forlust · avaktivera = kvitto + vila.

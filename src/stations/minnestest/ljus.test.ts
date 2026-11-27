@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { basLage, egnaSegment, LJUD, ringFranHal, ringSteg, segmentFor, utslag } from './ljus'
 import { initLjus, __resetLjusForTest, type LjusClient } from '@/station-kit/ljus/stationLjus'
 import { FARG } from '@/station-kit/ljus/kanon'
+import { LJUS } from '@/config'
 
 const OFF = { phase: 'off', mode: null }
 
@@ -11,7 +12,7 @@ describe('station 2 ljus — sidor och bas', () => {
     expect(segmentFor('logndetektor')).toBe('B')
     expect(segmentFor('manniskotest', 'B')).toBe('B')
     expect(egnaSegment('A')).toEqual(['A', 'A.lur1', 'A.lur2', 'A.lur3'])
-    expect(egnaSegment('B')).toEqual(['B', 'valdi'])
+    expect(egnaSegment('B')).toEqual(['B'])
     expect(egnaSegment(null)).toBeUndefined()
   })
 
@@ -63,7 +64,7 @@ describe('station 2 ljus — delad station mot modulen', () => {
   })
   afterEach(() => vi.useRealTimers())
 
-  it('sida B skriver bara B + valdi (ersatt:false); ringens gest är tyst', () => {
+  function klient() {
     const sent: { topic: string; payload: any }[] = []
     let onConnect = () => {}
     const c: LjusClient = {
@@ -73,31 +74,53 @@ describe('station 2 ljus — delad station mot modulen', () => {
         if (ev === 'connect') onConnect = cb
       },
     }
+    return { sent, c, connect: () => onConnect() }
+  }
+  const bas = (sent: { topic: string; payload: any }[]) =>
+    sent.filter((m) => m.topic === 'station2/underglow').at(-1)!.payload
+
+  it('standardslingan: A 0–69 (lurarna = A.1/A.2/A.3), B 70–140, ingen valdi på underglow', () => {
+    expect(LJUS.segment.A).toEqual([0, 69])
+    expect(LJUS.segment.B).toEqual([70, 140])
+    expect([1, 2, 3].map((i) => LJUS.segment[`A.lur${i}`])).toEqual([[0, 23], [24, 45], [46, 69]])
+    expect(LJUS.segment.valdi).toBeUndefined()
+  })
+
+  it('sida A + sida B täcker tillsammans hela slingan 0–140 (ersatt:false)', () => {
+    const tackt = new Set<number>()
+    for (const sida of ['A', 'B'] as const) {
+      __resetLjusForTest()
+      const k = klient()
+      initLjus({ stationN: 2, enabled: true, mqttUrl: '', valv: 'teknolog', segment: LJUS.segment, egna: egnaSegment(sida), delad: true, skrivare: true }, k.c)
+      k.connect()
+      const b = bas(k.sent)
+      expect(b.ersatt).toBe(false)
+      expect(b.segments.map((x: { id: string }) => x.id)).toEqual(egnaSegment(sida))
+      for (const x of b.segments) for (let i = x.from; i <= x.to; i++) tackt.add(i)
+    }
+    expect(tackt.size).toBe(141)
+    expect(Math.min(...tackt)).toBe(0)
+    expect(Math.max(...tackt)).toBe(140)
+  })
+
+  it('sida B skriver bara B; ringens lägen/gester på valdi är no-op', () => {
+    const k = klient()
     const spela = vi.fn()
     const l = initLjus(
-      {
-        stationN: 2,
-        enabled: true,
-        mqttUrl: '',
-        valv: 'teknolog',
-        segment: { A: [0, 29], B: [30, 59], valdi: [60, 75] },
-        egna: egnaSegment('B'),
-        delad: true,
-        spela,
-      },
-      c,
+      { stationN: 2, enabled: true, mqttUrl: '', valv: 'teknolog', segment: LJUS.segment, egna: egnaSegment('B'), delad: true, skrivare: true, spela },
+      k.c,
     )
-    onConnect()
+    k.connect()
     l.lage('skarp', [segmentFor('logndetektor', 'B')])
     for (const s of ringSteg('vila', 'lyssnar')) if ('lage' in s) l.lage(s.lage, ['valdi'])
-    const bas = sent.filter((m) => m.topic === 'station2/underglow').at(-1)!.payload
-    expect(bas.ersatt).toBe(false)
-    expect(bas.segments.map((s: { id: string }) => s.id)).toEqual(['B', 'valdi'])
-    expect(bas.segments[0]).toMatchObject({ color: FARG.skarp, effekt: 'static' })
-    expect(bas.segments[1]).toMatchObject({ color: FARG.amber, effekt: 'chase' })
+    const b = bas(k.sent)
+    expect(b.segments).toEqual([{ id: 'B', from: 70, to: 140, color: FARG.skarp, effekt: 'static' }])
 
-    l.gest('kvitto', ['valdi'], { tyst: true })
-    expect(sent.at(-1)!.topic).toBe('station2/feedback')
+    const fore = k.sent.length
+    expect(l.gest('kvitto', ['valdi'], { tyst: true })).toBe(0)
+    expect(k.sent.length).toBe(fore)
+    expect(l.gest('kvitto', ['B'], { tyst: true })).toBe(1)
+    expect(k.sent.at(-1)!.topic).toBe('station2/feedback')
     expect(spela).not.toHaveBeenCalled()
   })
 })

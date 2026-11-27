@@ -87,23 +87,21 @@ export const BANDLOST: boolean = bandlostFran(true, import.meta.env.VITE_BANDLOS
 /**
  * LJUS (station-kit/ljus, XY-FEEDBACK-LJUS-LJUD §1.2/§5.2, SOM.md "Stationsljus"):
  * station2/underglow (bas, retained) + station2/feedback (gester). DELAD station: varje
- * sidas NUC skriver bara SINA segment — A = Människotestet (3 lurar), B = Lögndetektorn
- * (mik + kö) + `valdi` (VALdi-ringen på B-sidan). Pixelintervallen är BÄNK-värden
- * (Josefs 60 px-slinga: A = första halvan, B = andra halvan); riktiga intervall = Eriks
- * mätning. `valdi` ligger bortom 60 px och klipps på bänken. Av i piloten (följer
- * config.mode); ?ljus=1|0|visa / VITE_LJUS överstyr.
+ * sidas NUC skriver bara SINA segment — A = Människa eller maskin (3 lurar), B = Lögndetektorn.
+ * Standardslingan (SOM.md, 141 LED, samma som st1/st3): A 0–69, B 70–140. VALdi-ringen ligger
+ * INTE på underglow — den sitter på hålets egen ESP32 (station2/valdi). Josef 2026-11-27.
+ * Av i piloten (följer config.mode); ?ljus=1|0|visa / VITE_LJUS överstyr.
  */
 export const LJUS = {
   valv: 'teknolog' as const,
   segment: {
-    A: [0, 29],
-    /* Lampan under varje lur (Människa eller maskin: "din tur" i spelarens färg). Samma slinga som A —
-       PLATSHÅLLARE inuti A tills slingan mäts upp (Josef 2026-11-24: mappas i detalj sen). */
-    'A.lur1': [3, 7],
-    'A.lur2': [12, 16],
-    'A.lur3': [21, 25],
-    B: [30, 59],
-    valdi: [60, 75],
+    A: [0, 69],
+    /* Lampan under varje lur (Människa eller maskin: "din tur" i spelarens färg) = en del av
+       standardslingan var (A.1/A.2/A.3). PLATSHÅLLARE tills slingan mäts upp (Josef 2026-11-27). */
+    'A.lur1': [0, 23],
+    'A.lur2': [24, 45],
+    'A.lur3': [46, 69],
+    B: [70, 140],
   } as Record<string, [number, number]>,
 }
 

@@ -28,8 +28,8 @@ const { t } = useI18n()
 const store = useMinnestestStore()
 const rotation = useRotation()
 
-// --- Ljuset (XY-FEEDBACK-LJUS-LJUD §5.2): gester på EGEN sida (A | B); VALdi-ringen = `valdi`
-//     (bara lögndetektorn). Hålets/portens egna ljud spelar appen → gesterna går tysta. ---
+// --- Ljuset (XY-FEEDBACK-LJUS-LJUD §5.2): gester på EGEN sida (A | B). VALdi-ringen är inget
+//     underglow-segment längre (hålets ESP32) — ring-stegen på `valdi` nedan blir no-op. Hålets/portens egna ljud spelar appen → gesterna går tysta. ---
 const ljus = useLjus()
 const seg = computed(() => segmentFor(store.game, thisSide()))
 /** Sidans bas tillbaka (efter förra rummets utslag / överväger). */
@@ -217,8 +217,8 @@ function ready(): void {
   store.stopSpeak()
   // Lögndetektorn: "AKTIVERA VALDI" — hålet tänds (ljud) innan nedräkningen.
   if (isHole.value) audio.cue('sfx/sfx-valdi-activate.mp3', 0.9)
-  // Ljus: B = VALdi hörde dig (kvitto på ringen), A = kvitto på sidan. Ljuden ovan/nedan behålls.
-  ljus.gest('kvitto', [isHole.value ? 'valdi' : seg.value], { tyst: true })
+  // Ljus: kvitto på egen sida (VALdi-ringen är inte på underglow). Ljuden ovan/nedan behålls.
+  ljus.gest('kvitto', [seg.value], { tyst: true })
   sub.value = 'countdown'
   countdownN.value = config.countdownFrom
   audio.play('blip')
