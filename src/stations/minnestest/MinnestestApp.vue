@@ -20,7 +20,7 @@ import { initResultat, resultatOptions } from '@/station-kit/resultat'
 import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
 import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
 import MinnestestLek from './lek/MinnestestLek.vue'
-import { initLjus, ljusOptions, LjusRemsa } from '@/station-kit/ljus'
+import { initLjus, ljusOptions, LjusRemsa, medSaHarBlevDet } from '@/station-kit/ljus'
 import { initFilm, filmOptions, FilmOverlay } from '@/station-kit/film'
 import { initIncheckning, incheckningOptions } from '@/station-kit/incheckning/incheckning'
 import IncheckningScreen from '@/station-kit/incheckning/IncheckningScreen.vue'
@@ -226,7 +226,7 @@ watch(
 )
 // Sidans bas (bara egen sida). Skarpt klart → lek: 'klar'-gesten (sätter själv lila bas).
 watch(
-  [() => basLage(rotation.state, store.phase, store.isTutorial), () => rotation.state.phase],
+  [() => medSaHarBlevDet(entre.state.step, basLage(rotation.state, store.phase, store.isTutorial)), () => rotation.state.phase],
   ([lage, rp], old) => {
     const seg = segmentFor(store.game, mySide)
     if (rp === 'lek' && old?.[1] === 'running') ljus.gest('klar', [seg])
